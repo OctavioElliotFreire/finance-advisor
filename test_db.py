@@ -24,6 +24,9 @@ from db import (
     get_identity_for_member,
     get_last_sync_time,
     get_latest_analysis,
+    get_items_for_member,
+    get_all_items,
+    get_credit_card_bills_for_member,
 )
 
 MEMBER_ID = "dad"
@@ -279,3 +282,65 @@ def test_latest_analysis_returns_most_recent():
     result = get_latest_analysis(MEMBER_ID)
     print(f"most recent analysis model: {result['model']}")
     assert result["model"] == "model-b"
+
+
+# --- Items / Connections ---
+
+def test_get_items_for_member():
+    _setup_member_and_item()
+    result = get_items_for_member(MEMBER_ID)
+    print(f"items: {result}")
+    assert len(result) == 1
+    assert result[0]["connector_name"] == "Pluggy Bank"
+    assert result[0]["status"] == "UPDATED"
+
+
+def test_get_items_for_member_empty_for_unknown_member():
+    _setup_member_and_item()
+    result = get_items_for_member("unknown-member")
+    print(f"items for unknown member: {result}")
+    assert result == []
+
+
+def test_get_all_items_includes_member_name():
+    _setup_member_and_item()
+    result = get_all_items()
+    print(f"all items: {result}")
+    assert len(result) == 1
+    assert result[0]["member_name"] == "Dad"
+    assert result[0]["connector_name"] == "Pluggy Bank"
+
+
+def test_get_all_items_orders_by_member_then_connector():
+    upsert_member("mom", "Mom")
+    upsert_item({"id": "item-mom", "status": "UPDATED", "connector": {"id": 1, "name": "Other Bank"}}, "mom")
+    _setup_member_and_item()
+    result = get_all_items()
+    names = [(r["member_name"], r["connector_name"]) for r in result]
+    print(f"ordered items: {names}")
+    assert names == [("Dad", "Pluggy Bank"), ("Mom", "Other Bank")]
+
+
+def test_get_credit_card_bills_for_member():
+    _setup_member_and_item()
+    upsert_accounts(
+        [{"id": CREDIT_ACCOUNT_ID, "name": "Card", "type": "CREDIT", "subtype": None,
+          "balance": 0, "currencyCode": "BRL", "owner": None, "number": None, "creditData": None}],
+        ITEM_ID, MEMBER_ID,
+    )
+    bills = [{"id": "bill-1", "dueDate": "2026-07-10", "closingDate": "2026-07-01",
+              "balance": 500.0, "previousBalance": 400.0, "paymentAmount": 400.0,
+              "minimumPayment": 50.0, "currencyCode": "BRL"}]
+    upsert_credit_card_bills(bills, CREDIT_ACCOUNT_ID, MEMBER_ID)
+    result = get_credit_card_bills_for_member(MEMBER_ID)
+    print(f"bills via getter: {result}")
+    assert len(result) == 1
+    assert result[0]["due_date"] == "2026-07-10"
+    assert result[0]["balance"] == 500.0
+
+
+def test_get_credit_card_bills_for_member_empty():
+    _setup_member_and_item()
+    result = get_credit_card_bills_for_member(MEMBER_ID)
+    print(f"bills for member with none: {result}")
+    assert result == []

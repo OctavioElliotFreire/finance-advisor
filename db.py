@@ -396,6 +396,31 @@ def get_latest_analysis(member_id: str) -> dict | None:
         return dict(row) if row else None
 
 
+def get_items_for_member(member_id: str) -> list[dict]:
+    with get_connection() as conn:
+        return [dict(r) for r in conn.execute(
+            "SELECT * FROM items WHERE member_id = ? ORDER BY connector_name",
+            (member_id,),
+        )]
+
+
+def get_all_items() -> list[dict]:
+    with get_connection() as conn:
+        return [dict(r) for r in conn.execute(
+            """SELECT items.*, members.name AS member_name
+               FROM items JOIN members ON items.member_id = members.id
+               ORDER BY members.name, items.connector_name"""
+        )]
+
+
+def get_credit_card_bills_for_member(member_id: str) -> list[dict]:
+    with get_connection() as conn:
+        return [dict(r) for r in conn.execute(
+            "SELECT * FROM credit_card_bills WHERE member_id = ? ORDER BY due_date",
+            (member_id,),
+        )]
+
+
 if __name__ == "__main__":
     init_schema()
     print(f"Schema initialised at: {DB_PATH}")

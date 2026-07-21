@@ -117,6 +117,19 @@ def sync_all(
     return {"members_synced": len(members), "items_synced": items_synced}
 
 
+def sync_single_item(
+    item_id: str,
+    member_id: str,
+    log: Callable[[str], None] = print,
+) -> dict:
+    client = PluggyClient(
+        os.environ["PLUGGY_CLIENT_ID"],
+        os.environ["PLUGGY_CLIENT_SECRET"],
+    )
+    client.authenticate()
+    return sync_item(client, item_id, member_id, log=log)
+
+
 if __name__ == "__main__":
     from dotenv import load_dotenv
     load_dotenv()

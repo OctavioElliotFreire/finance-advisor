@@ -34,12 +34,21 @@ class GeminiProvider(LLMProvider):
         response = self.client.models.generate_content(
             model=self.model,
             contents=user_message,
-            config=types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT),
+            config=types.GenerateContentConfig(
+                system_instruction=SYSTEM_PROMPT,
+                response_mime_type="application/json",
+            ),
         )
         text = response.text
+        parsed_text = text.strip()
+        if parsed_text.startswith("```"):
+            parsed_text = parsed_text.strip("`")
+            if parsed_text.startswith("json"):
+                parsed_text = parsed_text[4:]
+            parsed_text = parsed_text.strip()
 
         try:
-            result = json.loads(text)
+            result = json.loads(parsed_text)
         except json.JSONDecodeError:
             return {"flagged": [], "error": "invalid_json", "raw": text}
 

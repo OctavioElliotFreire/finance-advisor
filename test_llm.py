@@ -164,6 +164,28 @@ def test_gemini_analyze_transactions_only_sends_debits():
     assert ids == {"t1", "t3"}
 
 
+def test_gemini_analyze_transactions_strips_markdown_code_fences():
+    # Gemini sometimes wraps JSON in ```json ... ``` fences even with
+    # response_mime_type set on older/edge-case responses -- must not be
+    # silently discarded as invalid_json (real bug: 7 real flagged
+    # transactions were lost this way before this fallback was added).
+    fenced = "```json\n" + json.dumps({"flagged": [{"transaction_id": "t3", "reason": "Unusual amount"}]}) + "\n```"
+    client = FakeGeminiClient(fenced)
+    provider = GeminiProvider(client=client)
+    result = provider.analyze_transactions("Dad", TXNS)
+    print(f"result: {result}")
+    assert result == {"flagged": [{"transaction_id": "t3", "reason": "Unusual amount"}]}
+
+
+def test_gemini_analyze_transactions_requests_json_mime_type():
+    client = FakeGeminiClient(json.dumps({"flagged": []}))
+    provider = GeminiProvider(client=client)
+    provider.analyze_transactions("Dad", TXNS)
+    config = client.models.last_call["config"]
+    print(f"response_mime_type: {config.response_mime_type}")
+    assert config.response_mime_type == "application/json"
+
+
 def test_gemini_analyze_transactions_handles_malformed_json():
     client = FakeGeminiClient("not json at all")
     provider = GeminiProvider(client=client)
