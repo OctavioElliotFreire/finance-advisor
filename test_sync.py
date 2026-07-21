@@ -71,7 +71,14 @@ def test_load_members_yaml_missing_id_raises(yaml_file):
 
 # --- sync_all integration (real Pluggy sandbox) ---
 
-ITEM_ID = os.environ.get("PLUGGY_ITEM_ID")
+def _real_item_id() -> str | None:
+    for member in load_members_yaml("members.yaml"):
+        if member.get("item_ids"):
+            return member["item_ids"][0]
+    return None
+
+
+ITEM_ID = _real_item_id()
 
 @pytest.mark.skipif(
     not os.environ.get("PLUGGY_CLIENT_ID"),

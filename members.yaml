@@ -2,4 +2,10 @@ members:
   - id: dad
     name: Dad
     item_ids:
-      - bd934bf2-c78e-499b-9393-c7a8017ae8d5  # sandbox connector 0
+      - eaf0ce91-1c8e-4f2e-a1e6-cbc2e23999bf
+      - 1591bc3d-661c-4a0c-a1c5-dedb78fade46
+      
+  - id: mom
+    name: Mom
+    item_ids:
+     - 86e48e55-7914-4161-9e7c-ba3251534447

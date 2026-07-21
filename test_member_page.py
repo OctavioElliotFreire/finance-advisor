@@ -2,6 +2,8 @@
 Tests for data layer used by pages/02_member.py.
 Covers accounts/transactions/investments/loans query correctness.
 """
+from datetime import datetime, timedelta
+
 import pytest
 
 import db
@@ -12,6 +14,10 @@ from db import (
     get_investments_for_member, get_loans_for_member,
     get_identity_for_member,
 )
+
+NOW = datetime.now()
+RECENT_1 = (NOW - timedelta(days=5)).strftime("%Y-%m-%dT00:00:00.000Z")
+RECENT_2 = (NOW - timedelta(days=15)).strftime("%Y-%m-%dT00:00:00.000Z")
 
 ITEM = {"id": "item-1", "status": "UPDATED", "connector": {"id": 0, "name": "Sandbox"}}
 
@@ -31,7 +37,7 @@ CREDIT = {
 TXN_DEBIT = {
     "id": "t1", "description": "Market", "descriptionRaw": "MKT",
     "amount": 150.0, "amountInAccountCurrency": 150.0, "currencyCode": "BRL",
-    "date": "2026-06-10T00:00:00.000Z", "type": "DEBIT", "operationType": None,
+    "date": RECENT_1, "type": "DEBIT", "operationType": None,
     "category": "Food", "categoryId": None, "status": "POSTED", "balance": None,
     "providerCode": None, "providerId": None,
     "merchant": {"name": "Supermarket", "cnpj": None},
@@ -40,7 +46,7 @@ TXN_DEBIT = {
 TXN_CREDIT = {
     "id": "t2", "description": "Salary", "descriptionRaw": "SAL",
     "amount": 8000.0, "amountInAccountCurrency": 8000.0, "currencyCode": "BRL",
-    "date": "2026-06-01T00:00:00.000Z", "type": "CREDIT", "operationType": None,
+    "date": RECENT_2, "type": "CREDIT", "operationType": None,
     "category": "Income", "categoryId": None, "status": "POSTED", "balance": None,
     "providerCode": None, "providerId": None,
     "merchant": None, "paymentData": None, "creditCardMetadata": None,
@@ -94,17 +100,20 @@ def dad():
 def test_get_accounts_returns_both_types(dad):
     accounts = get_accounts_for_member("dad")
     types = {a["type"] for a in accounts}
+    print(f"account types: {types}")
     assert "BANK" in types
     assert "CREDIT" in types
 
 
 def test_get_accounts_bank_balance(dad):
     bank = next(a for a in get_accounts_for_member("dad") if a["type"] == "BANK")
+    print(f"bank account: {bank}")
     assert bank["balance"] == 2500.0
 
 
 def test_get_accounts_credit_fields(dad):
     credit = next(a for a in get_accounts_for_member("dad") if a["type"] == "CREDIT")
+    print(f"credit account: {credit}")
     assert credit["credit_limit"] == 10000.0
     assert credit["available_credit"] == 7000.0
 
@@ -119,6 +128,7 @@ def test_get_accounts_empty_member():
 def test_get_transactions_last_30_days(dad):
     txns = get_transactions_for_member("dad", days=30)
     ids = {t["id"] for t in txns}
+    print(f"ids within 30 days: {ids}")
     assert "t1" in ids
     assert "t2" in ids
     assert "t3" not in ids  # 2020 txn excluded
@@ -127,18 +137,21 @@ def test_get_transactions_last_30_days(dad):
 def test_get_transactions_all_time(dad):
     txns = get_transactions_for_member("dad", days=3650)
     ids = {t["id"] for t in txns}
+    print(f"all-time ids: {ids}")
     assert "t3" in ids
 
 
 def test_get_transactions_ordered_desc(dad):
     txns = get_transactions_for_member("dad", days=3650)
     dates = [t["date"][:10] for t in txns]
+    print(f"dates in order: {dates}")
     assert dates == sorted(dates, reverse=True)
 
 
 def test_get_transactions_has_merchant(dad):
     txns = get_transactions_for_member("dad", days=30)
     debit = next(t for t in txns if t["id"] == "t1")
+    print(f"debit txn: {debit}")
     assert debit["merchant_name"] == "Supermarket"
 
 
@@ -151,12 +164,14 @@ def test_get_transactions_empty_member():
 
 def test_get_investments_returns_all(dad):
     investments = get_investments_for_member("dad")
+    print(f"investments: {investments}")
     assert len(investments) == 2
 
 
 def test_get_investments_active_filter_in_page(dad):
     investments = get_investments_for_member("dad")
     active = [i for i in investments if i["status"] != "TOTAL_WITHDRAWAL"]
+    print(f"active investments: {active}")
     assert len(active) == 1
     assert active[0]["name"] == "Tesouro"
 
@@ -164,6 +179,7 @@ def test_get_investments_active_filter_in_page(dad):
 def test_get_investments_value(dad):
     investments = get_investments_for_member("dad")
     active = [i for i in investments if i["status"] == "ACTIVE"]
+    print(f"active investment value: {active[0]['value']}")
     assert active[0]["value"] == 5000.0
 
 
@@ -176,12 +192,14 @@ def test_get_investments_empty_member():
 
 def test_get_loans_returns_all(dad):
     loans = get_loans_for_member("dad")
+    print(f"loans: {loans}")
     assert len(loans) == 2
 
 
 def test_get_loans_active_filter(dad):
     loans = get_loans_for_member("dad")
     active = [l for l in loans if l["status"] not in ("SETTLED", "CANCELLED")]
+    print(f"active loans: {active}")
     assert len(active) == 1
     assert active[0]["outstanding_balance"] == 15000.0
 

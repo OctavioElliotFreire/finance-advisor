@@ -65,7 +65,7 @@ class PluggyClient:
     def get_transactions(self, account_id: str, cursor: str | None = None) -> dict:
         params = {"accountId": account_id}
         if cursor:
-            params["cursor"] = cursor
+            params["after"] = cursor
         resp = requests.get(
             f"{BASE_URL}/v2/transactions",
             headers=self._headers(),

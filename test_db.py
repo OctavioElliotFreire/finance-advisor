@@ -1,6 +1,7 @@
 import json
 import os
 import tempfile
+from datetime import datetime, timedelta
 import pytest
 
 import db
@@ -48,6 +49,7 @@ def test_schema_creates_all_tables():
         )}
     expected = {"members", "items", "accounts", "transactions", "investments",
                 "identity", "credit_card_bills", "loans", "llm_analyses"}
+    print(f"tables in db: {sorted(tables)}")
     assert expected.issubset(tables)
 
 
@@ -56,6 +58,7 @@ def test_schema_creates_all_tables():
 def test_upsert_member():
     upsert_member(MEMBER_ID, "Dad")
     members = get_all_members()
+    print(f"members: {members}")
     assert len(members) == 1
     assert members[0]["name"] == "Dad"
 
@@ -64,6 +67,7 @@ def test_upsert_member_replace():
     upsert_member(MEMBER_ID, "Dad")
     upsert_member(MEMBER_ID, "Papa")
     members = get_all_members()
+    print(f"members after replace: {members}")
     assert len(members) == 1
     assert members[0]["name"] == "Papa"
 
@@ -75,6 +79,7 @@ def test_upsert_item():
     item = {"id": ITEM_ID, "status": "UPDATED", "connector": {"id": 0, "name": "Pluggy Bank"}}
     upsert_item(item, MEMBER_ID)
     sync_time = get_last_sync_time(MEMBER_ID)
+    print(f"last_sync_time: {sync_time}")
     assert sync_time is not None
 
 
@@ -92,6 +97,7 @@ def test_upsert_bank_account():
                  "owner": "John", "number": "12345", "creditData": None}]
     upsert_accounts(accounts, ITEM_ID, MEMBER_ID)
     result = get_accounts_for_member(MEMBER_ID)
+    print(f"bank account: {result}")
     assert len(result) == 1
     assert result[0]["name"] == "Conta Corrente"
     assert result[0]["balance"] == 1000.0
@@ -108,6 +114,7 @@ def test_upsert_credit_account():
                                 "minimumTotalAmountDue": 50, "brand": "MASTERCARD"}}]
     upsert_accounts(accounts, ITEM_ID, MEMBER_ID)
     result = get_accounts_for_member(MEMBER_ID)
+    print(f"credit account: {result}")
     assert result[0]["credit_limit"] == 5000
     assert result[0]["available_credit"] == 4800
     assert result[0]["brand"] == "MASTERCARD"
@@ -120,6 +127,7 @@ def test_account_raw_json_stored():
     upsert_accounts([acc], ITEM_ID, MEMBER_ID)
     result = get_accounts_for_member(MEMBER_ID)
     raw = json.loads(result[0]["raw_json"])
+    print(f"raw_json: {raw}")
     assert raw["id"] == ACCOUNT_ID
 
 
@@ -139,7 +147,7 @@ def test_upsert_transactions():
     txns = [
         {"id": "t1", "description": "Supermercado", "descriptionRaw": "SUPERMERCADO SA",
          "amount": -50.0, "amountInAccountCurrency": -50.0, "currencyCode": "BRL",
-         "date": "2026-06-01", "type": "DEBIT", "operationType": None,
+         "date": (datetime.now() - timedelta(days=10)).strftime("%Y-%m-%d"), "type": "DEBIT", "operationType": None,
          "category": "Food", "categoryId": "cat-1", "status": "POSTED",
          "balance": 950.0, "providerCode": None, "providerId": None,
          "merchant": {"name": "Mercado", "cnpj": "123"},
@@ -147,6 +155,7 @@ def test_upsert_transactions():
     ]
     upsert_transactions(txns, ACCOUNT_ID, MEMBER_ID)
     result = get_transactions_for_member(MEMBER_ID, days=90)
+    print(f"transactions: {result}")
     assert len(result) == 1
     assert result[0]["description"] == "Supermercado"
     assert result[0]["merchant_name"] == "Mercado"
@@ -161,7 +170,8 @@ def test_transactions_date_filter():
          "status": None, "balance": None, "providerCode": None, "providerId": None,
          "merchant": None, "paymentData": None, "creditCardMetadata": None},
         {"id": "t-new", "description": "New", "descriptionRaw": None, "amount": -20,
-         "amountInAccountCurrency": -20, "currencyCode": "BRL", "date": "2026-06-15",
+         "amountInAccountCurrency": -20, "currencyCode": "BRL",
+         "date": (datetime.now() - timedelta(days=10)).strftime("%Y-%m-%d"),
          "type": "DEBIT", "operationType": None, "category": None, "categoryId": None,
          "status": None, "balance": None, "providerCode": None, "providerId": None,
          "merchant": None, "paymentData": None, "creditCardMetadata": None},
@@ -169,6 +179,7 @@ def test_transactions_date_filter():
     upsert_transactions(txns, ACCOUNT_ID, MEMBER_ID)
     result = get_transactions_for_member(MEMBER_ID, days=30)
     ids = [r["id"] for r in result]
+    print(f"ids within 30 days: {ids}")
     assert "t-new" in ids
     assert "t-old" not in ids
 
@@ -187,6 +198,7 @@ def test_upsert_investments():
     ]
     upsert_investments(investments, ITEM_ID, MEMBER_ID)
     result = get_investments_for_member(MEMBER_ID)
+    print(f"investments: {result}")
     assert len(result) == 1
     assert result[0]["name"] == "FCI Premium"
     assert result[0]["value"] == 1000.0
@@ -201,6 +213,7 @@ def test_upsert_identity():
                 "emails": ["john@example.com"], "addresses": []}
     upsert_identity(identity, ITEM_ID, MEMBER_ID)
     result = get_identity_for_member(MEMBER_ID)
+    print(f"identity: {result}")
     assert result is not None
     assert result["full_name"] == "John Doe"
     assert result["cpf_number"] == "123.456.789-00"
@@ -222,6 +235,7 @@ def test_upsert_credit_card_bills():
     from db import get_connection
     with get_connection() as conn:
         rows = conn.execute("SELECT * FROM credit_card_bills WHERE member_id = ?", (MEMBER_ID,)).fetchall()
+    print(f"bills: {[dict(r) for r in rows]}")
     assert len(rows) == 1
     assert rows[0]["balance"] == 500.0
 
@@ -237,6 +251,7 @@ def test_upsert_loans():
               "interestRate": 0.015, "currencyCode": "BRL"}]
     upsert_loans(loans, ITEM_ID, MEMBER_ID)
     result = get_loans_for_member(MEMBER_ID)
+    print(f"loans: {result}")
     assert len(result) == 1
     assert result[0]["contract_amount"] == 10000.0
     assert result[0]["outstanding_balance"] == 8000.0
@@ -249,6 +264,7 @@ def test_save_and_retrieve_llm_analysis():
     response = {"flagged": [{"transaction_id": "t1", "reason": "Unexpected fee"}]}
     save_llm_analysis(MEMBER_ID, 30, "anthropic", "claude-haiku-4-5-20251001", response, 1)
     result = get_latest_analysis(MEMBER_ID)
+    print(f"latest analysis: {result}")
     assert result is not None
     assert result["flagged_count"] == 1
     assert result["provider"] == "anthropic"
@@ -261,4 +277,5 @@ def test_latest_analysis_returns_most_recent():
     save_llm_analysis(MEMBER_ID, 30, "anthropic", "model-a", {"flagged": []}, 0)
     save_llm_analysis(MEMBER_ID, 30, "anthropic", "model-b", {"flagged": [{"transaction_id": "x", "reason": "fee"}]}, 1)
     result = get_latest_analysis(MEMBER_ID)
+    print(f"most recent analysis model: {result['model']}")
     assert result["model"] == "model-b"
