@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+alembic
+psycopg[binary]
+pydantic
+pydantic-settings
+python-dotenv
+pytest
+httpx
+pyjwt[crypto]
+anthropic>=0.28.0
+google-genai>=0.3.0
