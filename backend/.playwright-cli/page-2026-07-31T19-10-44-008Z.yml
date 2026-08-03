@@ -1,0 +1,13 @@
+- generic [ref=f1e4]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - button "Back" [active] [ref=f1e98]
+            - heading "Screenshot Tour Family — Connections" [level=2] [ref=f1e99]
+          - generic:
+            - group:
+              - generic [ref=f1e100]: You
+              - generic: "37e7fe2e-4d35-490d-aa1c-68a626b54493 Status: UPDATED"
+          - button "Connect institution" [ref=f1e102]

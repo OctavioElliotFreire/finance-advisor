@@ -1,0 +1,11 @@
+- generic [active] [ref=e5] [cursor=pointer]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic [ref=e13]: Create your account
+            - textbox "Email" [ref=e15]
+            - textbox "Password" [ref=e17]
+            - button "Register" [ref=e18]
+            - button "Already have an account? Log in" [ref=e19]

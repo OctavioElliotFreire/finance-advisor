@@ -17,6 +17,7 @@ class DashboardView extends StatefulWidget {
     required this.onManageConnections,
     required this.onViewFinances,
     required this.onViewAnomalies,
+    required this.onManageMembers,
   });
 
   final DashboardRepository dashboardRepository;
@@ -25,6 +26,7 @@ class DashboardView extends StatefulWidget {
   final VoidCallback onManageConnections;
   final VoidCallback onViewFinances;
   final VoidCallback onViewAnomalies;
+  final VoidCallback onManageMembers;
 
   @override
   State<DashboardView> createState() => _DashboardViewState();
@@ -62,6 +64,11 @@ class _DashboardViewState extends State<DashboardView> {
             icon: const Icon(Icons.account_balance),
             tooltip: 'Connections',
             onPressed: widget.onManageConnections,
+          ),
+          IconButton(
+            icon: const Icon(Icons.group),
+            tooltip: 'Members',
+            onPressed: widget.onManageMembers,
           ),
         ],
       ),

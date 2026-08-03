@@ -14,6 +14,7 @@ import '../ui/features/connections/views/connections_view.dart';
 import '../ui/features/dashboard/views/dashboard_view.dart';
 import '../ui/features/finances/views/finances_view.dart';
 import '../ui/features/households/views/household_list_view.dart';
+import '../ui/features/households/views/members_view.dart';
 
 GoRouter buildRouter({
   required AuthRepository authRepository,
@@ -91,8 +92,20 @@ GoRouter buildRouter({
               '/households/$householdId/anomalies',
               extra: householdName,
             ),
+            onManageMembers: () => context.push(
+              '/households/$householdId/members',
+              extra: householdName,
+            ),
           );
         },
+      ),
+      GoRoute(
+        path: '/households/:householdId/members',
+        builder: (context, state) => MembersView(
+          householdRepository: householdRepository,
+          householdId: state.pathParameters['householdId']!,
+          householdName: state.extra as String? ?? 'Household',
+        ),
       ),
       GoRoute(
         path: '/households/:householdId/connections',
@@ -100,6 +113,7 @@ GoRouter buildRouter({
           connectionRepository: connectionRepository,
           householdId: state.pathParameters['householdId']!,
           householdName: state.extra as String? ?? 'Household',
+          currentUserEmail: authRepository.currentUser?.email,
         ),
       ),
       GoRoute(

@@ -1,0 +1,32 @@
+- generic [ref=f1e4]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - button "Back" [active] [ref=f1e61]
+            - heading "Screenshot Tour Family · Anomalies" [level=2] [ref=f1e62]
+          - checkbox "All" [checked] [ref=f1e63]
+          - checkbox "Open" [ref=f1e64]
+          - checkbox "Confirmed" [ref=f1e65]
+          - checkbox "Dismissed" [ref=f1e66]
+          - generic:
+            - group:
+              - generic:
+                - group "open R$ 800.00 for \"CONDOMINIO EDIFICIO SOLAR\" is 3.0 standard deviations above this household's average debit of R$ 165.75":
+                  - checkbox "Medium" [ref=f1e67]
+                  - button "Explain" [ref=f1e68]
+                  - button "Confirm" [ref=f1e69]
+                  - button "Dismiss" [ref=f1e70]
+              - generic:
+                - group "open First transaction with \"PAGAMENTO FATURA CARTAO VISA\" for R$ 167.70":
+                  - checkbox "Low" [ref=f1e71]
+                  - button "Explain" [ref=f1e72]
+                  - button "Confirm" [ref=f1e73]
+                  - button "Dismiss" [ref=f1e74]
+              - generic:
+                - group "open First transaction with \"Pagamento de boleto\" for R$ 100.00":
+                  - checkbox "Low" [ref=f1e75]
+                  - button "Explain" [ref=f1e76]
+                  - button "Confirm" [ref=f1e77]
+                  - button "Dismiss" [ref=f1e78]

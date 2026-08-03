@@ -1,0 +1,18 @@
+- generic [ref=e5]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - button "Back" [active] [ref=e29]
+            - heading "Expect UI Smoke Household" [level=2] [ref=e30]
+            - button "Finances" [ref=e31]
+            - button "Anomalies" [ref=e32]
+            - button "Connections" [ref=e33]
+          - generic:
+            - group:
+              - generic:
+                - group "Total balance R$0.00 No accounts synced yet.":
+                  - checkbox "Never synced" [ref=e34]
+                - generic [ref=e35]: Recent transactions No transactions synced yet.
+                - generic [ref=e36]: Monthly cash flow No transactions synced yet.

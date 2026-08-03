@@ -1,0 +1,28 @@
+- generic [ref=f1e4]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - button "Back" [active] [ref=f1e27]
+            - heading "Screenshot Tour Family · Finances" [level=2] [ref=f1e28]
+            - group:
+              - tablist:
+                - tab "Investments" [selected] [ref=f1e29]
+                - tab "Loans" [ref=f1e30]
+                - tab "Bills" [ref=f1e31]
+                - tab "Balance History" [ref=f1e32]
+                - tab "Categories" [ref=f1e33]
+          - generic:
+            - generic:
+              - tabpanel:
+                - generic:
+                  - group:
+                    - generic: GGRC11 REAL_ESTATE_FUND R$118.40
+                    - generic: BOVA11 ETF R$118.40
+                    - generic: ISUS11 STOCK ETF R$2,000.00
+                    - generic: CDR CDB R$2,000.00
+                    - generic: Fondo de Investimento Basic INVESTMENT_FUND R$2,000.00
+                    - generic: Fondo de Investimento Premium INVESTMENT_FUND R$1,359.39
+                    - generic: ITAU Sandbox previdencia PGBL R$11,720.42
+                    - generic: Pluggy PREVIDENCIA RETIREMENT R$1,359.39

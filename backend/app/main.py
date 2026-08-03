@@ -5,6 +5,7 @@ from app.api.anomalies import router as anomalies_router
 from app.api.connections import router as connections_router
 from app.api.dashboard import router as dashboard_router
 from app.api.extended_finance import router as extended_finance_router
+from app.api.household_members import router as household_members_router
 from app.api.households import router as households_router
 from app.api.me import router as me_router
 from app.settings import settings
@@ -19,6 +20,7 @@ app.add_middleware(
 )
 app.include_router(me_router)
 app.include_router(households_router)
+app.include_router(household_members_router)
 app.include_router(connections_router)
 app.include_router(dashboard_router)
 app.include_router(extended_finance_router)

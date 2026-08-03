@@ -1,0 +1,12 @@
+- generic [ref=e5]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - heading "Your households" [level=2] [ref=e37]
+            - button "Log out" [ref=e38]
+          - generic:
+            - group:
+              - 'button "Screenshot Tour Family Role: owner" [ref=e39]'
+          - button [active] [ref=e40]

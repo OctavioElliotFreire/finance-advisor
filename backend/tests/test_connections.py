@@ -177,6 +177,7 @@ def test_create_connection_creates_row_and_queued_sync_job(client, make_user):
     body = response.json()
     assert body["pluggy_item_id"] == "item-123"
     assert body["status"] == "UPDATED"
+    assert body["created_by"]["email"] == "sync@example.com"
 
     db = SessionLocal()
     jobs = (
@@ -208,6 +209,53 @@ def test_create_connection_duplicate_is_conflict(client, make_user):
 
     assert first.status_code == 201
     assert second.status_code == 409
+
+
+def test_connections_are_attributed_to_the_member_who_created_them(client, make_user):
+    headers_a = make_user("membera@example.com")
+    headers_b = make_user("memberb@example.com")
+    household = client.post(
+        "/v1/households", json={"name": "Attribution Family"}, headers=headers_a
+    ).json()
+
+    client.get("/v1/me", headers=headers_b)  # ensure the app_users row exists
+
+    db = SessionLocal()
+    member_b = db.query(AppUser).filter(AppUser.email == "memberb@example.com").one()
+    db.add(
+        HouseholdMember(
+            household_id=household["id"], app_user_id=member_b.id, role="member"
+        )
+    )
+    db.commit()
+    db.close()
+
+    client.post(
+        f"/v1/households/{household['id']}/connections",
+        json={"pluggy_item_id": "item-a1"},
+        headers=headers_a,
+    )
+    client.post(
+        f"/v1/households/{household['id']}/connections",
+        json={"pluggy_item_id": "item-a2"},
+        headers=headers_a,
+    )
+    client.post(
+        f"/v1/households/{household['id']}/connections",
+        json={"pluggy_item_id": "item-b1"},
+        headers=headers_b,
+    )
+
+    response = client.get(
+        f"/v1/households/{household['id']}/connections", headers=headers_a
+    )
+    assert response.status_code == 200
+    by_item = {c["pluggy_item_id"]: c["created_by"]["email"] for c in response.json()}
+    assert by_item == {
+        "item-a1": "membera@example.com",
+        "item-a2": "membera@example.com",
+        "item-b1": "memberb@example.com",
+    }
 
 
 def test_family_a_cannot_list_family_b_connections(client, make_user):

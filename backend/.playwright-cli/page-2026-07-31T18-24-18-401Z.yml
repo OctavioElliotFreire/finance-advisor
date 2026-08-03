@@ -1,0 +1,12 @@
+- generic [ref=e4]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - heading "Your households" [level=2] [ref=e22]
+            - button "Log out" [ref=e23]
+          - generic:
+            - group:
+              - 'button "Members Smoke Family Role: owner" [ref=e24]'
+          - button [active] [ref=e25]

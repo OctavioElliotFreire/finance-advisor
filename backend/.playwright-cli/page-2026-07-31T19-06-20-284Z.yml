@@ -1,0 +1,11 @@
+- generic [active] [ref=e5] [cursor=pointer]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic [ref=e20]: Family Finance
+            - textbox "Email" [ref=e22]
+            - textbox "Password" [ref=e24]
+            - button "Log in" [ref=e25]
+            - button "Don't have an account? Register" [ref=e26]

@@ -706,6 +706,15 @@ anomaly_flags
 audit_events
 ```
 
+`pluggy_connections` carries a nullable `created_by_app_user_id` FK to
+`app_users.id` (added 2026-07-30), attributing each bank connection to the
+household member who created it — nullable so legacy rows created before
+this column existed don't need a backfill. `GET/POST
+/v1/households/{id}/connections` responses include a nested `created_by
+{id, email}` object (`null` for unattributed legacy connections) so the
+frontend can group a household's connections per member (e.g. "Member A:
+Bank X, Bank Y" / "Member B: Bank Z") instead of a flat, unowned list.
+
 Every sensitive financial table should contain:
 
 ```sql
@@ -810,6 +819,15 @@ Example permissions:
 
 Permissions must be enforced by FastAPI, not only hidden in Flutter.
 
+"Invite users" (added 2026-07-31) is implemented as `POST
+/v1/households/{id}/members`, owner-only, by email — **existing users
+only**: if the email has no `app_users` account yet (no prior Supabase
+login), the invite 404s with a message asking them to sign up first, rather
+than creating a pending invite or sending an email itself. This sidesteps
+Supabase's free-tier email-send rate limit (see `CLAUDE.md`) entirely for
+this feature. Inviting someone with no account yet, changing a member's
+role after invite, and removing a member are all explicitly deferred.
+
 ---
 
 ## API Design
@@ -844,6 +862,14 @@ DELETE /v1/account
 ```
 
 Flutter should depend on these endpoints, not on Supabase table names.
+
+Actual connections responses (`GET`/`POST .../connections`) include a
+nested `created_by {id, email}` object identifying which household member
+created the connection — see Multi-Tenant Data Model above.
+
+Also actually implemented, not in the sketch above:
+`GET`/`POST /v1/households/{id}/members` — list/invite household members
+(owner-only invite, existing-users-only, see Household Roles above).
 
 ---
 

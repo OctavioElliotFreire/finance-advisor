@@ -1,0 +1,7 @@
+- generic [ref=e31]:
+  - alertdialog:
+    - generic "Alert":
+      - generic [ref=e32]: Create household
+      - textbox "Household name" [active] [ref=e34]
+      - button "Cancel" [ref=e35]
+      - button "Create" [ref=e36]

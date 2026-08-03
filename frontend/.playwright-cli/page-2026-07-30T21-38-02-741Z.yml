@@ -1,0 +1,13 @@
+- generic [ref=e5]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - button "Back" [ref=e37]
+            - heading "Expect UI Smoke Household — Connections" [level=2] [ref=e38]
+          - generic:
+            - group:
+              - generic [ref=e39]: No institutions connected yet.
+          - generic [ref=e41]: Connecting institutions from the web app is coming soon — use the mobile app for now.
+          - button "Connect institution" [active] [ref=e40]

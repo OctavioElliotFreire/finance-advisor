@@ -1,0 +1,14 @@
+- generic [ref=e4]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - button "Back" [ref=e58]
+            - heading "Members Smoke Family — Members" [level=2] [ref=e59]
+          - generic:
+            - group:
+              - generic [ref=e60]: No account found for that email. Ask them to sign up, then invite again.
+              - generic: "owner-ui-smoke@example.com Role: owner"
+              - generic: "invitee-ui-smoke@example.com Role: member"
+          - button "Invite member" [active] [ref=e63]

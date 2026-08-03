@@ -1,0 +1,21 @@
+- generic [ref=f1e5] [cursor=pointer]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - button "Back" [ref=f1e27]
+            - heading "Expect UI Smoke Household · Finances" [level=2] [ref=f1e28]
+            - group:
+              - tablist:
+                - tab "Investments" [ref=f1e29]
+                - tab "Loans" [ref=f1e30]
+                - tab "Bills" [ref=f1e31]
+                - tab "Balance History" [ref=f1e32]
+                - tab "Categories" [active] [selected] [ref=f1e33]
+          - generic:
+            - generic:
+              - tabpanel:
+                - generic:
+                  - group:
+                    - progressbar "Uncategorized R$1,372.70 100" [ref=f1e46]

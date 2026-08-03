@@ -1,0 +1,32 @@
+- generic [ref=f1e5]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - button "Back" [active] [ref=f1e103]
+            - heading "Expect UI Smoke Household · Anomalies" [level=2] [ref=f1e104]
+          - checkbox "All" [checked] [ref=f1e105]
+          - checkbox "Open" [ref=f1e106]
+          - checkbox "Confirmed" [ref=f1e107]
+          - checkbox "Dismissed" [ref=f1e108]
+          - generic:
+            - group:
+              - generic:
+                - group "open First transaction with \"PAGAMENTO FATURA CARTAO VISA\" for R$ 167.70":
+                  - checkbox "Low" [ref=f1e109]
+                  - button "Explain" [ref=f1e110]
+                  - button "Confirm" [ref=f1e111]
+                  - button "Dismiss" [ref=f1e112]
+              - generic:
+                - group "open First transaction with \"Pagamento de boleto\" for R$ 100.00":
+                  - checkbox "Low" [ref=f1e113]
+                  - button "Explain" [ref=f1e114]
+                  - button "Confirm" [ref=f1e115]
+                  - button "Dismiss" [ref=f1e116]
+              - generic:
+                - group "dismissed R$ 800.00 for \"CONDOMINIO EDIFICIO SOLAR\" is 3.0 standard deviations above this household's average debit of R$ 165.75":
+                  - checkbox "Medium" [ref=f1e117]
+                  - button "Explain" [ref=f1e118]
+                  - button "Confirm" [ref=f1e119]
+                  - button "Dismiss" [disabled] [ref=f1e120]

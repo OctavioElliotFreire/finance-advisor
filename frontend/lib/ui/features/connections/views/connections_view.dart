@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../data/models/pluggy_connection.dart';
 import '../../../../data/repositories/connection_repository.dart';
 import '../../../core/widgets/error_banner.dart';
 import '../view_models/connections_view_model.dart';
@@ -12,11 +13,13 @@ class ConnectionsView extends StatefulWidget {
     required this.connectionRepository,
     required this.householdId,
     required this.householdName,
+    this.currentUserEmail,
   });
 
   final ConnectionRepository connectionRepository;
   final String householdId;
   final String householdName;
+  final String? currentUserEmail;
 
   @override
   State<ConnectionsView> createState() => _ConnectionsViewState();
@@ -32,6 +35,26 @@ class _ConnectionsViewState extends State<ConnectionsView> {
   void dispose() {
     _viewModel.dispose();
     super.dispose();
+  }
+
+  List<_ConnectionGroup> _groupByMember(List<PluggyConnection> connections) {
+    final byEmail = <String?, List<PluggyConnection>>{};
+    for (final connection in connections) {
+      byEmail.putIfAbsent(connection.createdByEmail, () => []).add(connection);
+    }
+
+    final currentUserEmail = widget.currentUserEmail;
+    final otherEmails =
+        byEmail.keys.whereType<String>().where((email) => email != currentUserEmail).toList()
+          ..sort();
+
+    return [
+      if (byEmail.containsKey(currentUserEmail) && currentUserEmail != null)
+        _ConnectionGroup('You', byEmail[currentUserEmail]!),
+      for (final email in otherEmails) _ConnectionGroup(email, byEmail[email]!),
+      if (byEmail.containsKey(null))
+        _ConnectionGroup('Unknown', byEmail[null]!),
+    ];
   }
 
   Future<void> _connect() async {
@@ -87,14 +110,23 @@ class _ConnectionsViewState extends State<ConnectionsView> {
                       child: Text('No institutions connected yet.'),
                     ),
                   ),
-                for (final connection in _viewModel.connections)
-                  Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.account_balance),
-                      title: Text(connection.pluggyItemId),
-                      subtitle: Text('Status: ${connection.status}'),
+                for (final group in _groupByMember(_viewModel.connections)) ...[
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16, bottom: 4),
+                    child: Text(
+                      group.label,
+                      style: Theme.of(context).textTheme.titleSmall,
                     ),
                   ),
+                  for (final connection in group.connections)
+                    Card(
+                      child: ListTile(
+                        leading: const Icon(Icons.account_balance),
+                        title: Text(connection.pluggyItemId),
+                        subtitle: Text('Status: ${connection.status}'),
+                      ),
+                    ),
+                ],
               ],
             ),
           );
@@ -102,4 +134,11 @@ class _ConnectionsViewState extends State<ConnectionsView> {
       ),
     );
   }
+}
+
+class _ConnectionGroup {
+  const _ConnectionGroup(this.label, this.connections);
+
+  final String label;
+  final List<PluggyConnection> connections;
 }

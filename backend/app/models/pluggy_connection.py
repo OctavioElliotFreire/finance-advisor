@@ -1,8 +1,9 @@
 import uuid
+from typing import Optional
 
 from sqlalchemy import ForeignKey, String, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import TIMESTAMP, UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.session import Base
 
@@ -23,6 +24,10 @@ class PluggyConnection(Base):
     )
     pluggy_item_id: Mapped[str] = mapped_column(String, nullable=False)
     status: Mapped[str] = mapped_column(String, nullable=False, default="pending")
+    created_by_app_user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("app_users.id"), nullable=True
+    )
+    created_by: Mapped[Optional["AppUser"]] = relationship("AppUser")
     created_at: Mapped[TIMESTAMP] = mapped_column(
         TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
     )

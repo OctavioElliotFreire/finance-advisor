@@ -1,0 +1,12 @@
+- generic [ref=e5]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - heading "Your households" [active] [level=2] [ref=e27]
+            - button "Log out" [ref=e28]
+          - generic:
+            - group:
+              - generic [ref=e29]: No households yet — create one to get started.
+          - button [ref=e30]

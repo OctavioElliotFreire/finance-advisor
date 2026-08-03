@@ -1,0 +1,13 @@
+- generic [ref=e4]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - button "Back" [ref=e46]
+            - heading "Members Smoke Family — Members" [level=2] [ref=e47]
+          - generic:
+            - group:
+              - generic: "owner-ui-smoke@example.com Role: owner"
+              - generic: "invitee-ui-smoke@example.com Role: member"
+          - button "Invite member" [active] [ref=e50]

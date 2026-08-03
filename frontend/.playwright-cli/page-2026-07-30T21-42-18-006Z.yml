@@ -1,0 +1,31 @@
+- generic [ref=f1e5] [cursor=pointer]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - button [ref=f1e85]:
+                - text: Back
+                - generic: Back
+              - heading "Expect UI Smoke Household" [level=2] [ref=f1e87]
+              - button "Finances" [ref=f1e88]
+              - button "Anomalies" [active] [ref=f1e89]
+              - button "Connections" [ref=f1e90]
+            - generic:
+              - group:
+                - generic:
+                  - group "Total balance R$21,041.50 Conta Corrente R$21,544.60 Mastercard Black -R$503.10":
+                    - checkbox "Synced" [ref=f1e91]
+                  - generic [ref=f1e92]: Monthly cash flow Apr 2026 In R$0.00 · Out R$305.00 -R$305.00 May 2026 In R$8,500.00 · Out R$1,440.40 R$7,059.60 Jun 2026 In R$8,500.00 · Out R$1,440.40 R$7,059.60 Jul 2026 In R$8,500.00 · Out R$1,372.70 R$7,127.30
+                  - group "Recent transactions":
+                    - generic [ref=f1e93]: Pagamento de boleto Conta Corrente · 7/30/2026 -R$100.00
+                    - generic [ref=f1e94]: VIVO SERVICOS E COMERCIO Conta Corrente · 7/20/2026 -R$120.00
+                    - generic [ref=f1e95]: ELETROBRAS LIGHT SA Conta Corrente · 7/15/2026 -R$185.00
+                    - generic [ref=f1e96]: SMART FIT ACADEMIA Mastercard Black · 7/10/2026 -R$89.90
+                    - generic [ref=f1e97]: SALARIO EMPRESA XYZ LTDA Conta Corrente · 7/5/2026 R$8,500.00
+                    - generic [ref=f1e98]: CONDOMINIO EDIFICIO SOLAR Conta Corrente · 7/5/2026 -R$800.00
+                    - generic [ref=f1e99]: SPOTIFY AB Mastercard Black · 7/1/2026 -R$21.90
+                    - generic [ref=f1e100]: NETFLIX.COM Mastercard Black · 7/1/2026 -R$55.90
+                    - generic [ref=f1e101]: PAGAMENTO FATURA CARTAO VISA Conta Corrente · 6/30/2026 -R$167.70
+                    - generic [ref=f1e102]: VIVO SERVICOS E COMERCIO Conta Corrente · 6/20/2026 -R$120.00

@@ -1,0 +1,19 @@
+- generic [ref=e4]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - button "Back" [active] [ref=e26]
+            - heading "Members Smoke Family" [level=2] [ref=e27]
+            - button "Finances" [ref=e28]
+            - button "Anomalies" [ref=e29]
+            - button "Connections" [ref=e30]
+            - button "Members" [ref=e31]
+          - generic:
+            - group:
+              - generic:
+                - group "Total balance R$0.00 No accounts synced yet.":
+                  - checkbox "Never synced" [ref=e32]
+                - generic [ref=e33]: Recent transactions No transactions synced yet.
+                - generic [ref=e34]: Monthly cash flow No transactions synced yet.

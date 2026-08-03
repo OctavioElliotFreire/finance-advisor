@@ -1,0 +1,2 @@
+[  191180ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8000/v1/households/3a80be49-a727-4c04-8d1d-954d3647219f/members:0
+[  234224ms] [ERROR] Failed to load resource: the server responded with a status of 409 (Conflict) @ http://localhost:8000/v1/households/3a80be49-a727-4c04-8d1d-954d3647219f/members:0

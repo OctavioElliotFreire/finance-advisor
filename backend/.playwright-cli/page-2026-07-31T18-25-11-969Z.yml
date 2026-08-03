@@ -1,0 +1,9 @@
+- generic [ref=e39]:
+  - alertdialog:
+    - generic "Alert":
+      - generic [ref=e40]: Invite member
+      - generic:
+        - textbox "Email" [active] [ref=e42]
+        - button "Role Member" [ref=e43]
+      - button "Cancel" [ref=e44]
+      - button "Invite" [ref=e45]

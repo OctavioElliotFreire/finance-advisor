@@ -7,6 +7,7 @@ import '../models/anomaly.dart';
 import '../models/dashboard.dart';
 import '../models/extended_finance.dart';
 import '../models/household.dart';
+import '../models/household_member.dart';
 import '../models/me.dart';
 import '../models/pluggy_connection.dart';
 import 'api_exception.dart';
@@ -86,6 +87,35 @@ class BackendApiService {
       headers: _authHeaders(accessToken),
     );
     return Household.fromJson(_decodeOrThrow(response));
+  }
+
+  Future<List<HouseholdMember>> listMembers(
+    String accessToken,
+    String householdId,
+  ) async {
+    final response = await _client.get(
+      _url('/v1/households/$householdId/members'),
+      headers: _authHeaders(accessToken),
+    );
+    if (response.statusCode >= 300) {
+      _decodeOrThrow(response);
+    }
+    final list = jsonDecode(response.body) as List<dynamic>;
+    return list.cast<Map<String, dynamic>>().map(HouseholdMember.fromJson).toList();
+  }
+
+  Future<HouseholdMember> inviteMember(
+    String accessToken,
+    String householdId,
+    String email,
+    String role,
+  ) async {
+    final response = await _client.post(
+      _url('/v1/households/$householdId/members'),
+      headers: _authHeaders(accessToken),
+      body: jsonEncode({'email': email, 'role': role}),
+    );
+    return HouseholdMember.fromJson(_decodeOrThrow(response));
   }
 
   Future<String> createConnectToken(String accessToken, String householdId) async {

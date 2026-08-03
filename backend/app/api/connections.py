@@ -2,7 +2,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.auth.dependencies import get_current_app_user, get_household_membership, require_role
 from app.database.session import get_db
@@ -38,6 +38,7 @@ async def create_connect_token(
 async def create_connection(
     household_id: uuid.UUID,
     payload: ConnectionCreate,
+    current_user: AppUser = Depends(get_current_app_user),
     membership: HouseholdMember = Depends(require_role("owner", "member")),
     db: Session = Depends(get_db),
 ):
@@ -55,6 +56,7 @@ async def create_connection(
         household_id=household_id,
         pluggy_item_id=payload.pluggy_item_id,
         status=item.get("status", "pending"),
+        created_by_app_user_id=current_user.id,
     )
     db.add(connection)
     try:
@@ -85,6 +87,7 @@ def list_connections(
 ):
     return (
         db.query(PluggyConnection)
+        .options(joinedload(PluggyConnection.created_by))
         .filter(PluggyConnection.household_id == household_id)
         .all()
     )
