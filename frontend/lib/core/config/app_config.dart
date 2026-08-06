@@ -14,6 +14,16 @@ class AppConfig {
     'API_BASE_URL',
   );
 
+  /// Whether the Pluggy Connect widget shows sandbox/test connectors (e.g.
+  /// "Pluggy Bank") alongside real ones. Defaults to `true` because this app
+  /// is currently sandbox-only end to end (see CLAUDE.md/MANUAL_TESTING.md).
+  /// Set `PLUGGY_INCLUDE_SANDBOX=false` in `.env` once real bank connectors
+  /// go live, so production users don't see test connectors.
+  static const bool pluggyIncludeSandbox = bool.fromEnvironment(
+    'PLUGGY_INCLUDE_SANDBOX',
+    defaultValue: true,
+  );
+
   /// Falls back to platform-appropriate localhost addresses (see PLAN.md
   /// "Local API Addresses") when API_BASE_URL isn't supplied at build time.
   static String get apiBaseUrl {

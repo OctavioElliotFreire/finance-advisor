@@ -4,12 +4,12 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import get_household_membership
+from app.auth.access_scope import AccessScope, get_access_scope
 from app.database.session import get_db
 from app.llm.base import LLMProvider, get_provider
 from app.llm.redaction import redact_transaction_context
+from app.models.account import Account
 from app.models.anomaly import AnomalyFlag
-from app.models.household import HouseholdMember
 from app.models.transaction import Transaction
 from app.schemas.anomaly import AnomalyStatusUpdate, AnomalySummary
 
@@ -22,7 +22,12 @@ def get_llm_provider() -> LLMProvider:
     return get_provider()
 
 
-def _get_flag_or_404(db: Session, household_id: uuid.UUID, anomaly_id: uuid.UUID) -> AnomalyFlag:
+def _get_flag_or_404(
+    db: Session,
+    household_id: uuid.UUID,
+    anomaly_id: uuid.UUID,
+    connection_ids: set[uuid.UUID] | None,
+) -> AnomalyFlag:
     flag = (
         db.query(AnomalyFlag)
         .filter(AnomalyFlag.id == anomaly_id, AnomalyFlag.household_id == household_id)
@@ -30,6 +35,21 @@ def _get_flag_or_404(db: Session, household_id: uuid.UUID, anomaly_id: uuid.UUID
     )
     if flag is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Anomaly not found")
+
+    if connection_ids is not None:
+        # Category-deviation flags have no transaction_id and can't be
+        # attributed to a connection — hidden from restricted members.
+        account = (
+            db.query(Account)
+            .join(Transaction, Transaction.account_id == Account.id)
+            .filter(Transaction.id == flag.transaction_id)
+            .one_or_none()
+            if flag.transaction_id
+            else None
+        )
+        if account is None or account.pluggy_connection_id not in connection_ids:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Anomaly not found")
+
     return flag
 
 
@@ -37,12 +57,20 @@ def _get_flag_or_404(db: Session, household_id: uuid.UUID, anomaly_id: uuid.UUID
 def list_anomalies(
     household_id: uuid.UUID,
     status_filter: str | None = None,
-    membership: HouseholdMember = Depends(get_household_membership),
+    scope: AccessScope = Depends(get_access_scope),
     db: Session = Depends(get_db),
 ):
     query = db.query(AnomalyFlag).filter(AnomalyFlag.household_id == household_id)
     if status_filter is not None:
         query = query.filter(AnomalyFlag.status == status_filter)
+    if scope.connection_ids is not None:
+        # Inner joins naturally drop transaction_id IS NULL rows too (the
+        # category-deviation rule), which restricted members shouldn't see.
+        query = (
+            query.join(Transaction, AnomalyFlag.transaction_id == Transaction.id)
+            .join(Account, Transaction.account_id == Account.id)
+            .filter(Account.pluggy_connection_id.in_(scope.connection_ids))
+        )
     flags = query.order_by(AnomalyFlag.created_at.desc()).all()
     return [AnomalySummary.model_validate(f) for f in flags]
 
@@ -51,11 +79,11 @@ def list_anomalies(
 def explain_anomaly(
     household_id: uuid.UUID,
     anomaly_id: uuid.UUID,
-    membership: HouseholdMember = Depends(get_household_membership),
+    scope: AccessScope = Depends(get_access_scope),
     db: Session = Depends(get_db),
     provider: LLMProvider = Depends(get_llm_provider),
 ):
-    flag = _get_flag_or_404(db, household_id, anomaly_id)
+    flag = _get_flag_or_404(db, household_id, anomaly_id, scope.connection_ids)
     transaction = (
         db.get(Transaction, flag.transaction_id) if flag.transaction_id else None
     )
@@ -73,10 +101,10 @@ def update_anomaly_status(
     household_id: uuid.UUID,
     anomaly_id: uuid.UUID,
     body: AnomalyStatusUpdate,
-    membership: HouseholdMember = Depends(get_household_membership),
+    scope: AccessScope = Depends(get_access_scope),
     db: Session = Depends(get_db),
 ):
-    flag = _get_flag_or_404(db, household_id, anomaly_id)
+    flag = _get_flag_or_404(db, household_id, anomaly_id, scope.connection_ids)
     flag.status = body.status
     db.commit()
     db.refresh(flag)

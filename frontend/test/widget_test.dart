@@ -5,6 +5,7 @@ import 'package:frontend/app/app.dart';
 import 'package:frontend/app/router.dart';
 import 'package:frontend/data/models/auth_session.dart';
 import 'package:frontend/data/repositories/anomaly_repository.dart';
+import 'package:frontend/data/repositories/assistant_repository.dart';
 import 'package:frontend/data/repositories/auth_repository.dart';
 import 'package:frontend/data/repositories/connection_repository.dart';
 import 'package:frontend/data/repositories/dashboard_repository.dart';
@@ -62,6 +63,7 @@ void main() {
       authRepository: authRepository,
     );
     final anomalyRepository = AnomalyRepository(authRepository: authRepository);
+    final assistantRepository = AssistantRepository(authRepository: authRepository);
     final router = buildRouter(
       authRepository: authRepository,
       householdRepository: householdRepository,
@@ -69,6 +71,7 @@ void main() {
       dashboardRepository: dashboardRepository,
       financeRepository: financeRepository,
       anomalyRepository: anomalyRepository,
+      assistantRepository: assistantRepository,
     );
 
     await tester.pumpWidget(FamilyFinanceApp(router: router));

@@ -3,20 +3,24 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i9;
+import 'dart:async' as _i11;
 
-import 'package:frontend/data/models/anomaly.dart' as _i7;
+import 'package:frontend/data/models/anomaly.dart' as _i8;
+import 'package:frontend/data/models/assistant_message.dart' as _i9;
 import 'package:frontend/data/models/auth_session.dart' as _i2;
-import 'package:frontend/data/models/dashboard.dart' as _i6;
-import 'package:frontend/data/models/extended_finance.dart' as _i12;
+import 'package:frontend/data/models/connection_access.dart' as _i14;
+import 'package:frontend/data/models/dashboard.dart' as _i7;
+import 'package:frontend/data/models/extended_finance.dart' as _i16;
 import 'package:frontend/data/models/household.dart' as _i4;
+import 'package:frontend/data/models/household_invite.dart' as _i5;
+import 'package:frontend/data/models/household_member.dart' as _i13;
 import 'package:frontend/data/models/me.dart' as _i3;
-import 'package:frontend/data/models/pluggy_connection.dart' as _i5;
-import 'package:frontend/data/services/backend_api_service.dart' as _i10;
-import 'package:frontend/data/services/secure_token_storage.dart' as _i13;
-import 'package:frontend/data/services/supabase_auth_service.dart' as _i8;
+import 'package:frontend/data/models/pluggy_connection.dart' as _i6;
+import 'package:frontend/data/services/backend_api_service.dart' as _i12;
+import 'package:frontend/data/services/secure_token_storage.dart' as _i17;
+import 'package:frontend/data/services/supabase_auth_service.dart' as _i10;
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:mockito/src/dummies.dart' as _i11;
+import 'package:mockito/src/dummies.dart' as _i15;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -48,20 +52,42 @@ class _FakeHousehold_2 extends _i1.SmartFake implements _i4.Household {
     : super(parent, parentInvocation);
 }
 
-class _FakePluggyConnection_3 extends _i1.SmartFake
-    implements _i5.PluggyConnection {
-  _FakePluggyConnection_3(Object parent, Invocation parentInvocation)
+class _FakeInviteResult_3 extends _i1.SmartFake implements _i5.InviteResult {
+  _FakeInviteResult_3(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeDashboard_4 extends _i1.SmartFake implements _i6.Dashboard {
-  _FakeDashboard_4(Object parent, Invocation parentInvocation)
+class _FakeInvitePreview_4 extends _i1.SmartFake implements _i5.InvitePreview {
+  _FakeInvitePreview_4(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeAnomalySummary_5 extends _i1.SmartFake
-    implements _i7.AnomalySummary {
-  _FakeAnomalySummary_5(Object parent, Invocation parentInvocation)
+class _FakeAcceptInviteResult_5 extends _i1.SmartFake
+    implements _i5.AcceptInviteResult {
+  _FakeAcceptInviteResult_5(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
+class _FakePluggyConnection_6 extends _i1.SmartFake
+    implements _i6.PluggyConnection {
+  _FakePluggyConnection_6(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
+class _FakeDashboard_7 extends _i1.SmartFake implements _i7.Dashboard {
+  _FakeDashboard_7(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
+class _FakeAnomalySummary_8 extends _i1.SmartFake
+    implements _i8.AnomalySummary {
+  _FakeAnomalySummary_8(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
+class _FakeAssistantMessage_9 extends _i1.SmartFake
+    implements _i9.AssistantMessage {
+  _FakeAssistantMessage_9(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
@@ -69,148 +95,318 @@ class _FakeAnomalySummary_5 extends _i1.SmartFake
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockSupabaseAuthService extends _i1.Mock
-    implements _i8.SupabaseAuthService {
+    implements _i10.SupabaseAuthService {
   @override
-  _i9.Future<_i2.AuthSession> signUp(String? email, String? password) =>
+  _i11.Future<_i2.AuthSession> signUp(String? email, String? password) =>
       (super.noSuchMethod(
             Invocation.method(#signUp, [email, password]),
-            returnValue: _i9.Future<_i2.AuthSession>.value(
+            returnValue: _i11.Future<_i2.AuthSession>.value(
               _FakeAuthSession_0(
                 this,
                 Invocation.method(#signUp, [email, password]),
               ),
             ),
-            returnValueForMissingStub: _i9.Future<_i2.AuthSession>.value(
+            returnValueForMissingStub: _i11.Future<_i2.AuthSession>.value(
               _FakeAuthSession_0(
                 this,
                 Invocation.method(#signUp, [email, password]),
               ),
             ),
           )
-          as _i9.Future<_i2.AuthSession>);
+          as _i11.Future<_i2.AuthSession>);
 
   @override
-  _i9.Future<_i2.AuthSession> signIn(String? email, String? password) =>
+  _i11.Future<_i2.AuthSession> signIn(String? email, String? password) =>
       (super.noSuchMethod(
             Invocation.method(#signIn, [email, password]),
-            returnValue: _i9.Future<_i2.AuthSession>.value(
+            returnValue: _i11.Future<_i2.AuthSession>.value(
               _FakeAuthSession_0(
                 this,
                 Invocation.method(#signIn, [email, password]),
               ),
             ),
-            returnValueForMissingStub: _i9.Future<_i2.AuthSession>.value(
+            returnValueForMissingStub: _i11.Future<_i2.AuthSession>.value(
               _FakeAuthSession_0(
                 this,
                 Invocation.method(#signIn, [email, password]),
               ),
             ),
           )
-          as _i9.Future<_i2.AuthSession>);
+          as _i11.Future<_i2.AuthSession>);
 
   @override
-  _i9.Future<_i2.AuthSession> refresh(String? refreshToken) =>
+  _i11.Future<void> updatePassword(String? accessToken, String? newPassword) =>
+      (super.noSuchMethod(
+            Invocation.method(#updatePassword, [accessToken, newPassword]),
+            returnValue: _i11.Future<void>.value(),
+            returnValueForMissingStub: _i11.Future<void>.value(),
+          )
+          as _i11.Future<void>);
+
+  @override
+  _i11.Future<_i2.AuthSession> refresh(String? refreshToken) =>
       (super.noSuchMethod(
             Invocation.method(#refresh, [refreshToken]),
-            returnValue: _i9.Future<_i2.AuthSession>.value(
+            returnValue: _i11.Future<_i2.AuthSession>.value(
               _FakeAuthSession_0(
                 this,
                 Invocation.method(#refresh, [refreshToken]),
               ),
             ),
-            returnValueForMissingStub: _i9.Future<_i2.AuthSession>.value(
+            returnValueForMissingStub: _i11.Future<_i2.AuthSession>.value(
               _FakeAuthSession_0(
                 this,
                 Invocation.method(#refresh, [refreshToken]),
               ),
             ),
           )
-          as _i9.Future<_i2.AuthSession>);
+          as _i11.Future<_i2.AuthSession>);
 }
 
 /// A class which mocks [BackendApiService].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockBackendApiService extends _i1.Mock implements _i10.BackendApiService {
+class MockBackendApiService extends _i1.Mock implements _i12.BackendApiService {
   @override
-  _i9.Future<_i3.Me> getMe(String? accessToken) =>
+  _i11.Future<_i3.Me> getMe(String? accessToken) =>
       (super.noSuchMethod(
             Invocation.method(#getMe, [accessToken]),
-            returnValue: _i9.Future<_i3.Me>.value(
+            returnValue: _i11.Future<_i3.Me>.value(
               _FakeMe_1(this, Invocation.method(#getMe, [accessToken])),
             ),
-            returnValueForMissingStub: _i9.Future<_i3.Me>.value(
+            returnValueForMissingStub: _i11.Future<_i3.Me>.value(
               _FakeMe_1(this, Invocation.method(#getMe, [accessToken])),
             ),
           )
-          as _i9.Future<_i3.Me>);
+          as _i11.Future<_i3.Me>);
 
   @override
-  _i9.Future<List<_i4.Household>> listHouseholds(String? accessToken) =>
+  _i11.Future<List<_i4.Household>> listHouseholds(String? accessToken) =>
       (super.noSuchMethod(
             Invocation.method(#listHouseholds, [accessToken]),
-            returnValue: _i9.Future<List<_i4.Household>>.value(
+            returnValue: _i11.Future<List<_i4.Household>>.value(
               <_i4.Household>[],
             ),
-            returnValueForMissingStub: _i9.Future<List<_i4.Household>>.value(
+            returnValueForMissingStub: _i11.Future<List<_i4.Household>>.value(
               <_i4.Household>[],
             ),
           )
-          as _i9.Future<List<_i4.Household>>);
+          as _i11.Future<List<_i4.Household>>);
 
   @override
-  _i9.Future<_i4.Household> createHousehold(
+  _i11.Future<_i4.Household> createHousehold(
     String? accessToken,
     String? name,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#createHousehold, [accessToken, name]),
-            returnValue: _i9.Future<_i4.Household>.value(
+            returnValue: _i11.Future<_i4.Household>.value(
               _FakeHousehold_2(
                 this,
                 Invocation.method(#createHousehold, [accessToken, name]),
               ),
             ),
-            returnValueForMissingStub: _i9.Future<_i4.Household>.value(
+            returnValueForMissingStub: _i11.Future<_i4.Household>.value(
               _FakeHousehold_2(
                 this,
                 Invocation.method(#createHousehold, [accessToken, name]),
               ),
             ),
           )
-          as _i9.Future<_i4.Household>);
+          as _i11.Future<_i4.Household>);
 
   @override
-  _i9.Future<_i4.Household> getHousehold(
+  _i11.Future<_i4.Household> getHousehold(
     String? accessToken,
     String? householdId,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#getHousehold, [accessToken, householdId]),
-            returnValue: _i9.Future<_i4.Household>.value(
+            returnValue: _i11.Future<_i4.Household>.value(
               _FakeHousehold_2(
                 this,
                 Invocation.method(#getHousehold, [accessToken, householdId]),
               ),
             ),
-            returnValueForMissingStub: _i9.Future<_i4.Household>.value(
+            returnValueForMissingStub: _i11.Future<_i4.Household>.value(
               _FakeHousehold_2(
                 this,
                 Invocation.method(#getHousehold, [accessToken, householdId]),
               ),
             ),
           )
-          as _i9.Future<_i4.Household>);
+          as _i11.Future<_i4.Household>);
 
   @override
-  _i9.Future<String> createConnectToken(
+  _i11.Future<List<_i13.HouseholdMember>> listMembers(
+    String? accessToken,
+    String? householdId,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#listMembers, [accessToken, householdId]),
+            returnValue: _i11.Future<List<_i13.HouseholdMember>>.value(
+              <_i13.HouseholdMember>[],
+            ),
+            returnValueForMissingStub:
+                _i11.Future<List<_i13.HouseholdMember>>.value(
+                  <_i13.HouseholdMember>[],
+                ),
+          )
+          as _i11.Future<List<_i13.HouseholdMember>>);
+
+  @override
+  _i11.Future<_i5.InviteResult> inviteMember(
+    String? accessToken,
+    String? householdId,
+    String? email,
+    String? role,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#inviteMember, [
+              accessToken,
+              householdId,
+              email,
+              role,
+            ]),
+            returnValue: _i11.Future<_i5.InviteResult>.value(
+              _FakeInviteResult_3(
+                this,
+                Invocation.method(#inviteMember, [
+                  accessToken,
+                  householdId,
+                  email,
+                  role,
+                ]),
+              ),
+            ),
+            returnValueForMissingStub: _i11.Future<_i5.InviteResult>.value(
+              _FakeInviteResult_3(
+                this,
+                Invocation.method(#inviteMember, [
+                  accessToken,
+                  householdId,
+                  email,
+                  role,
+                ]),
+              ),
+            ),
+          )
+          as _i11.Future<_i5.InviteResult>);
+
+  @override
+  _i11.Future<List<_i5.InviteSummary>> listPendingInvites(
+    String? accessToken,
+    String? householdId,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#listPendingInvites, [accessToken, householdId]),
+            returnValue: _i11.Future<List<_i5.InviteSummary>>.value(
+              <_i5.InviteSummary>[],
+            ),
+            returnValueForMissingStub:
+                _i11.Future<List<_i5.InviteSummary>>.value(
+                  <_i5.InviteSummary>[],
+                ),
+          )
+          as _i11.Future<List<_i5.InviteSummary>>);
+
+  @override
+  _i11.Future<_i5.InvitePreview> getInvitePreview(String? inviteId) =>
+      (super.noSuchMethod(
+            Invocation.method(#getInvitePreview, [inviteId]),
+            returnValue: _i11.Future<_i5.InvitePreview>.value(
+              _FakeInvitePreview_4(
+                this,
+                Invocation.method(#getInvitePreview, [inviteId]),
+              ),
+            ),
+            returnValueForMissingStub: _i11.Future<_i5.InvitePreview>.value(
+              _FakeInvitePreview_4(
+                this,
+                Invocation.method(#getInvitePreview, [inviteId]),
+              ),
+            ),
+          )
+          as _i11.Future<_i5.InvitePreview>);
+
+  @override
+  _i11.Future<_i5.AcceptInviteResult> acceptInvite(
+    String? accessToken,
+    String? inviteId,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#acceptInvite, [accessToken, inviteId]),
+            returnValue: _i11.Future<_i5.AcceptInviteResult>.value(
+              _FakeAcceptInviteResult_5(
+                this,
+                Invocation.method(#acceptInvite, [accessToken, inviteId]),
+              ),
+            ),
+            returnValueForMissingStub:
+                _i11.Future<_i5.AcceptInviteResult>.value(
+                  _FakeAcceptInviteResult_5(
+                    this,
+                    Invocation.method(#acceptInvite, [accessToken, inviteId]),
+                  ),
+                ),
+          )
+          as _i11.Future<_i5.AcceptInviteResult>);
+
+  @override
+  _i11.Future<List<_i14.ConnectionAccessEntry>> getMemberAccess(
+    String? accessToken,
+    String? householdId,
+    String? memberId,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#getMemberAccess, [
+              accessToken,
+              householdId,
+              memberId,
+            ]),
+            returnValue: _i11.Future<List<_i14.ConnectionAccessEntry>>.value(
+              <_i14.ConnectionAccessEntry>[],
+            ),
+            returnValueForMissingStub:
+                _i11.Future<List<_i14.ConnectionAccessEntry>>.value(
+                  <_i14.ConnectionAccessEntry>[],
+                ),
+          )
+          as _i11.Future<List<_i14.ConnectionAccessEntry>>);
+
+  @override
+  _i11.Future<List<_i14.ConnectionAccessEntry>> updateMemberAccess(
+    String? accessToken,
+    String? householdId,
+    String? memberId,
+    List<String>? connectionIds,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#updateMemberAccess, [
+              accessToken,
+              householdId,
+              memberId,
+              connectionIds,
+            ]),
+            returnValue: _i11.Future<List<_i14.ConnectionAccessEntry>>.value(
+              <_i14.ConnectionAccessEntry>[],
+            ),
+            returnValueForMissingStub:
+                _i11.Future<List<_i14.ConnectionAccessEntry>>.value(
+                  <_i14.ConnectionAccessEntry>[],
+                ),
+          )
+          as _i11.Future<List<_i14.ConnectionAccessEntry>>);
+
+  @override
+  _i11.Future<String> createConnectToken(
     String? accessToken,
     String? householdId,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#createConnectToken, [accessToken, householdId]),
-            returnValue: _i9.Future<String>.value(
-              _i11.dummyValue<String>(
+            returnValue: _i11.Future<String>.value(
+              _i15.dummyValue<String>(
                 this,
                 Invocation.method(#createConnectToken, [
                   accessToken,
@@ -218,8 +414,8 @@ class MockBackendApiService extends _i1.Mock implements _i10.BackendApiService {
                 ]),
               ),
             ),
-            returnValueForMissingStub: _i9.Future<String>.value(
-              _i11.dummyValue<String>(
+            returnValueForMissingStub: _i11.Future<String>.value(
+              _i15.dummyValue<String>(
                 this,
                 Invocation.method(#createConnectToken, [
                   accessToken,
@@ -228,27 +424,27 @@ class MockBackendApiService extends _i1.Mock implements _i10.BackendApiService {
               ),
             ),
           )
-          as _i9.Future<String>);
+          as _i11.Future<String>);
 
   @override
-  _i9.Future<List<_i5.PluggyConnection>> listConnections(
+  _i11.Future<List<_i6.PluggyConnection>> listConnections(
     String? accessToken,
     String? householdId,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#listConnections, [accessToken, householdId]),
-            returnValue: _i9.Future<List<_i5.PluggyConnection>>.value(
-              <_i5.PluggyConnection>[],
+            returnValue: _i11.Future<List<_i6.PluggyConnection>>.value(
+              <_i6.PluggyConnection>[],
             ),
             returnValueForMissingStub:
-                _i9.Future<List<_i5.PluggyConnection>>.value(
-                  <_i5.PluggyConnection>[],
+                _i11.Future<List<_i6.PluggyConnection>>.value(
+                  <_i6.PluggyConnection>[],
                 ),
           )
-          as _i9.Future<List<_i5.PluggyConnection>>);
+          as _i11.Future<List<_i6.PluggyConnection>>);
 
   @override
-  _i9.Future<_i5.PluggyConnection> createConnection(
+  _i11.Future<_i6.PluggyConnection> createConnection(
     String? accessToken,
     String? householdId,
     String? pluggyItemId,
@@ -259,8 +455,8 @@ class MockBackendApiService extends _i1.Mock implements _i10.BackendApiService {
               householdId,
               pluggyItemId,
             ]),
-            returnValue: _i9.Future<_i5.PluggyConnection>.value(
-              _FakePluggyConnection_3(
+            returnValue: _i11.Future<_i6.PluggyConnection>.value(
+              _FakePluggyConnection_6(
                 this,
                 Invocation.method(#createConnection, [
                   accessToken,
@@ -269,8 +465,8 @@ class MockBackendApiService extends _i1.Mock implements _i10.BackendApiService {
                 ]),
               ),
             ),
-            returnValueForMissingStub: _i9.Future<_i5.PluggyConnection>.value(
-              _FakePluggyConnection_3(
+            returnValueForMissingStub: _i11.Future<_i6.PluggyConnection>.value(
+              _FakePluggyConnection_6(
                 this,
                 Invocation.method(#createConnection, [
                   accessToken,
@@ -280,82 +476,81 @@ class MockBackendApiService extends _i1.Mock implements _i10.BackendApiService {
               ),
             ),
           )
-          as _i9.Future<_i5.PluggyConnection>);
+          as _i11.Future<_i6.PluggyConnection>);
 
   @override
-  _i9.Future<_i6.Dashboard> getDashboard(
+  _i11.Future<_i7.Dashboard> getDashboard(
     String? accessToken,
     String? householdId,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#getDashboard, [accessToken, householdId]),
-            returnValue: _i9.Future<_i6.Dashboard>.value(
-              _FakeDashboard_4(
+            returnValue: _i11.Future<_i7.Dashboard>.value(
+              _FakeDashboard_7(
                 this,
                 Invocation.method(#getDashboard, [accessToken, householdId]),
               ),
             ),
-            returnValueForMissingStub: _i9.Future<_i6.Dashboard>.value(
-              _FakeDashboard_4(
+            returnValueForMissingStub: _i11.Future<_i7.Dashboard>.value(
+              _FakeDashboard_7(
                 this,
                 Invocation.method(#getDashboard, [accessToken, householdId]),
               ),
             ),
           )
-          as _i9.Future<_i6.Dashboard>);
+          as _i11.Future<_i7.Dashboard>);
 
   @override
-  _i9.Future<List<_i12.CreditCardBillSummary>> getCreditCardBills(
+  _i11.Future<List<_i16.CreditCardBillSummary>> getCreditCardBills(
     String? accessToken,
     String? householdId,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#getCreditCardBills, [accessToken, householdId]),
-            returnValue: _i9.Future<List<_i12.CreditCardBillSummary>>.value(
-              <_i12.CreditCardBillSummary>[],
+            returnValue: _i11.Future<List<_i16.CreditCardBillSummary>>.value(
+              <_i16.CreditCardBillSummary>[],
             ),
             returnValueForMissingStub:
-                _i9.Future<List<_i12.CreditCardBillSummary>>.value(
-                  <_i12.CreditCardBillSummary>[],
+                _i11.Future<List<_i16.CreditCardBillSummary>>.value(
+                  <_i16.CreditCardBillSummary>[],
                 ),
           )
-          as _i9.Future<List<_i12.CreditCardBillSummary>>);
+          as _i11.Future<List<_i16.CreditCardBillSummary>>);
 
   @override
-  _i9.Future<List<_i12.InvestmentSummary>> getInvestments(
+  _i11.Future<List<_i16.InvestmentSummary>> getInvestments(
     String? accessToken,
     String? householdId,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#getInvestments, [accessToken, householdId]),
-            returnValue: _i9.Future<List<_i12.InvestmentSummary>>.value(
-              <_i12.InvestmentSummary>[],
+            returnValue: _i11.Future<List<_i16.InvestmentSummary>>.value(
+              <_i16.InvestmentSummary>[],
             ),
             returnValueForMissingStub:
-                _i9.Future<List<_i12.InvestmentSummary>>.value(
-                  <_i12.InvestmentSummary>[],
+                _i11.Future<List<_i16.InvestmentSummary>>.value(
+                  <_i16.InvestmentSummary>[],
                 ),
           )
-          as _i9.Future<List<_i12.InvestmentSummary>>);
+          as _i11.Future<List<_i16.InvestmentSummary>>);
 
   @override
-  _i9.Future<List<_i12.LoanSummary>> getLoans(
+  _i11.Future<List<_i16.LoanSummary>> getLoans(
     String? accessToken,
     String? householdId,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#getLoans, [accessToken, householdId]),
-            returnValue: _i9.Future<List<_i12.LoanSummary>>.value(
-              <_i12.LoanSummary>[],
+            returnValue: _i11.Future<List<_i16.LoanSummary>>.value(
+              <_i16.LoanSummary>[],
             ),
-            returnValueForMissingStub: _i9.Future<List<_i12.LoanSummary>>.value(
-              <_i12.LoanSummary>[],
-            ),
+            returnValueForMissingStub:
+                _i11.Future<List<_i16.LoanSummary>>.value(<_i16.LoanSummary>[]),
           )
-          as _i9.Future<List<_i12.LoanSummary>>);
+          as _i11.Future<List<_i16.LoanSummary>>);
 
   @override
-  _i9.Future<List<_i12.BalancePoint>> getBalanceHistory(
+  _i11.Future<List<_i16.BalancePoint>> getBalanceHistory(
     String? accessToken,
     String? householdId, {
     int? days = 90,
@@ -366,18 +561,18 @@ class MockBackendApiService extends _i1.Mock implements _i10.BackendApiService {
               [accessToken, householdId],
               {#days: days},
             ),
-            returnValue: _i9.Future<List<_i12.BalancePoint>>.value(
-              <_i12.BalancePoint>[],
+            returnValue: _i11.Future<List<_i16.BalancePoint>>.value(
+              <_i16.BalancePoint>[],
             ),
             returnValueForMissingStub:
-                _i9.Future<List<_i12.BalancePoint>>.value(
-                  <_i12.BalancePoint>[],
+                _i11.Future<List<_i16.BalancePoint>>.value(
+                  <_i16.BalancePoint>[],
                 ),
           )
-          as _i9.Future<List<_i12.BalancePoint>>);
+          as _i11.Future<List<_i16.BalancePoint>>);
 
   @override
-  _i9.Future<List<_i12.CategoryBreakdownItem>> getCategoryBreakdown(
+  _i11.Future<List<_i16.CategoryBreakdownItem>> getCategoryBreakdown(
     String? accessToken,
     String? householdId, {
     int? months = 1,
@@ -388,18 +583,18 @@ class MockBackendApiService extends _i1.Mock implements _i10.BackendApiService {
               [accessToken, householdId],
               {#months: months},
             ),
-            returnValue: _i9.Future<List<_i12.CategoryBreakdownItem>>.value(
-              <_i12.CategoryBreakdownItem>[],
+            returnValue: _i11.Future<List<_i16.CategoryBreakdownItem>>.value(
+              <_i16.CategoryBreakdownItem>[],
             ),
             returnValueForMissingStub:
-                _i9.Future<List<_i12.CategoryBreakdownItem>>.value(
-                  <_i12.CategoryBreakdownItem>[],
+                _i11.Future<List<_i16.CategoryBreakdownItem>>.value(
+                  <_i16.CategoryBreakdownItem>[],
                 ),
           )
-          as _i9.Future<List<_i12.CategoryBreakdownItem>>);
+          as _i11.Future<List<_i16.CategoryBreakdownItem>>);
 
   @override
-  _i9.Future<List<_i7.AnomalySummary>> getAnomalies(
+  _i11.Future<List<_i8.AnomalySummary>> getAnomalies(
     String? accessToken,
     String? householdId, {
     String? statusFilter,
@@ -410,18 +605,18 @@ class MockBackendApiService extends _i1.Mock implements _i10.BackendApiService {
               [accessToken, householdId],
               {#statusFilter: statusFilter},
             ),
-            returnValue: _i9.Future<List<_i7.AnomalySummary>>.value(
-              <_i7.AnomalySummary>[],
+            returnValue: _i11.Future<List<_i8.AnomalySummary>>.value(
+              <_i8.AnomalySummary>[],
             ),
             returnValueForMissingStub:
-                _i9.Future<List<_i7.AnomalySummary>>.value(
-                  <_i7.AnomalySummary>[],
+                _i11.Future<List<_i8.AnomalySummary>>.value(
+                  <_i8.AnomalySummary>[],
                 ),
           )
-          as _i9.Future<List<_i7.AnomalySummary>>);
+          as _i11.Future<List<_i8.AnomalySummary>>);
 
   @override
-  _i9.Future<_i7.AnomalySummary> explainAnomaly(
+  _i11.Future<_i8.AnomalySummary> explainAnomaly(
     String? accessToken,
     String? householdId,
     String? anomalyId,
@@ -432,8 +627,8 @@ class MockBackendApiService extends _i1.Mock implements _i10.BackendApiService {
               householdId,
               anomalyId,
             ]),
-            returnValue: _i9.Future<_i7.AnomalySummary>.value(
-              _FakeAnomalySummary_5(
+            returnValue: _i11.Future<_i8.AnomalySummary>.value(
+              _FakeAnomalySummary_8(
                 this,
                 Invocation.method(#explainAnomaly, [
                   accessToken,
@@ -442,8 +637,8 @@ class MockBackendApiService extends _i1.Mock implements _i10.BackendApiService {
                 ]),
               ),
             ),
-            returnValueForMissingStub: _i9.Future<_i7.AnomalySummary>.value(
-              _FakeAnomalySummary_5(
+            returnValueForMissingStub: _i11.Future<_i8.AnomalySummary>.value(
+              _FakeAnomalySummary_8(
                 this,
                 Invocation.method(#explainAnomaly, [
                   accessToken,
@@ -453,10 +648,10 @@ class MockBackendApiService extends _i1.Mock implements _i10.BackendApiService {
               ),
             ),
           )
-          as _i9.Future<_i7.AnomalySummary>);
+          as _i11.Future<_i8.AnomalySummary>);
 
   @override
-  _i9.Future<_i7.AnomalySummary> updateAnomalyStatus(
+  _i11.Future<_i8.AnomalySummary> updateAnomalyStatus(
     String? accessToken,
     String? householdId,
     String? anomalyId,
@@ -469,8 +664,8 @@ class MockBackendApiService extends _i1.Mock implements _i10.BackendApiService {
               anomalyId,
               status,
             ]),
-            returnValue: _i9.Future<_i7.AnomalySummary>.value(
-              _FakeAnomalySummary_5(
+            returnValue: _i11.Future<_i8.AnomalySummary>.value(
+              _FakeAnomalySummary_8(
                 this,
                 Invocation.method(#updateAnomalyStatus, [
                   accessToken,
@@ -480,8 +675,8 @@ class MockBackendApiService extends _i1.Mock implements _i10.BackendApiService {
                 ]),
               ),
             ),
-            returnValueForMissingStub: _i9.Future<_i7.AnomalySummary>.value(
-              _FakeAnomalySummary_5(
+            returnValueForMissingStub: _i11.Future<_i8.AnomalySummary>.value(
+              _FakeAnomalySummary_8(
                 this,
                 Invocation.method(#updateAnomalyStatus, [
                   accessToken,
@@ -492,38 +687,93 @@ class MockBackendApiService extends _i1.Mock implements _i10.BackendApiService {
               ),
             ),
           )
-          as _i9.Future<_i7.AnomalySummary>);
+          as _i11.Future<_i8.AnomalySummary>);
+
+  @override
+  _i11.Future<List<_i9.AssistantMessage>> getAssistantMessages(
+    String? accessToken,
+    String? householdId,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#getAssistantMessages, [
+              accessToken,
+              householdId,
+            ]),
+            returnValue: _i11.Future<List<_i9.AssistantMessage>>.value(
+              <_i9.AssistantMessage>[],
+            ),
+            returnValueForMissingStub:
+                _i11.Future<List<_i9.AssistantMessage>>.value(
+                  <_i9.AssistantMessage>[],
+                ),
+          )
+          as _i11.Future<List<_i9.AssistantMessage>>);
+
+  @override
+  _i11.Future<_i9.AssistantMessage> askAssistant(
+    String? accessToken,
+    String? householdId,
+    String? question,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#askAssistant, [
+              accessToken,
+              householdId,
+              question,
+            ]),
+            returnValue: _i11.Future<_i9.AssistantMessage>.value(
+              _FakeAssistantMessage_9(
+                this,
+                Invocation.method(#askAssistant, [
+                  accessToken,
+                  householdId,
+                  question,
+                ]),
+              ),
+            ),
+            returnValueForMissingStub: _i11.Future<_i9.AssistantMessage>.value(
+              _FakeAssistantMessage_9(
+                this,
+                Invocation.method(#askAssistant, [
+                  accessToken,
+                  householdId,
+                  question,
+                ]),
+              ),
+            ),
+          )
+          as _i11.Future<_i9.AssistantMessage>);
 }
 
 /// A class which mocks [SecureTokenStorage].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockSecureTokenStorage extends _i1.Mock
-    implements _i13.SecureTokenStorage {
+    implements _i17.SecureTokenStorage {
   @override
-  _i9.Future<void> saveSession(_i2.AuthSession? session) =>
+  _i11.Future<void> saveSession(_i2.AuthSession? session) =>
       (super.noSuchMethod(
             Invocation.method(#saveSession, [session]),
-            returnValue: _i9.Future<void>.value(),
-            returnValueForMissingStub: _i9.Future<void>.value(),
+            returnValue: _i11.Future<void>.value(),
+            returnValueForMissingStub: _i11.Future<void>.value(),
           )
-          as _i9.Future<void>);
+          as _i11.Future<void>);
 
   @override
-  _i9.Future<_i2.AuthSession?> readSession() =>
+  _i11.Future<_i2.AuthSession?> readSession() =>
       (super.noSuchMethod(
             Invocation.method(#readSession, []),
-            returnValue: _i9.Future<_i2.AuthSession?>.value(),
-            returnValueForMissingStub: _i9.Future<_i2.AuthSession?>.value(),
+            returnValue: _i11.Future<_i2.AuthSession?>.value(),
+            returnValueForMissingStub: _i11.Future<_i2.AuthSession?>.value(),
           )
-          as _i9.Future<_i2.AuthSession?>);
+          as _i11.Future<_i2.AuthSession?>);
 
   @override
-  _i9.Future<void> clear() =>
+  _i11.Future<void> clear() =>
       (super.noSuchMethod(
             Invocation.method(#clear, []),
-            returnValue: _i9.Future<void>.value(),
-            returnValueForMissingStub: _i9.Future<void>.value(),
+            returnValue: _i11.Future<void>.value(),
+            returnValueForMissingStub: _i11.Future<void>.value(),
           )
-          as _i9.Future<void>);
+          as _i11.Future<void>);
 }

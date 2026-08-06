@@ -67,6 +67,26 @@ class SupabaseAuthService {
     return AuthSession.fromSupabaseJson(body);
   }
 
+  /// Sets the current user's password — used to finish account setup after
+  /// an invite redirect, where Supabase has authenticated the browser but no
+  /// password has ever been set.
+  Future<void> updatePassword(String accessToken, String newPassword) async {
+    final response = await _client.put(
+      _authUrl('/auth/v1/user'),
+      headers: {..._headers, 'Authorization': 'Bearer $accessToken'},
+      body: jsonEncode({'password': newPassword}),
+    );
+
+    if (response.statusCode >= 300) {
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      throw ApiException(
+        (body['msg'] ?? body['error_description'] ?? 'Could not set password')
+            as String,
+        statusCode: response.statusCode,
+      );
+    }
+  }
+
   Future<AuthSession> refresh(String refreshToken) async {
     final response = await _client.post(
       _authUrl('/auth/v1/token?grant_type=refresh_token'),

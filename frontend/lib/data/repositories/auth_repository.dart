@@ -36,6 +36,14 @@ class AuthRepository extends ChangeNotifier {
     _isRestoring = true;
     notifyListeners();
 
+    if (_session != null) {
+      // A session was already applied directly this boot (e.g. via
+      // applyInviteSession from an invite redirect) — nothing to restore.
+      _isRestoring = false;
+      notifyListeners();
+      return;
+    }
+
     final stored = await _storage.readSession();
     if (stored == null) {
       _isRestoring = false;
@@ -67,6 +75,18 @@ class AuthRepository extends ChangeNotifier {
   Future<void> login(String email, String password) async {
     final session = await _authService.signIn(email, password);
     await _applySession(session);
+  }
+
+  /// Applies a session obtained directly (not via email/password), e.g. from
+  /// parsing Supabase's invite-redirect URL fragment at app boot.
+  Future<void> applyInviteSession(AuthSession session) => _applySession(session);
+
+  /// Sets a password for the current session — used right after an invite
+  /// redirect, where Supabase has authenticated the browser but the invitee
+  /// has never set a password.
+  Future<void> updatePassword(String newPassword) async {
+    final token = await getValidAccessToken();
+    await _authService.updatePassword(token, newPassword);
   }
 
   Future<void> logout() async {

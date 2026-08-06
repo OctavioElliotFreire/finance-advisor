@@ -38,6 +38,7 @@ class SyncStatus(BaseModel):
 
 
 class DashboardResponse(BaseModel):
+    household_name: str
     accounts: list[AccountSummary]
     total_balance: float
     recent_transactions: list[TransactionSummary]

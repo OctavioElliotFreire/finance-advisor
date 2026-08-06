@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 
 import '../data/repositories/anomaly_repository.dart';
+import '../data/repositories/assistant_repository.dart';
 import '../data/repositories/auth_repository.dart';
 import '../data/repositories/connection_repository.dart';
 import '../data/repositories/dashboard_repository.dart';
@@ -8,13 +9,16 @@ import '../data/repositories/extended_finance_repository.dart';
 import '../data/repositories/household_repository.dart';
 import '../ui/core/views/splash_view.dart';
 import '../ui/features/anomalies/views/anomalies_view.dart';
+import '../ui/features/assistant/views/assistant_view.dart';
 import '../ui/features/auth/views/login_view.dart';
 import '../ui/features/auth/views/register_view.dart';
 import '../ui/features/connections/views/connections_view.dart';
 import '../ui/features/dashboard/views/dashboard_view.dart';
 import '../ui/features/finances/views/finances_view.dart';
 import '../ui/features/households/views/household_list_view.dart';
+import '../ui/features/households/views/member_access_view.dart';
 import '../ui/features/households/views/members_view.dart';
+import '../ui/features/invites/views/accept_invite_view.dart';
 
 GoRouter buildRouter({
   required AuthRepository authRepository,
@@ -23,9 +27,11 @@ GoRouter buildRouter({
   required DashboardRepository dashboardRepository,
   required ExtendedFinanceRepository financeRepository,
   required AnomalyRepository anomalyRepository,
+  required AssistantRepository assistantRepository,
+  String initialLocation = '/splash',
 }) {
   return GoRouter(
-    initialLocation: '/splash',
+    initialLocation: initialLocation,
     refreshListenable: authRepository,
     redirect: (context, state) {
       final loggingIn =
@@ -59,6 +65,18 @@ GoRouter buildRouter({
           authRepository: authRepository,
           onRegistered: () => context.go('/households'),
           onNavigateToLogin: () => context.go('/login'),
+        ),
+      ),
+      GoRoute(
+        path: '/accept-invite',
+        builder: (context, state) => AcceptInviteView(
+          authRepository: authRepository,
+          householdRepository: householdRepository,
+          inviteId: state.uri.queryParameters['invite'] ?? '',
+          onAccepted: (householdId, householdName) => context.go(
+            '/households/$householdId/dashboard',
+            extra: householdName,
+          ),
         ),
       ),
       GoRoute(
@@ -96,15 +114,45 @@ GoRouter buildRouter({
               '/households/$householdId/members',
               extra: householdName,
             ),
+            onOpenAssistant: () => context.push(
+              '/households/$householdId/assistant',
+              extra: householdName,
+            ),
           );
         },
       ),
       GoRoute(
-        path: '/households/:householdId/members',
-        builder: (context, state) => MembersView(
-          householdRepository: householdRepository,
+        path: '/households/:householdId/assistant',
+        builder: (context, state) => AssistantView(
+          assistantRepository: assistantRepository,
           householdId: state.pathParameters['householdId']!,
           householdName: state.extra as String? ?? 'Household',
+        ),
+      ),
+      GoRoute(
+        path: '/households/:householdId/members',
+        builder: (context, state) {
+          final householdId = state.pathParameters['householdId']!;
+          final householdName = state.extra as String? ?? 'Household';
+          return MembersView(
+            householdRepository: householdRepository,
+            householdId: householdId,
+            householdName: householdName,
+            currentUserEmail: authRepository.currentUser?.email,
+            onManageAccess: (memberId, memberEmail) => context.push(
+              '/households/$householdId/members/$memberId/access',
+              extra: memberEmail,
+            ),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/households/:householdId/members/:memberId/access',
+        builder: (context, state) => MemberAccessView(
+          householdRepository: householdRepository,
+          householdId: state.pathParameters['householdId']!,
+          memberId: state.pathParameters['memberId']!,
+          memberEmail: state.extra as String? ?? 'Member',
         ),
       ),
       GoRoute(

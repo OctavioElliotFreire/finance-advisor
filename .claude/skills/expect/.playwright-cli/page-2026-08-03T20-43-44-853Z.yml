@@ -1,0 +1,16 @@
+- generic [ref=e5] [cursor=pointer]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - button "Back" [ref=e36]
+            - heading "Chart QA Household · Finances" [level=2] [ref=e37]
+            - group:
+              - tablist:
+                - tab "Investments" [ref=e38]
+                - tab "Loans" [ref=e39]
+                - tab "Bills" [ref=e40]
+                - tab "Balance History" [active] [selected] [ref=e41]
+                - tab "Categories" [ref=e42]
+          - tabpanel "8/3/2026 18.7K 19.8K 20.8K 21.8K 22.9K 22.9K" [ref=e51]

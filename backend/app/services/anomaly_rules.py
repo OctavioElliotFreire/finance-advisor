@@ -6,6 +6,7 @@ from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
+from app.models.account import Account
 from app.models.anomaly import AnomalyFlag
 from app.models.transaction import Transaction
 
@@ -16,7 +17,7 @@ LARGE_TXN_ZSCORE_MEDIUM = 3.0
 
 DUPLICATE_WINDOW_DAYS = 3
 
-NEW_MERCHANT_MIN_HOUSEHOLD_HISTORY_DAYS = 30
+NEW_MERCHANT_MIN_CONNECTION_HISTORY_DAYS = 30
 NEW_MERCHANT_MIN_AMOUNT = 50.0
 
 RECURRING_MIN_PRIOR_OCCURRENCES = 3
@@ -52,38 +53,67 @@ def _household_debits(
     return query.order_by(Transaction.transaction_date).all()
 
 
+def _household_debits_by_connection(
+    db: Session, household_id: uuid.UUID, since: date | None = None
+) -> dict[uuid.UUID, list[Transaction]]:
+    """Groups household debits by bank connection so statistical baselines
+    (large-transaction z-score, new-merchant history) never mix spending
+    patterns across unrelated banks — one high-volume bank would otherwise
+    skew the "normal" baseline for a low-volume one. Accounts within the
+    same bank connection (e.g. checking + savings) still share one baseline,
+    which is the intended grain (see PLAN.md's household-roles discussion).
+    """
+    query = (
+        db.query(Transaction, Account.pluggy_connection_id)
+        .join(Account, Transaction.account_id == Account.id)
+        .filter(Transaction.household_id == household_id, Transaction.amount < 0)
+    )
+    if since is not None:
+        query = query.filter(Transaction.transaction_date >= since)
+    rows = query.order_by(Transaction.transaction_date).all()
+
+    by_connection: dict[uuid.UUID, list[Transaction]] = {}
+    for txn, connection_id in rows:
+        by_connection.setdefault(connection_id, []).append(txn)
+    return by_connection
+
+
 def detect_large_transactions(
     db: Session, household_id: uuid.UUID, as_of: date | None = None
 ) -> list[dict]:
     today = as_of or date.today()
     since = today - timedelta(days=LARGE_TXN_WINDOW_DAYS)
-    debits = _household_debits(db, household_id, since=since)
-    candidates = []
-    for i, txn in enumerate(debits):
-        prior = debits[:i]
-        if len(prior) < LARGE_TXN_MIN_SAMPLE:
-            continue
-        amounts = [abs(float(p.amount)) for p in prior]
-        avg = statistics.mean(amounts)
-        stddev = statistics.pstdev(amounts) if len(amounts) > 1 else 0.0
-        current = abs(float(txn.amount))
-        z_score = (current - avg) / stddev if stddev > 0 else (current / avg if avg > 0 else 0.0)
+    by_connection = _household_debits_by_connection(db, household_id, since=since)
 
-        if current > avg + 3 * stddev and current > 2 * avg and z_score >= LARGE_TXN_ZSCORE_MEDIUM:
-            candidates.append(
-                {
-                    "transaction_id": txn.id,
-                    "rule": "large_transaction",
-                    "dedupe_key": str(txn.id),
-                    "severity": _severity(z_score, LARGE_TXN_ZSCORE_HIGH, LARGE_TXN_ZSCORE_MEDIUM),
-                    "score": round(z_score, 4),
-                    "summary": (
-                        f'R$ {current:.2f} for "{txn.description}" is {z_score:.1f} standard '
-                        f"deviations above this household's average debit of R$ {avg:.2f}"
-                    ),
-                    "raw_context": {"average": avg, "stddev": stddev, "sample_size": len(prior)},
-                }
+    candidates = []
+    for debits in by_connection.values():
+        for i, txn in enumerate(debits):
+            prior = debits[:i]
+            if len(prior) < LARGE_TXN_MIN_SAMPLE:
+                continue
+            amounts = [abs(float(p.amount)) for p in prior]
+            avg = statistics.mean(amounts)
+            stddev = statistics.pstdev(amounts) if len(amounts) > 1 else 0.0
+            current = abs(float(txn.amount))
+            z_score = (
+                (current - avg) / stddev if stddev > 0 else (current / avg if avg > 0 else 0.0)
             )
+
+            if current > avg + 3 * stddev and current > 2 * avg and z_score >= LARGE_TXN_ZSCORE_MEDIUM:
+                candidates.append(
+                    {
+                        "transaction_id": txn.id,
+                        "rule": "large_transaction",
+                        "dedupe_key": str(txn.id),
+                        "severity": _severity(z_score, LARGE_TXN_ZSCORE_HIGH, LARGE_TXN_ZSCORE_MEDIUM),
+                        "score": round(z_score, 4),
+                        "summary": (
+                            f'R$ {current:.2f} for "{txn.description}" is {z_score:.1f} standard '
+                            f"deviations above this bank's average debit of R$ {avg:.2f}"
+                        ),
+                        "raw_context": {"average": avg, "stddev": stddev, "sample_size": len(prior)},
+                    }
+                )
     return candidates
 
 
@@ -120,34 +150,35 @@ def detect_duplicate_transactions(db: Session, household_id: uuid.UUID) -> list[
 
 
 def detect_new_merchants(db: Session, household_id: uuid.UUID) -> list[dict]:
-    debits = _household_debits(db, household_id)
-    if not debits:
-        return []
+    by_connection = _household_debits_by_connection(db, household_id)
 
-    household_min_date = debits[0].transaction_date
-    seen_descriptions: set[str] = set()
     candidates = []
-    for txn in debits:
-        desc = _normalize_description(txn.description)
-        amount = abs(float(txn.amount))
-        has_enough_history = (
-            txn.transaction_date - household_min_date
-        ).days >= NEW_MERCHANT_MIN_HOUSEHOLD_HISTORY_DAYS
+    for debits in by_connection.values():
+        if not debits:
+            continue
+        connection_min_date = debits[0].transaction_date
+        seen_descriptions: set[str] = set()
+        for txn in debits:
+            desc = _normalize_description(txn.description)
+            amount = abs(float(txn.amount))
+            has_enough_history = (
+                txn.transaction_date - connection_min_date
+            ).days >= NEW_MERCHANT_MIN_CONNECTION_HISTORY_DAYS
 
-        if desc and desc not in seen_descriptions and amount > NEW_MERCHANT_MIN_AMOUNT and has_enough_history:
-            candidates.append(
-                {
-                    "transaction_id": txn.id,
-                    "rule": "new_merchant",
-                    "dedupe_key": str(txn.id),
-                    "severity": "low",
-                    "score": None,
-                    "summary": f'First transaction with "{txn.description}" for R$ {amount:.2f}',
-                    "raw_context": {},
-                }
-            )
-        if desc:
-            seen_descriptions.add(desc)
+            if desc and desc not in seen_descriptions and amount > NEW_MERCHANT_MIN_AMOUNT and has_enough_history:
+                candidates.append(
+                    {
+                        "transaction_id": txn.id,
+                        "rule": "new_merchant",
+                        "dedupe_key": str(txn.id),
+                        "severity": "low",
+                        "score": None,
+                        "summary": f'First transaction with "{txn.description}" for R$ {amount:.2f}',
+                        "raw_context": {},
+                    }
+                )
+            if desc:
+                seen_descriptions.add(desc)
     return candidates
 
 

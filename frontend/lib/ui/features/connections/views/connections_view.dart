@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/web/open_pluggy_connect_stub.dart'
+    if (dart.library.html) '../../../../core/web/open_pluggy_connect_web.dart';
 import '../../../../data/models/pluggy_connection.dart';
 import '../../../../data/repositories/connection_repository.dart';
 import '../../../core/widgets/error_banner.dart';
@@ -58,25 +60,30 @@ class _ConnectionsViewState extends State<ConnectionsView> {
   }
 
   Future<void> _connect() async {
-    if (kIsWeb) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Connecting institutions from the web app is coming soon — use the mobile app for now.',
-          ),
-        ),
-      );
-      return;
-    }
-
     final token = await _viewModel.requestConnectToken();
     if (token == null || !mounted) return;
 
-    final itemId = await Navigator.of(context).push<String>(
-      MaterialPageRoute(builder: (_) => PluggyConnectScreen(connectToken: token)),
-    );
+    String? itemId;
+    if (kIsWeb) {
+      try {
+        itemId = await openPluggyConnectWeb(token);
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not open the connection widget. Please try again.'),
+            ),
+          );
+        }
+        return;
+      }
+    } else {
+      itemId = await Navigator.of(context).push<String>(
+        MaterialPageRoute(builder: (_) => PluggyConnectScreen(connectToken: token)),
+      );
+    }
 
-    if (itemId != null) {
+    if (itemId != null && mounted) {
       await _viewModel.registerConnection(itemId);
     }
   }

@@ -19,6 +19,7 @@ void main() {
   late DashboardRepository repository;
 
   final dashboard = Dashboard(
+    householdName: 'Some Household',
     accounts: const [
       AccountSummary(
         id: 'acc-1',

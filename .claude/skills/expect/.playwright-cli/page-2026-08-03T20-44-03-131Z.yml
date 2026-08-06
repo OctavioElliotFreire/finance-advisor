@@ -1,0 +1,16 @@
+- generic [ref=e5] [cursor=pointer]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - button "Back" [ref=e36]
+            - heading "Chart QA Household · Finances" [level=2] [ref=e37]
+            - group:
+              - tablist:
+                - tab "Investments" [ref=e38]
+                - tab "Loans" [ref=e39]
+                - tab "Bills" [ref=e40]
+                - tab "Balance History" [ref=e41]
+                - tab "Categories" [active] [selected] [ref=e42]
+          - tabpanel "Uncategorized R$177.80 100%" [ref=e52]

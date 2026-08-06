@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:frontend/data/models/auth_session.dart';
+import 'package:frontend/data/models/household_invite.dart';
 import 'package:frontend/data/models/household_member.dart';
 import 'package:frontend/data/models/me.dart';
 import 'package:frontend/data/repositories/auth_repository.dart';
@@ -39,11 +40,15 @@ class _FakeStorage extends SecureTokenStorage {
 class _FakeBackendService extends BackendApiService {
   _FakeBackendService({
     this.initialMembers = const [],
+    this.initialPendingInvites = const [],
     this.inviteError,
+    this.inviteAsUnknownEmail = false,
   });
 
   final List<HouseholdMember> initialMembers;
+  final List<InviteSummary> initialPendingInvites;
   final ApiException? inviteError;
+  final bool inviteAsUnknownEmail;
 
   @override
   Future<Me> getMe(String accessToken) async {
@@ -63,19 +68,43 @@ class _FakeBackendService extends BackendApiService {
   }
 
   @override
-  Future<HouseholdMember> inviteMember(
+  Future<List<InviteSummary>> listPendingInvites(
+    String accessToken,
+    String householdId,
+  ) async {
+    return initialPendingInvites;
+  }
+
+  @override
+  Future<InviteResult> inviteMember(
     String accessToken,
     String householdId,
     String email,
     String role,
   ) async {
     if (inviteError != null) throw inviteError!;
-    return HouseholdMember(
-      id: 'member-new',
-      appUserId: 'appuser-new',
-      email: email,
-      role: role,
-      createdAt: DateTime.now().toUtc(),
+    if (inviteAsUnknownEmail) {
+      return InviteResult(
+        outcome: 'invited',
+        invite: InviteSummary(
+          id: 'invite-new',
+          email: email,
+          role: role,
+          expiresAt: DateTime.now().toUtc().add(const Duration(days: 7)),
+          acceptedAt: null,
+          createdAt: DateTime.now().toUtc(),
+        ),
+      );
+    }
+    return InviteResult(
+      outcome: 'added',
+      member: HouseholdMember(
+        id: 'member-new',
+        appUserId: 'appuser-new',
+        email: email,
+        role: role,
+        createdAt: DateTime.now().toUtc(),
+      ),
     );
   }
 }
@@ -135,6 +164,38 @@ void main() {
     expect(find.text('Role: member'), findsOneWidget);
   });
 
+  testWidgets('shows existing pending invites on load', (tester) async {
+    final repository = await _buildRepository(
+      _FakeBackendService(
+        initialPendingInvites: [
+          InviteSummary(
+            id: 'invite-1',
+            email: 'already-invited@example.com',
+            role: 'viewer',
+            expiresAt: DateTime.now().toUtc().add(const Duration(days: 7)),
+            acceptedAt: null,
+            createdAt: DateTime.now().toUtc(),
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MembersView(
+          householdRepository: repository,
+          householdId: 'household-1',
+          householdName: 'Elliot Family',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Pending invites'), findsOneWidget);
+    expect(find.text('already-invited@example.com'), findsOneWidget);
+    expect(find.text('Role: viewer · not yet accepted'), findsOneWidget);
+  });
+
   testWidgets('shows an empty state when there are no members', (
     tester,
   ) async {
@@ -181,14 +242,12 @@ void main() {
     expect(find.text('Role: member'), findsOneWidget);
   });
 
-  testWidgets('shows the backend error when inviting an unknown email', (
-    tester,
-  ) async {
+  testWidgets('shows the backend error when invite fails', (tester) async {
     final repository = await _buildRepository(
       _FakeBackendService(
         inviteError: ApiException(
-          'No account found for that email. Ask them to sign up, then invite again.',
-          statusCode: 404,
+          'This household has reached its member limit.',
+          statusCode: 422,
         ),
       ),
     );
@@ -211,11 +270,118 @@ void main() {
     await tester.tap(find.text('Invite'));
     await tester.pumpAndSettle();
 
-    expect(
-      find.text(
-        'No account found for that email. Ask them to sign up, then invite again.',
-      ),
-      findsOneWidget,
+    expect(find.text('This household has reached its member limit.'), findsOneWidget);
+  });
+
+  testWidgets('inviting an unknown email shows it under pending invites', (
+    tester,
+  ) async {
+    final repository = await _buildRepository(
+      _FakeBackendService(inviteAsUnknownEmail: true),
     );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MembersView(
+          householdRepository: repository,
+          householdId: 'household-1',
+          householdName: 'Elliot Family',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.person_add));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'never-signed-up@example.com');
+    await tester.tap(find.text('Invite'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Pending invites'), findsOneWidget);
+    expect(find.text('never-signed-up@example.com'), findsOneWidget);
+    expect(find.text('Role: member · not yet accepted'), findsOneWidget);
+    expect(find.text('Invite email sent to never-signed-up@example.com.'), findsOneWidget);
+  });
+
+  testWidgets('owner sees a manage-access affordance only on non-owner rows', (
+    tester,
+  ) async {
+    final repository = await _buildRepository(
+      _FakeBackendService(
+        initialMembers: [
+          HouseholdMember(
+            id: 'member-1',
+            appUserId: 'appuser-1',
+            email: 'owner@example.com',
+            role: 'owner',
+            createdAt: DateTime.now().toUtc(),
+          ),
+          HouseholdMember(
+            id: 'member-2',
+            appUserId: 'appuser-2',
+            email: 'kid@example.com',
+            role: 'member',
+            createdAt: DateTime.now().toUtc(),
+          ),
+        ],
+      ),
+    );
+    String? manageAccessMemberId;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MembersView(
+          householdRepository: repository,
+          householdId: 'household-1',
+          householdName: 'Elliot Family',
+          currentUserEmail: 'owner@example.com',
+          onManageAccess: (memberId, memberEmail) => manageAccessMemberId = memberId,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('Manage access'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Manage access'));
+    expect(manageAccessMemberId, 'member-2');
+  });
+
+  testWidgets('non-owner never sees the manage-access affordance', (tester) async {
+    final repository = await _buildRepository(
+      _FakeBackendService(
+        initialMembers: [
+          HouseholdMember(
+            id: 'member-1',
+            appUserId: 'appuser-1',
+            email: 'owner@example.com',
+            role: 'owner',
+            createdAt: DateTime.now().toUtc(),
+          ),
+          HouseholdMember(
+            id: 'member-2',
+            appUserId: 'appuser-2',
+            email: 'kid@example.com',
+            role: 'member',
+            createdAt: DateTime.now().toUtc(),
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MembersView(
+          householdRepository: repository,
+          householdId: 'household-1',
+          householdName: 'Elliot Family',
+          currentUserEmail: 'kid@example.com',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('Manage access'), findsNothing);
   });
 }

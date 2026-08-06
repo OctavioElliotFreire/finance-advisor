@@ -100,6 +100,7 @@ class SyncStatus {
 
 class Dashboard {
   const Dashboard({
+    required this.householdName,
     required this.accounts,
     required this.totalBalance,
     required this.recentTransactions,
@@ -109,6 +110,7 @@ class Dashboard {
 
   factory Dashboard.fromJson(Map<String, dynamic> json) {
     return Dashboard(
+      householdName: json['household_name'] as String,
       accounts: (json['accounts'] as List<dynamic>)
           .cast<Map<String, dynamic>>()
           .map(AccountSummary.fromJson)
@@ -128,6 +130,7 @@ class Dashboard {
     );
   }
 
+  final String householdName;
   final List<AccountSummary> accounts;
   final double totalBalance;
   final List<TransactionSummary> recentTransactions;

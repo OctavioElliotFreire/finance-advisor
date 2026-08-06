@@ -5,6 +5,10 @@ import '../../../../data/repositories/extended_finance_repository.dart';
 import '../../../core/formatting/money.dart';
 import '../../../core/widgets/error_banner.dart';
 import '../view_models/finances_view_model.dart';
+import '../widgets/balance_history_chart.dart';
+import '../widgets/balance_history_chart_data.dart';
+import '../widgets/category_breakdown_chart.dart';
+import '../widgets/category_breakdown_chart_data.dart';
 
 class FinancesView extends StatefulWidget {
   const FinancesView({
@@ -193,17 +197,11 @@ class _BalanceHistoryTab extends StatelessWidget {
     if (points.isEmpty) {
       return const _EmptyState(message: 'No balance history yet.');
     }
-    final descending = points.reversed.toList();
-    return ListView.builder(
+    return Padding(
       padding: const EdgeInsets.all(16),
-      itemCount: descending.length,
-      itemBuilder: (context, index) {
-        final point = descending[index];
-        return ListTile(
-          title: Text(formatShortDate(point.snapshotDate)),
-          trailing: Text(formatMoney(point.totalBalance, 'BRL')),
-        );
-      },
+      child: BalanceHistoryChart(
+        data: BalanceHistoryChartData.fromBalancePoints(points),
+      ),
     );
   }
 }
@@ -218,34 +216,11 @@ class _CategoriesTab extends StatelessWidget {
     if (categories.isEmpty) {
       return const _EmptyState(message: 'No categorized spending yet.');
     }
-    final maxTotal = categories.map((c) => c.total).reduce((a, b) => a > b ? a : b);
-    return ListView.builder(
+    return Padding(
       padding: const EdgeInsets.all(16),
-      itemCount: categories.length,
-      itemBuilder: (context, index) {
-        final category = categories[index];
-        final ratio = maxTotal <= 0 ? 0.0 : category.total / maxTotal;
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(category.category ?? 'Uncategorized'),
-                  Text(formatMoney(category.total, 'BRL')),
-                ],
-              ),
-              const SizedBox(height: 4),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(value: ratio, minHeight: 8),
-              ),
-            ],
-          ),
-        );
-      },
+      child: CategoryBreakdownChart(
+        data: CategoryBreakdownChartData.fromItems(categories),
+      ),
     );
   }
 }

@@ -5,6 +5,8 @@ import '../../../../data/repositories/dashboard_repository.dart';
 import '../../../core/formatting/money.dart';
 import '../../../core/widgets/error_banner.dart';
 import '../view_models/dashboard_view_model.dart';
+import '../widgets/cash_flow_chart.dart';
+import '../widgets/cash_flow_chart_data.dart';
 
 const _wideLayoutBreakpoint = 720.0;
 
@@ -18,6 +20,7 @@ class DashboardView extends StatefulWidget {
     required this.onViewFinances,
     required this.onViewAnomalies,
     required this.onManageMembers,
+    required this.onOpenAssistant,
   });
 
   final DashboardRepository dashboardRepository;
@@ -27,6 +30,7 @@ class DashboardView extends StatefulWidget {
   final VoidCallback onViewFinances;
   final VoidCallback onViewAnomalies;
   final VoidCallback onManageMembers;
+  final VoidCallback onOpenAssistant;
 
   @override
   State<DashboardView> createState() => _DashboardViewState();
@@ -46,58 +50,67 @@ class _DashboardViewState extends State<DashboardView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.householdName),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.pie_chart),
-            tooltip: 'Finances',
-            onPressed: widget.onViewFinances,
+    return ListenableBuilder(
+      listenable: _viewModel,
+      builder: (context, _) {
+        final dashboard = _viewModel.dashboard;
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(dashboard?.householdName ?? widget.householdName),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.pie_chart),
+                tooltip: 'Finances',
+                onPressed: widget.onViewFinances,
+              ),
+              IconButton(
+                icon: const Icon(Icons.warning_amber_rounded),
+                tooltip: 'Anomalies',
+                onPressed: widget.onViewAnomalies,
+              ),
+              IconButton(
+                icon: const Icon(Icons.account_balance),
+                tooltip: 'Connections',
+                onPressed: widget.onManageConnections,
+              ),
+              IconButton(
+                icon: const Icon(Icons.group),
+                tooltip: 'Members',
+                onPressed: widget.onManageMembers,
+              ),
+              IconButton(
+                icon: const Icon(Icons.chat_bubble_outline),
+                tooltip: 'Assistant',
+                onPressed: widget.onOpenAssistant,
+              ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.warning_amber_rounded),
-            tooltip: 'Anomalies',
-            onPressed: widget.onViewAnomalies,
-          ),
-          IconButton(
-            icon: const Icon(Icons.account_balance),
-            tooltip: 'Connections',
-            onPressed: widget.onManageConnections,
-          ),
-          IconButton(
-            icon: const Icon(Icons.group),
-            tooltip: 'Members',
-            onPressed: widget.onManageMembers,
-          ),
-        ],
-      ),
-      body: ListenableBuilder(
-        listenable: _viewModel,
-        builder: (context, _) {
-          if (_viewModel.isLoading && _viewModel.dashboard == null) {
-            return const Center(child: CircularProgressIndicator());
-          }
+          body: Builder(
+            builder: (context) {
+              if (_viewModel.isLoading && dashboard == null) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-          final dashboard = _viewModel.dashboard;
-          return RefreshIndicator(
-            onRefresh: _viewModel.load,
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                ErrorBanner(message: _viewModel.errorMessage),
-                if (dashboard == null && !_viewModel.isLoading)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 48),
-                    child: Center(child: Text('Could not load the dashboard.')),
-                  )
-                else if (dashboard != null)
-                  _DashboardBody(dashboard: dashboard),
-              ],
-            ),
-          );
-        },
-      ),
+              return RefreshIndicator(
+                onRefresh: _viewModel.load,
+                child: ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    ErrorBanner(message: _viewModel.errorMessage),
+                    if (dashboard == null && !_viewModel.isLoading)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 48),
+                        child: Center(child: Text('Could not load the dashboard.')),
+                      )
+                    else if (dashboard != null)
+                      _DashboardBody(dashboard: dashboard),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }
@@ -243,35 +256,11 @@ class _CashFlowSection extends StatelessWidget {
             if (monthlyCashFlow.isEmpty)
               const Text('No transactions synced yet.')
             else
-              for (final month in monthlyCashFlow) _CashFlowRow(month: month),
+              CashFlowChart(
+                data: CashFlowChartData.fromMonthlyCashFlow(monthlyCashFlow),
+              ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _CashFlowRow extends StatelessWidget {
-  const _CashFlowRow({required this.month});
-
-  final MonthlyCashFlow month;
-
-  @override
-  Widget build(BuildContext context) {
-    final netColor = month.net >= 0 ? Colors.green : Colors.red;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          SizedBox(width: 72, child: Text(formatMonth(month.month))),
-          Expanded(
-            child: Text('In ${formatMoney(month.income, 'BRL')} · Out ${formatMoney(month.expenses, 'BRL')}'),
-          ),
-          Text(
-            formatMoney(month.net, 'BRL'),
-            style: TextStyle(color: netColor, fontWeight: FontWeight.bold),
-          ),
-        ],
       ),
     );
   }

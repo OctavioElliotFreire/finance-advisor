@@ -28,5 +28,9 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     gemini_api_key: str = ""
 
+    # Used to build the redirect_to URL passed to Supabase's invite email so
+    # the invitee's browser lands back on the Flutter app after clicking it.
+    frontend_base_url: str = "http://localhost:8901"
+
 
 settings = Settings()

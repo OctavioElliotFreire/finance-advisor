@@ -33,6 +33,9 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Ephemeral browser QA artifacts (expect/playwright-cli screenshots)
+.qa-screenshots/
+
 # Symbolication related
 app.*.symbols
 

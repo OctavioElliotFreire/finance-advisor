@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
-from app.auth.dependencies import get_current_app_user, get_household_membership, require_role
+from app.auth.access_scope import AccessScope, get_access_scope
+from app.auth.dependencies import get_current_app_user, require_role
 from app.database.session import get_db
 from app.models.app_user import AppUser
 from app.models.household import HouseholdMember
@@ -82,12 +83,14 @@ async def create_connection(
 @router.get("", response_model=list[ConnectionResponse])
 def list_connections(
     household_id: uuid.UUID,
-    membership: HouseholdMember = Depends(get_household_membership),
+    scope: AccessScope = Depends(get_access_scope),
     db: Session = Depends(get_db),
 ):
-    return (
+    query = (
         db.query(PluggyConnection)
         .options(joinedload(PluggyConnection.created_by))
         .filter(PluggyConnection.household_id == household_id)
-        .all()
     )
+    if scope.connection_ids is not None:
+        query = query.filter(PluggyConnection.id.in_(scope.connection_ids))
+    return query.all()

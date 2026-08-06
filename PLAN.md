@@ -871,6 +871,39 @@ Also actually implemented, not in the sketch above:
 `GET`/`POST /v1/households/{id}/members` — list/invite household members
 (owner-only invite, existing-users-only, see Household Roles above).
 
+**Pluggy web Connect widget (added 2026-08-05):** mobile has always used the
+real `flutter_pluggy_connect` package; web previously showed a stub snackbar
+("use the mobile app for now"). Web now uses Pluggy's own hosted Connect
+Widget (`https://cdn.pluggy.ai/pluggy-connect/latest/pluggy-connect.js`,
+the `pluggy-connect-sdk` package's vanilla-JS API) via a `dart:js_interop`
+binding in `frontend/lib/core/web/open_pluggy_connect_web.dart`, gated
+behind the same `dart.library.html` conditional-import pattern already used
+for `invite_redirect_cleanup_web.dart`. `connections_view.dart`'s `_connect()`
+calls it for web, the existing `PluggyConnectScreen` for mobile — both paths
+converge on the same `_viewModel.registerConnection(itemId)` call, so the
+backend needed zero changes for this feature itself. Verified end-to-end
+with a real Pluggy sandbox connection (item created, listed in the app).
+
+Two real bugs surfaced during that first browser verification, both fixed:
+- `PluggyClient`'s `httpx.AsyncClient()` calls had no explicit timeout,
+  defaulting to httpx's 5s. A real `/auth` call to Pluggy took 4.8-8s from
+  this dev machine, intermittently exceeding it — the resulting unhandled
+  500 has no CORS headers, which the browser reports as a misleading CORS
+  error, masking the real cause (a timeout, not a cross-origin problem).
+  Fixed by setting `REQUEST_TIMEOUT = 30.0` on every client call in
+  `backend/app/sync/pluggy_client.py`. Affects mobile too, not just web.
+- The widget's `includeSandbox` option (default `false` upstream, on both
+  the web SDK and `flutter_pluggy_connect`) was never set on either
+  platform, so only real/production connectors were offered — no sandbox
+  "Pluggy Bank" test connector, and selecting the one real connector shown
+  opened a genuine Auth0 login. Added `AppConfig.pluggyIncludeSandbox`
+  (`frontend/lib/core/config/app_config.dart`, defaults `true` via
+  `bool.fromEnvironment('PLUGGY_INCLUDE_SANDBOX', defaultValue: true)`) and
+  wired it into both `PluggyConnectScreen` (mobile) and
+  `open_pluggy_connect_web.dart` (web). **Must be set to `false` via `.env`
+  before any real bank connectors go live in production** — until then this
+  bug was silently hiding the entire sandbox catalog on both platforms.
+
 ---
 
 ## Synchronization Flow
@@ -991,6 +1024,20 @@ Begin with deterministic anomaly rules:
 * Spending outside normal behavior
 
 The LLM should explain selected anomaly candidates rather than process a full financial history.
+
+**Per-bank scoping (added 2026-08-05):** once a household can have multiple
+Pluggy connections with restricted-access members (see Household Roles
+above), the "unusually large transaction" and "new merchant" rules' baselines
+are computed **per bank connection**, not household-wide — otherwise one
+high-volume bank's history would skew what counts as "normal" for a
+different bank in the same household. "Duplicate transaction" and
+"unexpected recurring payment" were already scoped to a single account,
+which is even finer-grained and needed no change. "Large category deviation"
+intentionally stays household-wide (a spending category spans banks by
+nature) and is already excluded entirely from restricted members' view at
+the API layer (`app/api/anomalies.py`'s `_get_flag_or_404`/`list_anomalies` —
+flags with no `transaction_id` can't be attributed to a connection). See
+`app/services/anomaly_rules.py`'s `_household_debits_by_connection`.
 
 ---
 

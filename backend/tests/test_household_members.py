@@ -5,11 +5,22 @@ import jwt
 import pytest
 from fastapi.testclient import TestClient
 
+from app.api.household_members import get_invite_sender
 from app.database.session import SessionLocal
 from app.main import app
 from app.models.app_user import AppUser
 from app.models.household import Household, HouseholdMember
+from app.models.household_invite import HouseholdInvite
 from app.settings import settings
+
+
+class _FakeInviteSender:
+    def __init__(self):
+        self.calls = []
+
+    async def invite_user_by_email(self, email, redirect_to):
+        self.calls.append((email, redirect_to))
+        return {"id": str(uuid.uuid4()), "email": email}
 
 
 @pytest.fixture(autouse=True)
@@ -18,6 +29,14 @@ def hs256_secret(monkeypatch):
     monkeypatch.setattr(settings, "supabase_jwt_secret", "test-secret")
     monkeypatch.setattr(settings, "supabase_jwt_audience", "authenticated")
     monkeypatch.setattr(settings, "supabase_jwt_issuer", "")
+
+
+@pytest.fixture
+def fake_invite_sender():
+    sender = _FakeInviteSender()
+    app.dependency_overrides[get_invite_sender] = lambda: sender
+    yield sender
+    app.dependency_overrides.pop(get_invite_sender, None)
 
 
 @pytest.fixture
@@ -60,6 +79,10 @@ def make_user():
             .filter(HouseholdMember.app_user_id.in_(app_user_ids))
             .all()
         ]
+        db.query(HouseholdInvite).filter(
+            HouseholdInvite.invited_by_app_user_id.in_(app_user_ids)
+            | HouseholdInvite.household_id.in_(household_ids)
+        ).delete(synchronize_session=False)
         db.query(HouseholdMember).filter(
             HouseholdMember.app_user_id.in_(app_user_ids)
         ).delete(synchronize_session=False)
@@ -91,8 +114,9 @@ def test_owner_can_invite_existing_user_as_member(client, make_user):
 
     assert response.status_code == 201
     body = response.json()
-    assert body["email"] == "member3@example.com"
-    assert body["role"] == "member"
+    assert body["outcome"] == "added"
+    assert body["member"]["email"] == "member3@example.com"
+    assert body["member"]["role"] == "member"
 
     listing = client.get(
         f"/v1/households/{household['id']}", headers=headers_member
@@ -101,7 +125,9 @@ def test_owner_can_invite_existing_user_as_member(client, make_user):
     assert listing.json()["role"] == "member"
 
 
-def test_invite_unknown_email_is_not_found(client, make_user):
+def test_invite_unknown_email_creates_pending_invite_and_sends_email(
+    client, make_user, fake_invite_sender
+):
     headers_owner = make_user("owner4@example.com")
     household = client.post(
         "/v1/households", json={"name": "Unknown Invite Family"}, headers=headers_owner
@@ -113,7 +139,52 @@ def test_invite_unknown_email_is_not_found(client, make_user):
         headers=headers_owner,
     )
 
-    assert response.status_code == 404
+    assert response.status_code == 201
+    body = response.json()
+    assert body["outcome"] == "invited"
+    assert body["invite"]["email"] == "never-signed-up@example.com"
+    assert body["invite"]["role"] == "member"
+    assert body["invite"]["accepted_at"] is None
+
+    assert len(fake_invite_sender.calls) == 1
+    email, redirect_to = fake_invite_sender.calls[0]
+    assert email == "never-signed-up@example.com"
+    assert f"invite={body['invite']['id']}" in redirect_to
+
+    pending = client.get(
+        f"/v1/households/{household['id']}/invites", headers=headers_owner
+    )
+    assert pending.status_code == 200
+    assert len(pending.json()) == 1
+    assert pending.json()[0]["email"] == "never-signed-up@example.com"
+
+
+def test_reinviting_same_pending_email_reuses_invite(client, make_user, fake_invite_sender):
+    headers_owner = make_user("owner-reinvite@example.com")
+    household = client.post(
+        "/v1/households", json={"name": "Reinvite Family"}, headers=headers_owner
+    ).json()
+
+    first = client.post(
+        f"/v1/households/{household['id']}/members",
+        json={"email": "pending-reinvite@example.com"},
+        headers=headers_owner,
+    )
+    second = client.post(
+        f"/v1/households/{household['id']}/members",
+        json={"email": "pending-reinvite@example.com"},
+        headers=headers_owner,
+    )
+
+    assert first.status_code == 201
+    assert second.status_code == 201
+    assert first.json()["invite"]["id"] == second.json()["invite"]["id"]
+    assert len(fake_invite_sender.calls) == 2
+
+    pending = client.get(
+        f"/v1/households/{household['id']}/invites", headers=headers_owner
+    )
+    assert len(pending.json()) == 1
 
 
 def test_invite_already_member_is_conflict(client, make_user):
@@ -185,6 +256,27 @@ def test_outsider_with_no_membership_cannot_list_or_invite(client, make_user):
 
     assert list_response.status_code == 403
     assert invite_response.status_code == 403
+
+
+def test_non_owner_cannot_list_pending_invites(client, make_user, fake_invite_sender):
+    headers_owner = make_user("owner-pending@example.com")
+    headers_member = make_user("member-pending@example.com")
+    client.get("/v1/me", headers=headers_member)
+
+    household = client.post(
+        "/v1/households", json={"name": "Pending Invites Family"}, headers=headers_owner
+    ).json()
+    client.post(
+        f"/v1/households/{household['id']}/members",
+        json={"email": "member-pending@example.com"},
+        headers=headers_owner,
+    )
+
+    response = client.get(
+        f"/v1/households/{household['id']}/invites", headers=headers_member
+    )
+
+    assert response.status_code == 403
 
 
 def test_list_members_returns_everyone_in_the_household(client, make_user):

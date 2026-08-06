@@ -179,6 +179,7 @@ def test_dashboard_returns_accounts_transactions_cash_flow_and_sync_status(
     assert response.status_code == 200
     body = response.json()
 
+    assert body["household_name"] == "Dashboard Family"
     assert len(body["accounts"]) == 2
     assert body["total_balance"] == 1500.0
 
@@ -208,6 +209,7 @@ def test_dashboard_with_no_data_returns_empty_shape(client, make_user):
 
     assert response.status_code == 200
     body = response.json()
+    assert body["household_name"] == "Empty Family"
     assert body["accounts"] == []
     assert body["total_balance"] == 0.0
     assert body["recent_transactions"] == []

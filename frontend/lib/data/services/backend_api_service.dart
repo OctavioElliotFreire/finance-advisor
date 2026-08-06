@@ -4,9 +4,12 @@ import 'package:http/http.dart' as http;
 
 import '../../core/config/app_config.dart';
 import '../models/anomaly.dart';
+import '../models/assistant_message.dart';
+import '../models/connection_access.dart';
 import '../models/dashboard.dart';
 import '../models/extended_finance.dart';
 import '../models/household.dart';
+import '../models/household_invite.dart';
 import '../models/household_member.dart';
 import '../models/me.dart';
 import '../models/pluggy_connection.dart';
@@ -104,7 +107,7 @@ class BackendApiService {
     return list.cast<Map<String, dynamic>>().map(HouseholdMember.fromJson).toList();
   }
 
-  Future<HouseholdMember> inviteMember(
+  Future<InviteResult> inviteMember(
     String accessToken,
     String householdId,
     String email,
@@ -115,7 +118,72 @@ class BackendApiService {
       headers: _authHeaders(accessToken),
       body: jsonEncode({'email': email, 'role': role}),
     );
-    return HouseholdMember.fromJson(_decodeOrThrow(response));
+    return InviteResult.fromJson(_decodeOrThrow(response));
+  }
+
+  Future<List<InviteSummary>> listPendingInvites(
+    String accessToken,
+    String householdId,
+  ) async {
+    final response = await _client.get(
+      _url('/v1/households/$householdId/invites'),
+      headers: _authHeaders(accessToken),
+    );
+    if (response.statusCode >= 300) {
+      _decodeOrThrow(response);
+    }
+    final list = jsonDecode(response.body) as List<dynamic>;
+    return list.cast<Map<String, dynamic>>().map(InviteSummary.fromJson).toList();
+  }
+
+  Future<InvitePreview> getInvitePreview(String inviteId) async {
+    final response = await _client.get(
+      _url('/v1/invites/$inviteId'),
+      headers: {'Content-Type': 'application/json'},
+    );
+    return InvitePreview.fromJson(_decodeOrThrow(response));
+  }
+
+  Future<AcceptInviteResult> acceptInvite(String accessToken, String inviteId) async {
+    final response = await _client.post(
+      _url('/v1/invites/$inviteId/accept'),
+      headers: _authHeaders(accessToken),
+    );
+    return AcceptInviteResult.fromJson(_decodeOrThrow(response));
+  }
+
+  Future<List<ConnectionAccessEntry>> getMemberAccess(
+    String accessToken,
+    String householdId,
+    String memberId,
+  ) async {
+    final response = await _client.get(
+      _url('/v1/households/$householdId/members/$memberId/access'),
+      headers: _authHeaders(accessToken),
+    );
+    if (response.statusCode >= 300) {
+      _decodeOrThrow(response);
+    }
+    final list = jsonDecode(response.body) as List<dynamic>;
+    return list.cast<Map<String, dynamic>>().map(ConnectionAccessEntry.fromJson).toList();
+  }
+
+  Future<List<ConnectionAccessEntry>> updateMemberAccess(
+    String accessToken,
+    String householdId,
+    String memberId,
+    List<String> connectionIds,
+  ) async {
+    final response = await _client.put(
+      _url('/v1/households/$householdId/members/$memberId/access'),
+      headers: _authHeaders(accessToken),
+      body: jsonEncode({'connection_ids': connectionIds}),
+    );
+    if (response.statusCode >= 300) {
+      _decodeOrThrow(response);
+    }
+    final list = jsonDecode(response.body) as List<dynamic>;
+    return list.cast<Map<String, dynamic>>().map(ConnectionAccessEntry.fromJson).toList();
   }
 
   Future<String> createConnectToken(String accessToken, String householdId) async {
@@ -279,5 +347,33 @@ class BackendApiService {
       body: jsonEncode({'status': status}),
     );
     return AnomalySummary.fromJson(_decodeOrThrow(response));
+  }
+
+  Future<List<AssistantMessage>> getAssistantMessages(
+    String accessToken,
+    String householdId,
+  ) async {
+    final response = await _client.get(
+      _url('/v1/households/$householdId/assistant'),
+      headers: _authHeaders(accessToken),
+    );
+    if (response.statusCode >= 300) {
+      _decodeOrThrow(response);
+    }
+    final list = jsonDecode(response.body) as List<dynamic>;
+    return list.cast<Map<String, dynamic>>().map(AssistantMessage.fromJson).toList();
+  }
+
+  Future<AssistantMessage> askAssistant(
+    String accessToken,
+    String householdId,
+    String question,
+  ) async {
+    final response = await _client.post(
+      _url('/v1/households/$householdId/assistant/ask'),
+      headers: _authHeaders(accessToken),
+      body: jsonEncode({'question': question}),
+    );
+    return AssistantMessage.fromJson(_decodeOrThrow(response));
   }
 }

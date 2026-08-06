@@ -1,0 +1,29 @@
+- generic [ref=e5]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - button "Back" [active] [ref=e18]
+            - heading "Chart QA Household" [level=2] [ref=e19]
+            - button "Finances" [ref=e20]
+            - button "Anomalies" [ref=e21]
+            - button "Connections" [ref=e22]
+            - button "Members" [ref=e23]
+          - generic:
+            - group:
+              - generic:
+                - group "Total balance R$20,796.00 Conta Corrente R$21,376.90 Mastercard Black -R$580.90":
+                  - checkbox "Synced" [ref=e24]
+                - generic [ref=e25]: Monthly cash flow Apr 2026 May 2026 Jun 2026 Jul 2026 Aug 2026 0 2.5K 5.1K 7.7K 10.2K Income Expenses
+                - group "Recent transactions":
+                  - generic [ref=e26]: Pagamento de boleto Conta Corrente · 8/3/2026 -R$100.00
+                  - generic [ref=e27]: NETFLIX.COM Mastercard Black · 8/1/2026 -R$55.90
+                  - generic [ref=e28]: SPOTIFY AB Mastercard Black · 8/1/2026 -R$21.90
+                  - generic [ref=e29]: PAGAMENTO FATURA CARTAO VISA Conta Corrente · 7/31/2026 -R$167.70
+                  - generic [ref=e30]: VIVO SERVICOS E COMERCIO Conta Corrente · 7/20/2026 -R$120.00
+                  - generic [ref=e31]: ELETROBRAS LIGHT SA Conta Corrente · 7/15/2026 -R$185.00
+                  - generic [ref=e32]: SMART FIT ACADEMIA Mastercard Black · 7/10/2026 -R$89.90
+                  - generic [ref=e33]: CONDOMINIO EDIFICIO SOLAR Conta Corrente · 7/5/2026 -R$800.00
+                  - generic [ref=e34]: SALARIO EMPRESA XYZ LTDA Conta Corrente · 7/5/2026 R$8,500.00
+                  - generic [ref=e35]: SPOTIFY AB Mastercard Black · 7/1/2026 -R$21.90

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_pluggy_connect/flutter_pluggy_connect.dart';
 
+import '../../../../core/config/app_config.dart';
+
 /// Wraps the official `flutter_pluggy_connect` widget. Pops with the
 /// resulting Pluggy item id on success, or `null` on error/close.
 ///
@@ -19,6 +21,7 @@ class PluggyConnectScreen extends StatelessWidget {
       body: PluggyConnect(
         connectToken: connectToken,
         language: 'en',
+        includeSandbox: AppConfig.pluggyIncludeSandbox,
         onSuccess: (data) {
           final itemId = (data as Map?)?['item']?['id'] as String?;
           Navigator.of(context).pop(itemId);

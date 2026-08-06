@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../../data/models/household_invite.dart';
 import '../../../../data/models/household_member.dart';
 import '../../../../data/repositories/household_repository.dart';
 import '../../../../data/services/api_exception.dart';
@@ -15,11 +16,13 @@ class MembersViewModel extends ChangeNotifier {
   final String _householdId;
 
   List<HouseholdMember> _members = [];
+  List<InviteSummary> _pendingInvites = [];
   bool _isLoading = false;
   bool _isInviting = false;
   String? _errorMessage;
 
   List<HouseholdMember> get members => _members;
+  List<InviteSummary> get pendingInvites => _pendingInvites;
   bool get isLoading => _isLoading;
   bool get isInviting => _isInviting;
   String? get errorMessage => _errorMessage;
@@ -31,6 +34,7 @@ class MembersViewModel extends ChangeNotifier {
 
     try {
       _members = await _householdRepository.listMembers(_householdId);
+      _pendingInvites = await _householdRepository.listPendingInvites(_householdId);
     } on ApiException catch (e) {
       _errorMessage = e.message;
     } catch (e) {
@@ -41,25 +45,31 @@ class MembersViewModel extends ChangeNotifier {
     }
   }
 
-  Future<bool> inviteMember(String email, String role) async {
+  /// Returns the invite outcome ("added" or "invited") on success, null on
+  /// failure — the view uses this to show the right confirmation message.
+  Future<String?> inviteMember(String email, String role) async {
     _isInviting = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final member = await _householdRepository.inviteMember(
+      final result = await _householdRepository.inviteMember(
         _householdId,
         email,
         role,
       );
-      _members = [..._members, member];
-      return true;
+      if (result.outcome == 'added') {
+        _members = [..._members, result.member!];
+      } else {
+        _pendingInvites = [..._pendingInvites, result.invite!];
+      }
+      return result.outcome;
     } on ApiException catch (e) {
       _errorMessage = e.message;
-      return false;
+      return null;
     } catch (e) {
       _errorMessage = 'Could not invite this member.';
-      return false;
+      return null;
     } finally {
       _isInviting = false;
       notifyListeners();

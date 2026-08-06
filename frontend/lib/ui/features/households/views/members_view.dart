@@ -10,11 +10,15 @@ class MembersView extends StatefulWidget {
     required this.householdRepository,
     required this.householdId,
     required this.householdName,
+    this.currentUserEmail,
+    this.onManageAccess,
   });
 
   final HouseholdRepository householdRepository;
   final String householdId;
   final String householdName;
+  final String? currentUserEmail;
+  final void Function(String memberId, String memberEmail)? onManageAccess;
 
   @override
   State<MembersView> createState() => _MembersViewState();
@@ -81,7 +85,18 @@ class _MembersViewState extends State<MembersView> {
     );
 
     if (result != null && result.$1.isNotEmpty) {
-      await _viewModel.inviteMember(result.$1, result.$2);
+      final outcome = await _viewModel.inviteMember(result.$1, result.$2);
+      if (outcome != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              outcome == 'added'
+                  ? '${result.$1} was added to the household.'
+                  : 'Invite email sent to ${result.$1}.',
+            ),
+          ),
+        );
+      }
     }
   }
 
@@ -101,6 +116,11 @@ class _MembersViewState extends State<MembersView> {
             return const Center(child: CircularProgressIndicator());
           }
 
+          final isOwner = widget.currentUserEmail != null &&
+              _viewModel.members.any(
+                (m) => m.email == widget.currentUserEmail && m.role == 'owner',
+              );
+
           return RefreshIndicator(
             onRefresh: _viewModel.load,
             child: ListView(
@@ -118,8 +138,33 @@ class _MembersViewState extends State<MembersView> {
                       leading: const Icon(Icons.person),
                       title: Text(member.email),
                       subtitle: Text('Role: ${member.role}'),
+                      trailing: isOwner && member.role != 'owner'
+                          ? IconButton(
+                              icon: const Icon(Icons.tune),
+                              tooltip: 'Manage access',
+                              onPressed: () =>
+                                  widget.onManageAccess?.call(member.id, member.email),
+                            )
+                          : null,
                     ),
                   ),
+                if (_viewModel.pendingInvites.isNotEmpty) ...[
+                  const Padding(
+                    padding: EdgeInsets.only(top: 16, bottom: 8),
+                    child: Text(
+                      'Pending invites',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  for (final invite in _viewModel.pendingInvites)
+                    Card(
+                      child: ListTile(
+                        leading: const Icon(Icons.hourglass_empty),
+                        title: Text(invite.email),
+                        subtitle: Text('Role: ${invite.role} · not yet accepted'),
+                      ),
+                    ),
+                ],
               ],
             ),
           );

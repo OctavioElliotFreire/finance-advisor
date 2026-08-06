@@ -1,0 +1,10 @@
+- generic [ref=e5]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic [ref=e6]: Family Finance
+            - textbox "Email" [ref=e8]: chart-qa@example.com
+            - textbox "Password" [ref=e10]: ChartQA-2026!
+            - button "Don't have an account? Register" [ref=e12]
