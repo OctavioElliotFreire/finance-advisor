@@ -11,6 +11,7 @@ from app.main import app
 from app.models.account import Account
 from app.models.anomaly import AnomalyFlag
 from app.models.app_user import AppUser
+from app.models.audit_event import AuditEvent
 from app.models.household import Household, HouseholdMember
 from app.models.pluggy_connection import PluggyConnection
 from app.models.rate_limit_hit import RateLimitHit
@@ -19,12 +20,17 @@ from app.settings import settings
 
 
 class _FakeLLMProvider:
-    def __init__(self, explanation="This looks unusual because it's much larger than normal."):
+    def __init__(
+        self, explanation="This looks unusual because it's much larger than normal.", error=None
+    ):
         self.explanation = explanation
+        self.error = error
         self.calls = []
 
     def explain_anomaly(self, context):
         self.calls.append(context)
+        if self.error is not None:
+            raise self.error
         return self.explanation
 
 
@@ -101,6 +107,9 @@ def make_user():
                 RateLimitHit.scope.in_(
                     [f"anomaly_explain:{hid}" for hid in household_ids]
                 )
+            ).delete(synchronize_session=False)
+            db.query(AuditEvent).filter(
+                AuditEvent.household_id.in_(household_ids)
             ).delete(synchronize_session=False)
         db.query(HouseholdMember).filter(
             HouseholdMember.app_user_id.in_(app_user_ids)
@@ -321,3 +330,39 @@ def test_explain_anomaly_rate_limits_after_threshold(client, make_user, fake_pro
 
     assert response.status_code == 429
     assert fake_provider.calls == []
+
+
+def test_explain_anomaly_provider_failure_returns_503_and_records_audit_event(
+    client, make_user
+):
+    headers = make_user("anomaly-explain-fail@example.com")
+    household = client.post(
+        "/v1/households", json={"name": "Anomaly Explain Fail Family"}, headers=headers
+    ).json()
+    flag_id = _seed_flag(household["id"])
+
+    provider = _FakeLLMProvider(error=RuntimeError("provider exploded"))
+    app.dependency_overrides[get_llm_provider] = lambda: provider
+
+    try:
+        response = client.post(
+            f"/v1/households/{household['id']}/anomalies/{flag_id}/explain", headers=headers
+        )
+    finally:
+        app.dependency_overrides.pop(get_llm_provider, None)
+
+    assert response.status_code == 503
+    assert "provider exploded" not in response.text
+
+    db = SessionLocal()
+    events = (
+        db.query(AuditEvent)
+        .filter(
+            AuditEvent.household_id == household["id"],
+            AuditEvent.action == "anomaly_explain.call_failed",
+        )
+        .all()
+    )
+    db.close()
+    assert len(events) == 1
+    assert "provider exploded" in events[0].metadata_json["error"]

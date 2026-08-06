@@ -105,6 +105,13 @@ flutter analyze
 See `CLAUDE.md` for the full test-surface reference, including the Alembic
 migration round-trip check.
 
+## Operations
+
+**Backups** are handled directly in the Supabase project dashboard
+(Database → Backups), not in this codebase — enable/restore there, not
+here. See `PLAN.md`'s Milestone 10 notes for what else production
+readiness covers and what's actually been built vs. deferred.
+
 ## History
 
 This app began as a single-user Streamlit/SQLite MVP. It was retired once

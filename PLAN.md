@@ -1405,8 +1405,13 @@ Does Flutter continue working without database-specific changes?
 * Rate limiting
 * Audit logs
 * Monitoring
-* Alerts
-* Backups
+* Alerts — **log-only for now, no external notification channel.** See
+  the dedicated note below; this needs revisiting once the app is
+  actually deployed somewhere real and there's an obvious channel
+  (email/Slack/webhook) and a real person to notify.
+* Backups — **handled directly in the Supabase dashboard (Database →
+  Backups), not in this codebase.** Deliberately not automated or
+  scripted here; see `README.md`'s Operations section.
 * Restore tests
 * Export
 * Deletion
@@ -1480,6 +1485,20 @@ household is already gone as far as that transaction is concerned. Fixed
 with an explicit `db.flush()` between recording the event and running the
 cascade (see `app/api/households.py`'s `delete_household_endpoint`) — any
 future write-then-bulk-delete-in-one-request needs the same explicit flush.
+
+**Alerts (added 2026-08-06, deliberately log-only):** `GET /v1/households/
+{id}/alerts` (owner-only) returns a "needs attention" list — failed
+`SyncJob`s, plus `assistant.call_failed`/`anomaly_explain.call_failed`
+audit events (both endpoints now record one of these and return a
+consistent `503` instead of leaking the raw provider exception; anomaly
+explain previously had no `try`/`except` around the LLM call at all and
+would have 500'd instead). **This does not notify anyone** — no email, no
+Slack, no webhook. That's a deliberate scope cut, not an oversight:
+there's no deployed instance of this app yet, so there's no real channel
+to send to and no on-call person to page. **Revisit this once the app is
+actually deployed somewhere** — at that point "alerts" should mean an
+owner (or an operator) gets pushed a notification, not just a queryable
+list they have to remember to check.
 
 ### Milestone 11 — Migration Readiness Test
 

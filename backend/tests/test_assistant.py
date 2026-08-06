@@ -10,6 +10,7 @@ from app.database.session import SessionLocal
 from app.main import app
 from app.models.app_user import AppUser
 from app.models.assistant import AssistantMessage
+from app.models.audit_event import AuditEvent
 from app.models.household import Household, HouseholdMember
 from app.models.rate_limit_hit import RateLimitHit
 from app.settings import settings
@@ -95,6 +96,9 @@ def make_user():
                 RateLimitHit.scope.in_(
                     [f"assistant_ask:{hid}" for hid in household_ids]
                 )
+            ).delete(synchronize_session=False)
+            db.query(AuditEvent).filter(
+                AuditEvent.household_id.in_(household_ids)
             ).delete(synchronize_session=False)
         db.query(HouseholdMember).filter(
             HouseholdMember.app_user_id.in_(app_user_ids)

@@ -13,6 +13,7 @@ from app.models.app_user import AppUser
 from app.models.assistant import AssistantMessage
 from app.models.household import HouseholdMember
 from app.schemas.assistant import AssistantMessageResponse, AssistantQuestionRequest
+from app.services.audit import record_audit_event
 from app.services.household_context import build_household_context
 from app.services.rate_limiting import check_and_record_rate_limit
 
@@ -23,6 +24,7 @@ router = APIRouter(
 HISTORY_LIMIT = 50
 RATE_LIMIT_MAX_QUESTIONS = 20
 RATE_LIMIT_WINDOW = timedelta(hours=1)
+ERROR_METADATA_MAX_LENGTH = 500
 
 
 def get_assistant_provider() -> LLMProvider:
@@ -82,6 +84,14 @@ def ask_assistant(
     try:
         answer = provider.answer_question(ASSISTANT_SYSTEM_PROMPT, user_message)
     except Exception as exc:  # noqa: BLE001 - never leak raw SDK/provider errors
+        record_audit_event(
+            db,
+            household_id=household_id,
+            actor_app_user_id=current_user.id,
+            action="assistant.call_failed",
+            metadata={"error": str(exc)[:ERROR_METADATA_MAX_LENGTH]},
+        )
+        db.commit()
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="The assistant is temporarily unavailable. Please try again shortly.",

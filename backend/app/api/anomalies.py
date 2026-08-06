@@ -5,14 +5,19 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.auth.access_scope import AccessScope, get_access_scope
+from app.auth.dependencies import get_current_app_user
 from app.database.session import get_db
 from app.llm.base import LLMProvider, get_provider
 from app.llm.redaction import redact_transaction_context
 from app.models.account import Account
 from app.models.anomaly import AnomalyFlag
+from app.models.app_user import AppUser
 from app.models.transaction import Transaction
 from app.schemas.anomaly import AnomalyStatusUpdate, AnomalySummary
+from app.services.audit import record_audit_event
 from app.services.rate_limiting import check_and_record_rate_limit
+
+ERROR_METADATA_MAX_LENGTH = 500
 
 router = APIRouter(
     prefix="/v1/households/{household_id}/anomalies", tags=["anomalies"]
@@ -84,6 +89,7 @@ def explain_anomaly(
     household_id: uuid.UUID,
     anomaly_id: uuid.UUID,
     scope: AccessScope = Depends(get_access_scope),
+    current_user: AppUser = Depends(get_current_app_user),
     db: Session = Depends(get_db),
     provider: LLMProvider = Depends(get_llm_provider),
 ):
@@ -106,7 +112,25 @@ def explain_anomaly(
     )
     context = redact_transaction_context(flag, transaction)
 
-    flag.explanation = provider.explain_anomaly(context)
+    try:
+        explanation = provider.explain_anomaly(context)
+    except Exception as exc:  # noqa: BLE001 - never leak raw SDK/provider errors
+        record_audit_event(
+            db,
+            household_id=household_id,
+            actor_app_user_id=current_user.id,
+            action="anomaly_explain.call_failed",
+            target_type="anomaly_flag",
+            target_id=flag.id,
+            metadata={"error": str(exc)[:ERROR_METADATA_MAX_LENGTH]},
+        )
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="The anomaly explanation service is temporarily unavailable. Please try again shortly.",
+        ) from exc
+
+    flag.explanation = explanation
     flag.explained_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(flag)
