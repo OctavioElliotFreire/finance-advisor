@@ -1445,6 +1445,42 @@ orphaned on purpose, not cascade them away). Actions currently recorded:
 (who has access to what) changes hands. Not yet recorded: member removal,
 role changes, connection deletion (none of those exist as features yet).
 
+**Export and household deletion (added 2026-08-06):** the API sketch above
+already had `POST /v1/exports` and `DELETE /v1/account` as placeholders;
+what actually got built is scoped narrower and differently-shaped:
+
+- `GET /v1/households/{id}/export` — any member (not owner-only), scoped
+  by the same `AccessScope` as every other read in this app. Returns one
+  synchronous JSON body — no async job, no email-a-download-link, no
+  separate export-storage table. That's deliberate: nothing else in this
+  stack has async-job/email infra beyond the one-off Supabase invite
+  email, and household data volumes here don't need it. `raw_json` is
+  included (unlike `household_context.py`'s LLM export) because this is
+  the member's own data going back to them, not a third-party prompt.
+- `DELETE /v1/households/{id}` — owner-only, hard-deletes the household
+  and every row scoped to it. **Account-level deletion (`DELETE /v1/me`,
+  the other half of the original sketch) is deliberately deferred** — a
+  user can own multiple households, and deleting their account while
+  they're the sole owner of a household with other members raises an
+  ownership-transfer question this repo hasn't decided yet. Household
+  deletion needed no such decision, so it shipped first.
+
+Deleting a household is exactly the scenario that motivated
+`audit_events.household_id`'s `ON DELETE SET NULL` above: the endpoint
+records a `household.deleted` audit event (with the household's name
+in `metadata_json`, since `household_id` won't be resolvable afterward)
+*before* deleting anything, and that row's `household_id` gets nulled out
+by the same transaction rather than blocking the delete. One easy-to-miss
+gotcha found by the regression test for exactly this: SQLAlchemy's bulk
+`Query.delete(synchronize_session=False)` does **not** autoflush pending
+ORM inserts first, so a pending audit-event `INSERT` sitting in the session
+when a bulk `DELETE` on `households` runs gets flushed *after* it — in the
+same uncommitted transaction, meaning its FK check fails because the
+household is already gone as far as that transaction is concerned. Fixed
+with an explicit `db.flush()` between recording the event and running the
+cascade (see `app/api/households.py`'s `delete_household_endpoint`) — any
+future write-then-bulk-delete-in-one-request needs the same explicit flush.
+
 ### Milestone 11 — Migration Readiness Test
 
 * Export Supabase PostgreSQL.

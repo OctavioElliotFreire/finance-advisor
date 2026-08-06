@@ -1,9 +1,9 @@
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import get_current_app_user, get_household_membership
+from app.auth.dependencies import get_current_app_user, get_household_membership, require_role
 from app.database.session import get_db
 from app.models.app_user import AppUser
 from app.models.household import Household, HouseholdMember
@@ -12,6 +12,8 @@ from app.schemas.household import (
     HouseholdResponse,
     HouseholdWithRoleResponse,
 )
+from app.services.audit import record_audit_event
+from app.services.household_deletion import delete_household
 
 router = APIRouter(prefix="/v1/households", tags=["households"])
 
@@ -72,3 +74,31 @@ def get_household(
         created_at=household.created_at,
         role=membership.role,
     )
+
+
+@router.delete("/{household_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_household_endpoint(
+    household_id: uuid.UUID,
+    current_user: AppUser = Depends(get_current_app_user),
+    membership: HouseholdMember = Depends(require_role("owner")),
+    db: Session = Depends(get_db),
+):
+    household = db.get(Household, household_id)
+
+    record_audit_event(
+        db,
+        household_id=household_id,
+        actor_app_user_id=current_user.id,
+        action="household.deleted",
+        target_type="household",
+        target_id=household_id,
+        metadata={"household_name": household.name},
+    )
+    # Flush now, while the household row still exists in this transaction —
+    # bulk deletes below (via Query.delete()) don't autoflush pending
+    # inserts first, so without this the audit INSERT's FK check would run
+    # after the household is already gone in the same uncommitted
+    # transaction and fail.
+    db.flush()
+    delete_household(db, household_id)
+    db.commit()
