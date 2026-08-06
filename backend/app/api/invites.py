@@ -11,6 +11,7 @@ from app.models.app_user import AppUser
 from app.models.household import Household, HouseholdMember
 from app.models.household_invite import HouseholdInvite
 from app.schemas.invite import AcceptInviteResponse, InvitePreview
+from app.services.audit import record_audit_event
 
 router = APIRouter(prefix="/v1/invites", tags=["invites"])
 
@@ -75,6 +76,15 @@ def accept_invite(
         )
 
     invite.accepted_at = datetime.now(timezone.utc)
+    record_audit_event(
+        db,
+        household_id=invite.household_id,
+        actor_app_user_id=current_user.id,
+        action="invite.accepted",
+        target_type="household_invite",
+        target_id=invite.id,
+        metadata={"email": invite.email, "role": invite.role},
+    )
     db.commit()
 
     household = db.query(Household).filter(Household.id == invite.household_id).one()

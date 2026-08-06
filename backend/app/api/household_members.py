@@ -16,6 +16,8 @@ from app.models.pluggy_connection import PluggyConnection
 from app.schemas.access import ConnectionAccessEntry, MemberAccessUpdate
 from app.schemas.household import HouseholdMemberResponse, MemberInvite
 from app.schemas.invite import InviteResult, InviteSummary
+from app.services.audit import record_audit_event
+from app.services.rate_limiting import check_and_record_rate_limit
 from app.settings import settings
 
 router = APIRouter(
@@ -27,6 +29,8 @@ pending_invites_router = APIRouter(
 )
 
 INVITE_EXPIRY_DAYS = 7
+INVITE_RATE_LIMIT_MAX_CALLS = 10
+INVITE_RATE_LIMIT_WINDOW = timedelta(hours=1)
 
 
 @router.post("", response_model=InviteResult, status_code=201)
@@ -55,6 +59,15 @@ async def invite_member(
                 detail="This person is already a member of this household.",
             )
 
+        record_audit_event(
+            db,
+            household_id=household_id,
+            actor_app_user_id=current_user.id,
+            action="member.added",
+            target_type="household_member",
+            target_id=new_membership.id,
+            metadata={"email": target.email, "role": new_membership.role},
+        )
         db.commit()
         db.refresh(new_membership)
         return InviteResult(
@@ -67,6 +80,17 @@ async def invite_member(
                 created_at=new_membership.created_at,
             ),
         )
+
+    check_and_record_rate_limit(
+        db,
+        scope=f"member_invite:{household_id}",
+        max_calls=INVITE_RATE_LIMIT_MAX_CALLS,
+        window=INVITE_RATE_LIMIT_WINDOW,
+        error_detail=(
+            f"This household has reached the limit of "
+            f"{INVITE_RATE_LIMIT_MAX_CALLS} invites per hour. Please try again later."
+        ),
+    )
 
     now = datetime.now(timezone.utc)
     invite = (
@@ -93,6 +117,15 @@ async def invite_member(
     redirect_to = f"{settings.frontend_base_url}/?invite={invite.id}"
     await invite_sender.invite_user_by_email(payload.email, redirect_to)
 
+    record_audit_event(
+        db,
+        household_id=household_id,
+        actor_app_user_id=current_user.id,
+        action="member.invited",
+        target_type="household_invite",
+        target_id=invite.id,
+        metadata={"email": invite.email, "role": invite.role},
+    )
     db.commit()
     db.refresh(invite)
     return InviteResult(outcome="invited", invite=InviteSummary.model_validate(invite))
@@ -219,6 +252,15 @@ def update_member_access(
                 household_member_id=member_id, pluggy_connection_id=connection_id
             )
         )
+    record_audit_event(
+        db,
+        household_id=household_id,
+        actor_app_user_id=membership.app_user_id,
+        action="member.access_updated",
+        target_type="household_member",
+        target_id=member_id,
+        metadata={"granted_connection_ids": [str(cid) for cid in valid_connection_ids]},
+    )
     db.commit()
 
     return _build_access_entries(db, household_id, member_id)

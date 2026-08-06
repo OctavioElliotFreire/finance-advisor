@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.anomalies import router as anomalies_router
 from app.api.assistant import router as assistant_router
+from app.api.audit import router as audit_router
 from app.api.connections import router as connections_router
 from app.api.dashboard import router as dashboard_router
 from app.api.extended_finance import router as extended_finance_router
@@ -30,6 +31,7 @@ app.include_router(dashboard_router)
 app.include_router(extended_finance_router)
 app.include_router(anomalies_router)
 app.include_router(assistant_router)
+app.include_router(audit_router)
 
 
 @app.get("/health")

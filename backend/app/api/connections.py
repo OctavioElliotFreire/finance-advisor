@@ -1,4 +1,5 @@
 import uuid
+from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
@@ -11,12 +12,17 @@ from app.models.app_user import AppUser
 from app.models.household import HouseholdMember
 from app.models.pluggy_connection import PluggyConnection, SyncJob
 from app.schemas.connection import ConnectionCreate, ConnectionResponse, ConnectTokenResponse
+from app.services.audit import record_audit_event
+from app.services.rate_limiting import check_and_record_rate_limit
 from app.settings import settings
 from app.sync.pluggy_client import PluggyClient
 
 router = APIRouter(
     prefix="/v1/households/{household_id}/connections", tags=["connections"]
 )
+
+RATE_LIMIT_MAX_CALLS = 10
+RATE_LIMIT_WINDOW = timedelta(hours=1)
 
 
 def _pluggy_client() -> PluggyClient:
@@ -28,7 +34,16 @@ async def create_connect_token(
     household_id: uuid.UUID,
     current_user: AppUser = Depends(get_current_app_user),
     membership: HouseholdMember = Depends(require_role("owner", "member")),
+    db: Session = Depends(get_db),
 ):
+    check_and_record_rate_limit(
+        db,
+        scope=f"connections_token:{household_id}",
+        max_calls=RATE_LIMIT_MAX_CALLS,
+        window=RATE_LIMIT_WINDOW,
+        error_detail="Too many connection attempts for this household. Please try again later.",
+    )
+
     client = _pluggy_client()
     await client.authenticate()
     token = await client.create_connect_token(client_user_id=str(current_user.id))
@@ -43,6 +58,14 @@ async def create_connection(
     membership: HouseholdMember = Depends(require_role("owner", "member")),
     db: Session = Depends(get_db),
 ):
+    check_and_record_rate_limit(
+        db,
+        scope=f"connections_create:{household_id}",
+        max_calls=RATE_LIMIT_MAX_CALLS,
+        window=RATE_LIMIT_WINDOW,
+        error_detail="Too many connection attempts for this household. Please try again later.",
+    )
+
     client = _pluggy_client()
     await client.authenticate()
     try:
@@ -75,6 +98,15 @@ async def create_connection(
         status="queued",
     )
     db.add(sync_job)
+    record_audit_event(
+        db,
+        household_id=household_id,
+        actor_app_user_id=current_user.id,
+        action="connection.created",
+        target_type="pluggy_connection",
+        target_id=connection.id,
+        metadata={"pluggy_item_id": payload.pluggy_item_id},
+    )
     db.commit()
     db.refresh(connection)
     return connection

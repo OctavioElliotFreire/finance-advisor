@@ -9,8 +9,10 @@ from app.api.household_members import get_invite_sender
 from app.database.session import SessionLocal
 from app.main import app
 from app.models.app_user import AppUser
+from app.models.audit_event import AuditEvent
 from app.models.household import Household, HouseholdMember
 from app.models.household_invite import HouseholdInvite
+from app.models.rate_limit_hit import RateLimitHit
 from app.settings import settings
 
 
@@ -83,6 +85,15 @@ def make_user():
             HouseholdInvite.invited_by_app_user_id.in_(app_user_ids)
             | HouseholdInvite.household_id.in_(household_ids)
         ).delete(synchronize_session=False)
+        if household_ids:
+            db.query(AuditEvent).filter(
+                AuditEvent.household_id.in_(household_ids)
+            ).delete(synchronize_session=False)
+            db.query(RateLimitHit).filter(
+                RateLimitHit.scope.in_(
+                    [f"member_invite:{hid}" for hid in household_ids]
+                )
+            ).delete(synchronize_session=False)
         db.query(HouseholdMember).filter(
             HouseholdMember.app_user_id.in_(app_user_ids)
         ).delete(synchronize_session=False)
@@ -303,3 +314,71 @@ def test_list_members_returns_everyone_in_the_household(client, make_user):
         "owner7@example.com": "owner",
         "member7@example.com": "viewer",
     }
+
+
+def test_invite_existing_user_records_audit_event(client, make_user):
+    headers_owner = make_user("owner-audit1@example.com")
+    headers_member = make_user("member-audit1@example.com")
+    client.get("/v1/me", headers=headers_member)
+
+    household = client.post(
+        "/v1/households", json={"name": "Audit Invite Family"}, headers=headers_owner
+    ).json()
+    client.post(
+        f"/v1/households/{household['id']}/members",
+        json={"email": "member-audit1@example.com", "role": "member"},
+        headers=headers_owner,
+    )
+
+    db = SessionLocal()
+    events = (
+        db.query(AuditEvent).filter(AuditEvent.household_id == household["id"]).all()
+    )
+    db.close()
+    assert len(events) == 1
+    assert events[0].action == "member.added"
+    assert events[0].metadata_json["email"] == "member-audit1@example.com"
+
+
+def test_invite_unknown_email_records_audit_event(client, make_user, fake_invite_sender):
+    headers_owner = make_user("owner-audit2@example.com")
+    household = client.post(
+        "/v1/households", json={"name": "Audit Unknown Invite Family"}, headers=headers_owner
+    ).json()
+
+    client.post(
+        f"/v1/households/{household['id']}/members",
+        json={"email": "audit-unknown@example.com"},
+        headers=headers_owner,
+    )
+
+    db = SessionLocal()
+    events = (
+        db.query(AuditEvent).filter(AuditEvent.household_id == household["id"]).all()
+    )
+    db.close()
+    assert len(events) == 1
+    assert events[0].action == "member.invited"
+    assert events[0].metadata_json["email"] == "audit-unknown@example.com"
+
+
+def test_invite_rate_limits_after_threshold(client, make_user, fake_invite_sender):
+    headers_owner = make_user("owner-inviterate@example.com")
+    household = client.post(
+        "/v1/households", json={"name": "Invite Rate Family"}, headers=headers_owner
+    ).json()
+
+    db = SessionLocal()
+    for _ in range(10):
+        db.add(RateLimitHit(scope=f"member_invite:{household['id']}"))
+    db.commit()
+    db.close()
+
+    response = client.post(
+        f"/v1/households/{household['id']}/members",
+        json={"email": "should-be-blocked@example.com"},
+        headers=headers_owner,
+    )
+
+    assert response.status_code == 429
+    assert fake_invite_sender.calls == []

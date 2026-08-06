@@ -8,8 +8,10 @@ from fastapi.testclient import TestClient
 from app.database.session import SessionLocal
 from app.main import app
 from app.models.app_user import AppUser
+from app.models.audit_event import AuditEvent
 from app.models.household import Household, HouseholdMember
 from app.models.pluggy_connection import PluggyConnection, SyncJob
+from app.models.rate_limit_hit import RateLimitHit
 from app.settings import settings
 
 
@@ -89,6 +91,15 @@ def make_user():
             ).delete(synchronize_session=False)
             db.query(PluggyConnection).filter(
                 PluggyConnection.household_id.in_(household_ids)
+            ).delete(synchronize_session=False)
+            db.query(AuditEvent).filter(
+                AuditEvent.household_id.in_(household_ids)
+            ).delete(synchronize_session=False)
+            db.query(RateLimitHit).filter(
+                RateLimitHit.scope.in_(
+                    [f"connections_token:{hid}" for hid in household_ids]
+                    + [f"connections_create:{hid}" for hid in household_ids]
+                )
             ).delete(synchronize_session=False)
         db.query(HouseholdMember).filter(
             HouseholdMember.app_user_id.in_(app_user_ids)
@@ -284,3 +295,49 @@ def test_connections_require_authentication(client):
         401,
         403,
     )
+
+
+def test_create_connection_records_audit_event(client, make_user):
+    headers = make_user("audit-connect@example.com")
+    household = client.post(
+        "/v1/households", json={"name": "Audit Connect Family"}, headers=headers
+    ).json()
+
+    response = client.post(
+        f"/v1/households/{household['id']}/connections",
+        json={"pluggy_item_id": "item-audit-1"},
+        headers=headers,
+    )
+    assert response.status_code == 201
+
+    db = SessionLocal()
+    events = (
+        db.query(AuditEvent)
+        .filter(AuditEvent.household_id == household["id"])
+        .all()
+    )
+    db.close()
+    assert len(events) == 1
+    assert events[0].action == "connection.created"
+    assert events[0].metadata_json == {"pluggy_item_id": "item-audit-1"}
+
+
+def test_create_connection_rate_limits_after_threshold(client, make_user):
+    headers = make_user("connect-rate@example.com")
+    household = client.post(
+        "/v1/households", json={"name": "Connect Rate Family"}, headers=headers
+    ).json()
+
+    db = SessionLocal()
+    for _ in range(10):
+        db.add(RateLimitHit(scope=f"connections_create:{household['id']}"))
+    db.commit()
+    db.close()
+
+    response = client.post(
+        f"/v1/households/{household['id']}/connections",
+        json={"pluggy_item_id": "item-should-be-blocked"},
+        headers=headers,
+    )
+
+    assert response.status_code == 429

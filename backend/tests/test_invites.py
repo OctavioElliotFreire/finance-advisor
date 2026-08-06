@@ -10,8 +10,10 @@ from app.api.household_members import get_invite_sender
 from app.database.session import SessionLocal
 from app.main import app
 from app.models.app_user import AppUser
+from app.models.audit_event import AuditEvent
 from app.models.household import Household, HouseholdMember
 from app.models.household_invite import HouseholdInvite
+from app.models.rate_limit_hit import RateLimitHit
 from app.settings import settings
 
 
@@ -84,6 +86,15 @@ def make_user():
             HouseholdInvite.invited_by_app_user_id.in_(app_user_ids)
             | HouseholdInvite.household_id.in_(household_ids)
         ).delete(synchronize_session=False)
+        if household_ids:
+            db.query(AuditEvent).filter(
+                AuditEvent.household_id.in_(household_ids)
+            ).delete(synchronize_session=False)
+            db.query(RateLimitHit).filter(
+                RateLimitHit.scope.in_(
+                    [f"member_invite:{hid}" for hid in household_ids]
+                )
+            ).delete(synchronize_session=False)
         db.query(HouseholdMember).filter(
             HouseholdMember.app_user_id.in_(app_user_ids)
         ).delete(synchronize_session=False)

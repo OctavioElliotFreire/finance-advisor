@@ -1,6 +1,5 @@
 import time
 import uuid
-from datetime import datetime, timedelta, timezone
 
 import jwt
 import pytest
@@ -12,6 +11,7 @@ from app.main import app
 from app.models.app_user import AppUser
 from app.models.assistant import AssistantMessage
 from app.models.household import Household, HouseholdMember
+from app.models.rate_limit_hit import RateLimitHit
 from app.settings import settings
 
 
@@ -90,6 +90,11 @@ def make_user():
         if household_ids:
             db.query(AssistantMessage).filter(
                 AssistantMessage.household_id.in_(household_ids)
+            ).delete(synchronize_session=False)
+            db.query(RateLimitHit).filter(
+                RateLimitHit.scope.in_(
+                    [f"assistant_ask:{hid}" for hid in household_ids]
+                )
             ).delete(synchronize_session=False)
         db.query(HouseholdMember).filter(
             HouseholdMember.app_user_id.in_(app_user_ids)
@@ -176,22 +181,8 @@ def test_ask_assistant_rate_limits_after_threshold(client, make_user, fake_provi
     ).json()
 
     db = SessionLocal()
-    user = (
-        db.query(AppUser)
-        .filter(AppUser.email == "assistant-rate@example.com")
-        .one()
-    )
-    now = datetime.now(timezone.utc)
     for i in range(20):
-        db.add(
-            AssistantMessage(
-                household_id=household["id"],
-                asked_by_app_user_id=user.id,
-                question=f"prior question {i}",
-                answer="prior answer",
-                created_at=now - timedelta(minutes=1),
-            )
-        )
+        db.add(RateLimitHit(scope=f"assistant_ask:{household['id']}"))
     db.commit()
     db.close()
 

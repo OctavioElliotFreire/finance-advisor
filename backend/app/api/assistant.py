@@ -1,6 +1,6 @@
 import json
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -14,6 +14,7 @@ from app.models.assistant import AssistantMessage
 from app.models.household import HouseholdMember
 from app.schemas.assistant import AssistantMessageResponse, AssistantQuestionRequest
 from app.services.household_context import build_household_context
+from app.services.rate_limiting import check_and_record_rate_limit
 
 router = APIRouter(
     prefix="/v1/households/{household_id}/assistant", tags=["assistant"]
@@ -64,23 +65,16 @@ def ask_assistant(
     db: Session = Depends(get_db),
     provider: LLMProvider = Depends(get_assistant_provider),
 ):
-    window_start = datetime.now(timezone.utc) - RATE_LIMIT_WINDOW
-    recent_count = (
-        db.query(AssistantMessage)
-        .filter(
-            AssistantMessage.household_id == household_id,
-            AssistantMessage.created_at >= window_start,
-        )
-        .count()
+    check_and_record_rate_limit(
+        db,
+        scope=f"assistant_ask:{household_id}",
+        max_calls=RATE_LIMIT_MAX_QUESTIONS,
+        window=RATE_LIMIT_WINDOW,
+        error_detail=(
+            f"This household has reached the limit of "
+            f"{RATE_LIMIT_MAX_QUESTIONS} questions per hour. Please try again later."
+        ),
     )
-    if recent_count >= RATE_LIMIT_MAX_QUESTIONS:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=(
-                f"This household has reached the limit of "
-                f"{RATE_LIMIT_MAX_QUESTIONS} questions per hour. Please try again later."
-            ),
-        )
 
     context = build_household_context(db, household_id, scope.connection_ids)
     user_message = f"Household context:\n{json.dumps(context)}\n\nQuestion: {payload.question}"

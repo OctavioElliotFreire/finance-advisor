@@ -1413,6 +1413,38 @@ Does Flutter continue working without database-specific changes?
 * Privacy controls
 * Security testing
 
+**Rate limiting and audit logs (added 2026-08-06):**
+
+Rate limiting is Postgres-backed (`rate_limit_hits` table + one shared
+helper, `app/services/rate_limiting.py`'s `check_and_record_rate_limit`),
+not in-memory — deliberately, so limits survive server restarts and hold
+correctly if this ever runs with multiple worker processes, unlike a
+per-process in-memory counter would. Each call site picks its own `scope`
+string (typically `f"<action>:{household_id}"`) and its own
+`max_calls`/`window`; there's no cross-endpoint default. Wired into every
+endpoint that costs real external money/quota or was already a documented
+abuse risk: `assistant/ask` (LLM, 20/hour — pre-existing, now goes through
+the shared helper instead of its own hand-rolled `assistant_messages` count
+query), `anomalies/{id}/explain` (LLM, 20/hour — previously *unlimited*),
+`connections/token` and `connections` POST (Pluggy API, 10/hour each), and
+`members` invite's email-sending path only (Supabase Auth invite email,
+10/hour — see `CLAUDE.md`'s Supabase rate-limit lesson; the "existing user,
+add directly" branch sends no email and isn't limited).
+
+Audit logs are a new `audit_events` table (`household_id`,
+`actor_app_user_id`, `action`, `target_type`, `target_id`, `metadata_json`)
+written by `app/services/audit.py`'s `record_audit_event` and read via
+`GET /v1/households/{id}/audit-events` (owner-only, newest first). Its FK
+to `households` is deliberately **not** `ON DELETE CASCADE` — an audit
+trail is supposed to survive the thing it audited being deleted, not
+vanish with it (once household deletion exists at all, per Milestone 10's
+"Deletion" line above, it should either archive audit rows or leave them
+orphaned on purpose, not cascade them away). Actions currently recorded:
+`connection.created`, `member.added`, `member.invited`, `invite.accepted`,
+`member.access_updated` — i.e. every point where household admin data
+(who has access to what) changes hands. Not yet recorded: member removal,
+role changes, connection deletion (none of those exist as features yet).
+
 ### Milestone 11 — Migration Readiness Test
 
 * Export Supabase PostgreSQL.

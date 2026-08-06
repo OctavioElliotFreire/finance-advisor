@@ -13,6 +13,7 @@ from app.models.anomaly import AnomalyFlag
 from app.models.app_user import AppUser
 from app.models.household import Household, HouseholdMember
 from app.models.pluggy_connection import PluggyConnection
+from app.models.rate_limit_hit import RateLimitHit
 from app.models.transaction import Transaction
 from app.settings import settings
 
@@ -95,6 +96,11 @@ def make_user():
             )
             db.query(PluggyConnection).filter(
                 PluggyConnection.household_id.in_(household_ids)
+            ).delete(synchronize_session=False)
+            db.query(RateLimitHit).filter(
+                RateLimitHit.scope.in_(
+                    [f"anomaly_explain:{hid}" for hid in household_ids]
+                )
             ).delete(synchronize_session=False)
         db.query(HouseholdMember).filter(
             HouseholdMember.app_user_id.in_(app_user_ids)
@@ -294,3 +300,24 @@ def test_family_a_cannot_patch_family_b_anomaly(client, make_user):
     )
 
     assert response.status_code == 403
+
+
+def test_explain_anomaly_rate_limits_after_threshold(client, make_user, fake_provider):
+    headers = make_user("anomaly-explain-rate@example.com")
+    household = client.post(
+        "/v1/households", json={"name": "Anomaly Explain Rate Family"}, headers=headers
+    ).json()
+    flag_id = _seed_flag(household["id"])
+
+    db = SessionLocal()
+    for _ in range(20):
+        db.add(RateLimitHit(scope=f"anomaly_explain:{household['id']}"))
+    db.commit()
+    db.close()
+
+    response = client.post(
+        f"/v1/households/{household['id']}/anomalies/{flag_id}/explain", headers=headers
+    )
+
+    assert response.status_code == 429
+    assert fake_provider.calls == []

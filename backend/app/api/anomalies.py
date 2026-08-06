@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -12,10 +12,14 @@ from app.models.account import Account
 from app.models.anomaly import AnomalyFlag
 from app.models.transaction import Transaction
 from app.schemas.anomaly import AnomalyStatusUpdate, AnomalySummary
+from app.services.rate_limiting import check_and_record_rate_limit
 
 router = APIRouter(
     prefix="/v1/households/{household_id}/anomalies", tags=["anomalies"]
 )
+
+EXPLAIN_RATE_LIMIT_MAX_CALLS = 20
+EXPLAIN_RATE_LIMIT_WINDOW = timedelta(hours=1)
 
 
 def get_llm_provider() -> LLMProvider:
@@ -84,6 +88,19 @@ def explain_anomaly(
     provider: LLMProvider = Depends(get_llm_provider),
 ):
     flag = _get_flag_or_404(db, household_id, anomaly_id, scope.connection_ids)
+
+    check_and_record_rate_limit(
+        db,
+        scope=f"anomaly_explain:{household_id}",
+        max_calls=EXPLAIN_RATE_LIMIT_MAX_CALLS,
+        window=EXPLAIN_RATE_LIMIT_WINDOW,
+        error_detail=(
+            f"This household has reached the limit of "
+            f"{EXPLAIN_RATE_LIMIT_MAX_CALLS} anomaly explanations per hour. "
+            "Please try again later."
+        ),
+    )
+
     transaction = (
         db.get(Transaction, flag.transaction_id) if flag.transaction_id else None
     )

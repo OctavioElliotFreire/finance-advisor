@@ -14,11 +14,13 @@ from app.models.account import Account
 from app.models.anomaly import AnomalyFlag
 from app.models.app_user import AppUser
 from app.models.assistant import AssistantMessage
+from app.models.audit_event import AuditEvent
 from app.models.connection_access_grant import ConnectionAccessGrant
 from app.models.extended_finance import BalanceSnapshot, CreditCardBill, Investment, Loan
 from app.models.household import Household, HouseholdMember
 from app.models.household_invite import HouseholdInvite
 from app.models.pluggy_connection import PluggyConnection, SyncJob
+from app.models.rate_limit_hit import RateLimitHit
 from app.models.transaction import Transaction
 from app.settings import settings
 
@@ -143,6 +145,18 @@ def make_user():
             )
             db.query(PluggyConnection).filter(
                 PluggyConnection.household_id.in_(household_ids)
+            ).delete(synchronize_session=False)
+            db.query(AuditEvent).filter(
+                AuditEvent.household_id.in_(household_ids)
+            ).delete(synchronize_session=False)
+            db.query(RateLimitHit).filter(
+                RateLimitHit.scope.in_(
+                    [f"connections_token:{hid}" for hid in household_ids]
+                    + [f"connections_create:{hid}" for hid in household_ids]
+                    + [f"anomaly_explain:{hid}" for hid in household_ids]
+                    + [f"assistant_ask:{hid}" for hid in household_ids]
+                    + [f"member_invite:{hid}" for hid in household_ids]
+                )
             ).delete(synchronize_session=False)
         db.query(HouseholdMember).filter(
             HouseholdMember.app_user_id.in_(app_user_ids)
