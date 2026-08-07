@@ -5,7 +5,6 @@ from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
 from app.models.account import Account
-from app.models.app_user import AppUser
 from app.models.extended_finance import BalanceSnapshot, CreditCardBill, Investment, Loan
 from app.models.household import Household, HouseholdMember
 from app.models.transaction import Transaction
@@ -28,22 +27,25 @@ def build_household_context(
     """Builds the only data ever sent to the LLM for a free-text question.
 
     Explicit allowlist per record type — never includes `raw_json`, ORM
-    objects, Pluggy identifiers, or account numbers (`Account.number`).
-    Every list is capped to bound prompt size and LLM cost. `connection_ids`
-    is the caller's resolved access scope (`None` = unrestricted) — every
-    sub-query below is scoped the same way as its dashboard/extended_finance
-    counterpart, so a restricted member's questions can only ever be answered
-    from data they're allowed to see.
+    objects, Pluggy identifiers, account numbers (`Account.number`), or
+    member emails (member emails *are* PII and previously leaked into this
+    context; only roles are needed to answer a financial question, so the
+    join against `AppUser.email` was dropped — see PLAN.md's Milestone 10
+    "Privacy controls" note). Every list is capped to bound prompt size and
+    LLM cost. `connection_ids` is the caller's resolved access scope
+    (`None` = unrestricted) — every sub-query below is scoped the same way
+    as its dashboard/extended_finance counterpart, so a restricted member's
+    questions can only ever be answered from data they're allowed to see.
     """
     household = db.query(Household).filter(Household.id == household_id).one()
 
-    member_rows = (
-        db.query(HouseholdMember, AppUser.email)
-        .join(AppUser, AppUser.id == HouseholdMember.app_user_id)
+    member_roles = [
+        row.role
+        for row in db.query(HouseholdMember)
         .filter(HouseholdMember.household_id == household_id)
         .all()
-    )
-    members = [{"email": email, "role": member.role} for member, email in member_rows]
+    ]
+    members = [{"role": role} for role in member_roles]
 
     accounts_query = db.query(Account).filter(Account.household_id == household_id)
     if connection_ids is not None:

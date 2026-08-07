@@ -7,6 +7,7 @@ pydantic
 pydantic-settings
 python-dotenv
 pytest
+pip-audit
 httpx
 pyjwt[crypto]
 anthropic>=0.28.0

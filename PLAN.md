@@ -1486,6 +1486,23 @@ with an explicit `db.flush()` between recording the event and running the
 cascade (see `app/api/households.py`'s `delete_household_endpoint`) — any
 future write-then-bulk-delete-in-one-request needs the same explicit flush.
 
+**Monitoring (added 2026-08-06):** `GET /health` now checks the database
+(`SELECT 1` through the app's own engine) instead of always returning
+`{"status": "ok"}` unconditionally — a broken DB connection now surfaces as
+`503 {"status": "error", "database": "unreachable"}`, tested in
+`backend/tests/test_health.py` (healthy path + simulated outage via a
+monkeypatched engine). `app/main.py` also gained a request-logging
+middleware (`logging.basicConfig` + one `INFO` line per request: method,
+path, status, duration) — previously only `sync_worker.py` logged anything;
+the API itself logged nothing. **Deliberately not built**: no
+Prometheus/OpenTelemetry metrics endpoint, no Sentry/APM error tracking, no
+log aggregation — same reasoning as Alerts above, there's no deployed
+instance yet to point any of that at, and no vendor has been chosen. Revisit
+once hosted somewhere real; at that point "Centralized logs" and
+"Monitoring and alerts" (Production tier list above) mean wiring this
+process's stdout logs and the `/health` check into whatever platform hosts
+it, not adding more code here speculatively.
+
 **Alerts (added 2026-08-06, deliberately log-only):** `GET /v1/households/
 {id}/alerts` (owner-only) returns a "needs attention" list — failed
 `SyncJob`s, plus `assistant.call_failed`/`anomaly_explain.call_failed`
@@ -1500,6 +1517,88 @@ actually deployed somewhere** — at that point "alerts" should mean an
 owner (or an operator) gets pushed a notification, not just a queryable
 list they have to remember to check.
 
+**Security testing (added 2026-08-06):** two things, both new.
+
+1. `backend/tests/test_security.py` — end-to-end HTTP tests that complement
+   (not duplicate) the existing auth/access coverage in
+   `test_supabase_auth.py`, `test_access_grants.py`, `test_households.py`,
+   and `test_rate_limiting.py`: missing/malformed/garbage bearer tokens
+   rejected on a real endpoint (not just at the token-verification unit
+   level); cross-household 403s on `/members`, `/alerts`, and
+   `/members/{id}/access` (endpoints that weren't yet covered by a
+   cross-household test, even though every route already depended on
+   `get_household_membership`/`require_role`/`get_access_scope` — grepped
+   to confirm none skip it); and rate-limit *enforcement* exercised through
+   a real endpoint (`connections/token`, 10 real calls then an 11th that
+   gets `429`) rather than only the `check_and_record_rate_limit` service
+   function in isolation.
+2. `pip-audit` added to `requirements.txt` and run against it —
+   **no known vulnerabilities** in current dependencies as of 2026-08-06.
+   No `bandit`/SAST added: this repo's actual risk surface so far is
+   access-control logic (covered above) and dependency CVEs (covered by
+   pip-audit), not the kind of raw injection/SSRF patterns bandit is built
+   to catch — revisit if that changes. Still no CI (per `CLAUDE.md`), so
+   `pip-audit` and the test suite both have to be run manually before
+   trusting a dependency bump or an access-control change.
+
+**Restore tests (added 2026-08-06):** `backend/scripts/verify_restore.sh` —
+dumps a database, restores it into a fresh throwaway database, and diffs
+row counts table-by-table; fails loudly (non-zero exit) on any mismatch,
+and always drops the throwaway database + dump file afterward. Run against
+local Docker Postgres (`family_finance`, the same DB the test suite uses)
+on 2026-08-06: all 18 tables matched after the round-trip (`accounts`,
+`app_users`, `households`, `transactions`, etc. — see README.md's
+Operations section for the full run). **Not yet run against the real
+Supabase project**: its direct `db.<ref>.supabase.co` host is IPv6-only,
+and this dev machine's network/firewall has no outbound IPv6 route (`pg_dump`
+inside the local Docker container and a raw Python socket test from the
+host both failed — `Network is unreachable` / `WinError 10013`). The script
+supports pointing at Supabase directly via `SOURCE_DATABASE_URL` — it just
+needs the project's Session Pooler connection string (IPv4-compatible),
+not the direct host, to actually run from here. Revisit once that's in
+hand; until then this validates the restore *mechanism*, not that today's
+real Supabase data specifically restores cleanly.
+
+**Privacy controls (added 2026-08-06):** what's collected, where it goes,
+and what a household can already do about it.
+
+- **Collected**: account/transaction/investment/loan/balance data from
+  Pluggy (per the household's own bank connections); Supabase Auth
+  email/password for login; free-text assistant questions and their
+  answers (`assistant_messages`).
+- **Shared with third parties**: Pluggy (to fetch the data above — the
+  household explicitly authorizes each connection); an LLM provider
+  (Gemini or Anthropic, whichever `LLM_PROVIDER` selects) for anomaly
+  explanations and assistant answers — **only** through the two explicit
+  allowlists in `app/llm/redaction.py` and
+  `app/services/household_context.py`, never `raw_json`, ORM objects,
+  Pluggy identifiers, or account numbers. Supabase itself (Auth + Postgres
+  hosting) sees everything, as the infrastructure provider.
+- **Found and fixed while reviewing this**: `build_household_context` (the
+  data sent to the LLM for `/assistant/ask`) was joining `AppUser.email`
+  into its `members` list — every question sent every household member's
+  email address to the third-party LLM provider, contradicting its own
+  docstring's "explicit allowlist, no PII" claim. Fixed by dropping the
+  join and sending only `role`; regression test
+  `test_ask_assistant_never_sends_member_emails_to_llm` in
+  `backend/tests/test_assistant.py` asserts no `@`-containing string
+  reaches the provider. `household_export.py`'s member emails are
+  correctly left alone — that's the member's own data going back to them,
+  not a third-party prompt.
+- **Retention**: no separate retention policy or auto-expiry — data lives
+  until a household deletes its own connection's data indirectly (no
+  per-connection delete exists yet) or the household itself is deleted
+  (`DELETE /v1/households/{id}`, hard-deletes everything, Milestone 10's
+  Deletion note above). `audit_events` deliberately outlives a deleted
+  household (`ON DELETE SET NULL`, see the Audit logs note above).
+- **Member-facing controls that already exist**: data export
+  (`GET /v1/households/{id}/export`, any member, scoped by their own
+  access grants) and household deletion (`DELETE /v1/households/{id}`,
+  owner-only). **Deliberately not built**: a consent-management flow or
+  ToS/privacy-policy acceptance gate — there's no deployed instance with
+  real end users yet to consent to anything; add this before any real
+  signup flow goes live, not before.
+
 ### Milestone 11 — Migration Readiness Test
 
 * Export Supabase PostgreSQL.
@@ -1509,6 +1608,73 @@ list they have to remember to check.
 * Run tenant-isolation tests.
 * Confirm Flutter requires no database-related changes.
 * Document the future AWS RDS migration procedure.
+
+**Run log (2026-08-06):** the dump/restore/validate/test pipeline was run
+end-to-end against local Docker Postgres — real Supabase export is still
+blocked by the same IPv6 issue as Milestone 10's Restore tests note above,
+so this exercises the full pipeline with local Postgres standing in for
+Supabase on both ends.
+
+- **Export + Restore into Postgres**: `pg_dump`'d `family_finance` (the
+  same DB the backend test suite uses, so it has real rows across every
+  table) into a fresh `family_finance_migration_check` database, same
+  approach as `backend/scripts/verify_restore.sh`.
+- **Alembic validation**: `alembic current` on the restored DB reported
+  head (`f08e50848c8c`) immediately — the dump carries `alembic_version`
+  along, so a restored DB is already in sync, no manual stamping needed.
+  `alembic upgrade head` against it was a clean no-op. Went further than
+  the usual round-trip check (which runs on an *empty* schema): ran
+  `alembic downgrade -1` → `alembic upgrade head` against the *restored,
+  populated* database — both migrations ran cleanly against real data
+  (audit_events' nullable-FK migration), not just an empty table.
+- **FastAPI + tenant-isolation tests against the restored database**: ran
+  the full `backend/tests/` suite (137 tests) with `DATABASE_URL` pointed
+  at `family_finance_migration_check` instead of `family_finance` — all
+  137 passed, including every cross-household/access-scope test in
+  `test_households.py`, `test_access_grants.py`, and `test_security.py`.
+  Proves the app runs correctly, and tenant isolation holds, against a
+  freshly-restored copy of the database, not just the original.
+- **Flutter's database independence**: grepped `frontend/lib` for any
+  direct Postgres/Supabase-table access (`Supabase.instance.client.from(...)`,
+  raw `postgres`/`psql` usage) — none found. The only Supabase-flavored
+  file is `supabase_auth_service.dart`, which talks to Supabase Auth only;
+  every data read/write goes through `backend_api_service.dart` → FastAPI.
+  Confirms the architectural claim in this doc's "Migration Readiness"
+  intro ("Avoid direct Flutter queries to financial tables") is actually
+  true in code, not just aspirational — migrating the Postgres database
+  underneath FastAPI needs zero Flutter changes.
+- Cleaned up: `family_finance_migration_check` and its dump file were
+  dropped after the run, per the same throwaway-database pattern as
+  `verify_restore.sh`.
+
+**Documented AWS RDS migration procedure** (future use, not yet executed
+against a real target):
+
+1. Provision an RDS Postgres instance matching the source's major version
+   (17, per this Docker image and Supabase's current default).
+2. Get Supabase's Session Pooler connection string (Project Settings →
+   Database → Connection pooling) — same IPv4 requirement as the Restore
+   tests note above; the direct host won't be reachable from most
+   networks/CI runners.
+3. `pg_dump` the Supabase database via that pooler URL.
+4. Restore into the new RDS instance (`psql -f` the dump, or `pg_restore`
+   if dumped in custom format).
+5. Run `alembic current` / `alembic upgrade head` against RDS to confirm
+   it's at this repo's migration head — expect a no-op, as it was here.
+6. Point a throwaway copy of the backend's `DATABASE_URL` at RDS and run
+   the full `pytest` suite against it, exactly as done above against the
+   local restored copy — don't skip this step just because the local dry
+   run passed; RDS-specific config (SSL mode, parameter groups, extension
+   availability) can still differ from Supabase or local Docker Postgres.
+7. Only the app-data Postgres moves — Supabase Auth (`SUPABASE_URL`,
+   JWT verification) is a separate system in this architecture and stays
+   on Supabase regardless of where `DATABASE_URL` points; no Auth-side
+   migration is needed.
+8. Cut over by changing the deployed backend's `DATABASE_URL` to RDS and
+   watching `/health`'s new database check (Milestone 10's Monitoring
+   note) confirm connectivity immediately after.
+9. Keep the Supabase Postgres instance paused (not deleted) for a rollback
+   window before decommissioning it.
 
 ---
 

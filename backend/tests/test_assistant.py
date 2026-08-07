@@ -146,6 +146,24 @@ def test_ask_assistant_returns_answer_and_persists(client, make_user, fake_provi
     assert history.json()[0]["question"] == "How much did I spend on Food?"
 
 
+def test_ask_assistant_never_sends_member_emails_to_llm(client, make_user, fake_provider):
+    headers = make_user("no-leak-owner@example.com")
+    household = client.post(
+        "/v1/households", json={"name": "No Leak Family"}, headers=headers
+    ).json()
+
+    client.post(
+        f"/v1/households/{household['id']}/assistant/ask",
+        json={"question": "How much did I spend on Food?"},
+        headers=headers,
+    )
+
+    assert len(fake_provider.calls) == 1
+    _, user_message = fake_provider.calls[0]
+    assert "no-leak-owner@example.com" not in user_message
+    assert "@example.com" not in user_message
+
+
 def test_ask_assistant_rejects_empty_question(client, make_user, fake_provider):
     headers = make_user("assistant-empty@example.com")
     household = client.post(
