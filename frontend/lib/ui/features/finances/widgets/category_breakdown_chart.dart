@@ -1,25 +1,9 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_chart_colors.dart';
 import '../../../core/formatting/money.dart';
 import 'category_breakdown_chart_data.dart';
-
-// Fixed categorical order (dataviz skill's validated 8-hue palette, first 5
-// slots) — assigned deterministically per category name, not by rank, so a
-// category keeps its color as spending shifts between periods.
-const _categoryPalette = [
-  Color(0xFF2A78D6), // blue
-  Color(0xFFEB6834), // orange
-  Color(0xFF1BAF7A), // aqua
-  Color(0xFFEDA100), // yellow
-  Color(0xFFE87BA4), // magenta
-];
-const _otherColor = Color(0xFF898781);
-
-Color _colorForCategory(String label) {
-  if (label == 'Other') return _otherColor;
-  return _categoryPalette[label.hashCode.abs() % _categoryPalette.length];
-}
 
 class CategoryBreakdownChart extends StatelessWidget {
   const CategoryBreakdownChart({super.key, required this.data});
@@ -52,7 +36,7 @@ class CategoryBreakdownChart extends StatelessWidget {
                 for (final slice in slices)
                   PieChartSectionData(
                     value: slice.total <= 0 ? 0.0001 : slice.total,
-                    color: _colorForCategory(slice.label),
+                    color: AppChartColors.categoricalColorFor(context, slice.label),
                     title: '',
                     radius: 48,
                   ),
@@ -87,7 +71,7 @@ class _CategoryLegend extends StatelessWidget {
                 Container(
                   width: 12,
                   height: 12,
-                  color: _colorForCategory(slice.label),
+                  color: AppChartColors.categoricalColorFor(context, slice.label),
                 ),
                 const SizedBox(width: 8),
                 Expanded(child: Text(slice.label)),
@@ -100,9 +84,7 @@ class _CategoryLegend extends StatelessWidget {
                   total <= 0
                       ? '0%'
                       : '${(slice.total / total * 100).round()}%',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                  style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
             ),

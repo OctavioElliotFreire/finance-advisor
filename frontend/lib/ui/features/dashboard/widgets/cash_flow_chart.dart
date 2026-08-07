@@ -1,10 +1,9 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_chart_colors.dart';
+import '../../../core/widgets/chart_palette.dart';
 import 'cash_flow_chart_data.dart';
-
-const _incomeColor = Colors.green;
-const _expensesColor = Colors.redAccent;
 
 class CashFlowChart extends StatelessWidget {
   const CashFlowChart({super.key, required this.data});
@@ -71,12 +70,12 @@ class CashFlowChart extends StatelessWidget {
                     barRods: [
                       BarChartRodData(
                         toY: points[i].income,
-                        color: _incomeColor,
+                        color: AppChartColors.income(context),
                         width: 8,
                       ),
                       BarChartRodData(
                         toY: points[i].expenses,
-                        color: _expensesColor,
+                        color: AppChartColors.expenses(context),
                         width: 8,
                       ),
                     ],
@@ -86,41 +85,13 @@ class CashFlowChart extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        const _CashFlowLegend(),
-      ],
-    );
-  }
-}
-
-class _CashFlowLegend extends StatelessWidget {
-  const _CashFlowLegend();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        _LegendSwatch(color: _incomeColor, label: 'Income'),
-        const SizedBox(width: 16),
-        _LegendSwatch(color: _expensesColor, label: 'Expenses'),
-      ],
-    );
-  }
-}
-
-class _LegendSwatch extends StatelessWidget {
-  const _LegendSwatch({required this.color, required this.label});
-
-  final Color color;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(width: 12, height: 12, color: color),
-        const SizedBox(width: 4),
-        Text(label, style: Theme.of(context).textTheme.bodySmall),
+        Row(
+          children: [
+            LegendSwatch(color: AppChartColors.income(context), label: 'Income'),
+            const SizedBox(width: 16),
+            LegendSwatch(color: AppChartColors.expenses(context), label: 'Expenses'),
+          ],
+        ),
       ],
     );
   }

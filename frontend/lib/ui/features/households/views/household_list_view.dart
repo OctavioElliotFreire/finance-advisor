@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../../data/models/household.dart';
 import '../../../../data/repositories/household_repository.dart';
+import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/error_banner.dart';
+import '../../../core/widgets/loading_state.dart';
 import '../view_models/household_view_model.dart';
 
 class HouseholdListView extends StatefulWidget {
@@ -34,14 +36,20 @@ class _HouseholdListViewState extends State<HouseholdListView> {
 
   Future<void> _showCreateDialog() async {
     final controller = TextEditingController();
+    final formKey = GlobalKey<FormState>();
     final name = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Create household'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(labelText: 'Household name'),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: controller,
+            autofocus: true,
+            decoration: const InputDecoration(labelText: 'Household name'),
+            validator: (value) =>
+                (value == null || value.trim().isEmpty) ? 'Enter a household name' : null,
+          ),
         ),
         actions: [
           TextButton(
@@ -49,7 +57,10 @@ class _HouseholdListViewState extends State<HouseholdListView> {
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+            onPressed: () {
+              if (!formKey.currentState!.validate()) return;
+              Navigator.of(context).pop(controller.text.trim());
+            },
             child: const Text('Create'),
           ),
         ],
@@ -82,7 +93,7 @@ class _HouseholdListViewState extends State<HouseholdListView> {
         listenable: _viewModel,
         builder: (context, _) {
           if (_viewModel.isLoading && _viewModel.households.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
+            return const LoadingState();
           }
 
           return RefreshIndicator(
@@ -92,11 +103,10 @@ class _HouseholdListViewState extends State<HouseholdListView> {
               children: [
                 ErrorBanner(message: _viewModel.errorMessage),
                 if (_viewModel.households.isEmpty && !_viewModel.isLoading)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 48),
-                    child: Center(
-                      child: Text('No households yet — create one to get started.'),
-                    ),
+                  const AppEmptyState(
+                    icon: Icons.house_outlined,
+                    title: 'No households yet',
+                    body: 'Create one to get started.',
                   ),
                 for (final household in _viewModel.households)
                   Card(

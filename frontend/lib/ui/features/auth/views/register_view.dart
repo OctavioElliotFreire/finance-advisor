@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../data/repositories/auth_repository.dart';
+import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/error_banner.dart';
 import '../../../core/widgets/loading_button.dart';
 import '../view_models/auth_view_model.dart';
@@ -58,21 +59,14 @@ class _RegisterViewState extends State<RegisterView> {
               listenable: _viewModel,
               builder: (context, _) {
                 if (_viewModel.needsEmailConfirmation) {
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.mark_email_read_outlined, size: 48),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Check your email to confirm your account, then log in.',
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 20),
-                      TextButton(
-                        onPressed: widget.onNavigateToLogin,
-                        child: const Text('Back to login'),
-                      ),
-                    ],
+                  return AppEmptyState(
+                    icon: Icons.mark_email_read_outlined,
+                    title: 'Check your email',
+                    body: 'Confirm your account, then log in.',
+                    action: TextButton(
+                      onPressed: widget.onNavigateToLogin,
+                      child: const Text('Back to login'),
+                    ),
                   );
                 }
                 return Form(

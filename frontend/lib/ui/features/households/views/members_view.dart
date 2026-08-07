@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../../data/repositories/household_repository.dart';
+import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/error_banner.dart';
+import '../../../core/widgets/loading_state.dart';
+import '../../../core/widgets/section_header.dart';
 import '../view_models/members_view_model.dart';
 
 class MembersView extends StatefulWidget {
@@ -30,73 +33,47 @@ class _MembersViewState extends State<MembersView> {
     householdId: widget.householdId,
   )..load();
 
+  final _inviteFormKey = GlobalKey<FormState>();
+  final _inviteEmailController = TextEditingController();
+  String _inviteRole = 'member';
+  bool _isInviting = false;
+
   @override
   void dispose() {
     _viewModel.dispose();
+    _inviteEmailController.dispose();
     super.dispose();
   }
 
-  Future<void> _showInviteDialog() async {
-    final emailController = TextEditingController();
-    String role = 'member';
-
-    final result = await showDialog<(String, String)>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Invite member'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: emailController,
-                autofocus: true,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(labelText: 'Email'),
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                initialValue: role,
-                decoration: const InputDecoration(labelText: 'Role'),
-                items: const [
-                  DropdownMenuItem(value: 'member', child: Text('Member')),
-                  DropdownMenuItem(value: 'viewer', child: Text('Viewer')),
-                ],
-                onChanged: (value) {
-                  if (value != null) setDialogState(() => role = value);
-                },
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(
-                context,
-              ).pop((emailController.text.trim(), role)),
-              child: const Text('Invite'),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (result != null && result.$1.isNotEmpty) {
-      final outcome = await _viewModel.inviteMember(result.$1, result.$2);
-      if (outcome != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              outcome == 'added'
-                  ? '${result.$1} was added to the household.'
-                  : 'Invite email sent to ${result.$1}.',
-            ),
-          ),
-        );
+  void _toggleInviteForm() {
+    setState(() {
+      _isInviting = !_isInviting;
+      if (!_isInviting) {
+        _inviteEmailController.clear();
+        _inviteRole = 'member';
       }
+    });
+  }
+
+  Future<void> _submitInvite() async {
+    if (!_inviteFormKey.currentState!.validate()) return;
+    final email = _inviteEmailController.text.trim();
+    final outcome = await _viewModel.inviteMember(email, _inviteRole);
+    if (outcome != null && mounted) {
+      setState(() {
+        _isInviting = false;
+        _inviteEmailController.clear();
+        _inviteRole = 'member';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            outcome == 'added'
+                ? '$email was added to the household.'
+                : 'Invite email sent to $email.',
+          ),
+        ),
+      );
     }
   }
 
@@ -105,15 +82,15 @@ class _MembersViewState extends State<MembersView> {
     return Scaffold(
       appBar: AppBar(title: Text('${widget.householdName} — Members')),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showInviteDialog,
-        icon: const Icon(Icons.person_add),
-        label: const Text('Invite member'),
+        onPressed: _toggleInviteForm,
+        icon: Icon(_isInviting ? Icons.close : Icons.person_add),
+        label: Text(_isInviting ? 'Cancel' : 'Invite member'),
       ),
       body: ListenableBuilder(
         listenable: _viewModel,
         builder: (context, _) {
           if (_viewModel.isLoading && _viewModel.members.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
+            return const LoadingState();
           }
 
           final isOwner = widget.currentUserEmail != null &&
@@ -127,10 +104,18 @@ class _MembersViewState extends State<MembersView> {
               padding: const EdgeInsets.all(16),
               children: [
                 ErrorBanner(message: _viewModel.errorMessage),
+                if (_isInviting) _InviteMemberForm(
+                  formKey: _inviteFormKey,
+                  emailController: _inviteEmailController,
+                  role: _inviteRole,
+                  onRoleChanged: (value) => setState(() => _inviteRole = value),
+                  onSubmit: _submitInvite,
+                  onCancel: _toggleInviteForm,
+                ),
                 if (_viewModel.members.isEmpty && !_viewModel.isLoading)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 48),
-                    child: Center(child: Text('No members yet.')),
+                  const AppEmptyState(
+                    icon: Icons.people_outline,
+                    title: 'No members yet',
                   ),
                 for (final member in _viewModel.members)
                   Card(
@@ -149,13 +134,7 @@ class _MembersViewState extends State<MembersView> {
                     ),
                   ),
                 if (_viewModel.pendingInvites.isNotEmpty) ...[
-                  const Padding(
-                    padding: EdgeInsets.only(top: 16, bottom: 8),
-                    child: Text(
-                      'Pending invites',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
+                  const SectionHeader(title: 'Pending invites'),
                   for (final invite in _viewModel.pendingInvites)
                     Card(
                       child: ListTile(
@@ -169,6 +148,72 @@ class _MembersViewState extends State<MembersView> {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _InviteMemberForm extends StatelessWidget {
+  const _InviteMemberForm({
+    required this.formKey,
+    required this.emailController,
+    required this.role,
+    required this.onRoleChanged,
+    required this.onSubmit,
+    required this.onCancel,
+  });
+
+  final GlobalKey<FormState> formKey;
+  final TextEditingController emailController;
+  final String role;
+  final ValueChanged<String> onRoleChanged;
+  final VoidCallback onSubmit;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Form(
+          key: formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Invite member', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: emailController,
+                autofocus: true,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(labelText: 'Email'),
+                validator: (value) =>
+                    (value == null || !value.contains('@')) ? 'Enter a valid email' : null,
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                initialValue: role,
+                decoration: const InputDecoration(labelText: 'Role'),
+                items: const [
+                  DropdownMenuItem(value: 'member', child: Text('Member')),
+                  DropdownMenuItem(value: 'viewer', child: Text('Viewer')),
+                ],
+                onChanged: (value) {
+                  if (value != null) onRoleChanged(value);
+                },
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(onPressed: onCancel, child: const Text('Cancel')),
+                  const SizedBox(width: 8),
+                  FilledButton(onPressed: onSubmit, child: const Text('Invite')),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

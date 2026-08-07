@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../../data/models/assistant_message.dart';
 import '../../../../data/repositories/assistant_repository.dart';
 import '../../../core/formatting/money.dart';
+import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/error_banner.dart';
 import '../../../core/widgets/loading_button.dart';
+import '../../../core/widgets/loading_state.dart';
 import '../view_models/assistant_view_model.dart';
 
 const _disclaimer =
@@ -67,10 +69,12 @@ class _AssistantViewState extends State<AssistantView> {
               ),
               Expanded(
                 child: _viewModel.isLoading && _viewModel.messages.isEmpty
-                    ? const Center(child: CircularProgressIndicator())
+                    ? const LoadingState()
                     : _viewModel.messages.isEmpty
-                    ? const Center(
-                        child: Text('Ask a question about your household finances below.'),
+                    ? const AppEmptyState(
+                        icon: Icons.chat_bubble_outline,
+                        title: 'Ask a question about your household finances',
+                        body: 'For example: "How much did I spend on groceries this month?"',
                       )
                     : ListView.builder(
                         padding: const EdgeInsets.all(16),
@@ -139,9 +143,7 @@ class _MessageCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               '${message.askedByEmail} · ${formatShortDate(message.createdAt)}',
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: Colors.grey),
+              style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
         ),

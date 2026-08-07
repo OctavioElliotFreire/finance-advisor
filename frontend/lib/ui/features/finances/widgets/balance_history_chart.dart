@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 
 import 'balance_history_chart_data.dart';
 
-const _lineColor = Colors.blue;
-
 class BalanceHistoryChart extends StatelessWidget {
   const BalanceHistoryChart({super.key, required this.data});
 
@@ -83,9 +81,20 @@ class BalanceHistoryChart extends StatelessWidget {
                   FlSpot(i.toDouble(), points[i].balance),
               ],
               isCurved: false,
-              color: _lineColor,
+              color: Theme.of(context).colorScheme.primary,
               barWidth: 2,
               dotData: FlDotData(show: points.length == 1),
+              belowBarData: BarAreaData(
+                show: true,
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Theme.of(context).colorScheme.primary.withValues(alpha: 0.24),
+                    Theme.of(context).colorScheme.primary.withValues(alpha: 0),
+                  ],
+                ),
+              ),
             ),
           ],
         ),

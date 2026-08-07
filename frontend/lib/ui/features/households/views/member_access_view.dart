@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../../data/repositories/household_repository.dart';
+import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/error_banner.dart';
 import '../../../core/widgets/loading_button.dart';
+import '../../../core/widgets/loading_state.dart';
 import '../view_models/member_access_view_model.dart';
 
 class MemberAccessView extends StatefulWidget {
@@ -53,7 +55,7 @@ class _MemberAccessViewState extends State<MemberAccessView> {
         listenable: _viewModel,
         builder: (context, _) {
           if (_viewModel.isLoading && _viewModel.entries.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
+            return const LoadingState();
           }
 
           return Column(
@@ -67,7 +69,10 @@ class _MemberAccessViewState extends State<MemberAccessView> {
               ),
               Expanded(
                 child: _viewModel.entries.isEmpty
-                    ? const Center(child: Text('No connections in this household yet.'))
+                    ? const AppEmptyState(
+                        icon: Icons.account_balance_outlined,
+                        title: 'No connections in this household yet',
+                      )
                     : ListView(
                         children: [
                           for (final entry in _viewModel.entries)

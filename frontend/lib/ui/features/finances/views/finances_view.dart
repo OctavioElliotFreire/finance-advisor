@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../../data/models/extended_finance.dart';
 import '../../../../data/repositories/extended_finance_repository.dart';
 import '../../../core/formatting/money.dart';
+import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/error_banner.dart';
+import '../../../core/widgets/loading_state.dart';
 import '../view_models/finances_view_model.dart';
 import '../widgets/balance_history_chart.dart';
 import '../widgets/balance_history_chart_data.dart';
@@ -63,7 +65,7 @@ class _FinancesViewState extends State<FinancesView> {
                 _viewModel.investments.isEmpty &&
                 _viewModel.loans.isEmpty &&
                 _viewModel.bills.isEmpty) {
-              return const Center(child: CircularProgressIndicator());
+              return const LoadingState();
             }
 
             return RefreshIndicator(
@@ -100,7 +102,10 @@ class _InvestmentsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (investments.isEmpty) {
-      return const _EmptyState(message: 'No investments synced yet.');
+      return const AppEmptyState(
+        icon: Icons.trending_up_outlined,
+        title: 'No investments synced yet',
+      );
     }
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -127,7 +132,10 @@ class _LoansTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (loans.isEmpty) {
-      return const _EmptyState(message: 'No loans synced yet.');
+      return const AppEmptyState(
+        icon: Icons.account_balance_outlined,
+        title: 'No loans synced yet',
+      );
     }
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -162,7 +170,10 @@ class _BillsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (bills.isEmpty) {
-      return const _EmptyState(message: 'No credit card bills synced yet.');
+      return const AppEmptyState(
+        icon: Icons.credit_card_outlined,
+        title: 'No credit card bills synced yet',
+      );
     }
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -195,7 +206,10 @@ class _BalanceHistoryTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (points.isEmpty) {
-      return const _EmptyState(message: 'No balance history yet.');
+      return const AppEmptyState(
+        icon: Icons.show_chart_outlined,
+        title: 'No balance history yet',
+      );
     }
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -214,7 +228,10 @@ class _CategoriesTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (categories.isEmpty) {
-      return const _EmptyState(message: 'No categorized spending yet.');
+      return const AppEmptyState(
+        icon: Icons.pie_chart_outline,
+        title: 'No categorized spending yet',
+      );
     }
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -222,16 +239,5 @@ class _CategoriesTab extends StatelessWidget {
         data: CategoryBreakdownChartData.fromItems(categories),
       ),
     );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(child: Text(message));
   }
 }

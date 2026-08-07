@@ -5,7 +5,11 @@ import '../../../../core/web/open_pluggy_connect_stub.dart'
     if (dart.library.html) '../../../../core/web/open_pluggy_connect_web.dart';
 import '../../../../data/models/pluggy_connection.dart';
 import '../../../../data/repositories/connection_repository.dart';
+import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/error_banner.dart';
+import '../../../core/widgets/loading_state.dart';
+import '../../../core/widgets/section_header.dart';
+import '../../../core/widgets/status_chip.dart';
 import '../view_models/connections_view_model.dart';
 import 'pluggy_connect_screen.dart';
 
@@ -101,7 +105,7 @@ class _ConnectionsViewState extends State<ConnectionsView> {
         listenable: _viewModel,
         builder: (context, _) {
           if (_viewModel.isLoading && _viewModel.connections.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
+            return const LoadingState();
           }
 
           return RefreshIndicator(
@@ -111,26 +115,19 @@ class _ConnectionsViewState extends State<ConnectionsView> {
               children: [
                 ErrorBanner(message: _viewModel.errorMessage),
                 if (_viewModel.connections.isEmpty && !_viewModel.isLoading)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 48),
-                    child: Center(
-                      child: Text('No institutions connected yet.'),
-                    ),
+                  const AppEmptyState(
+                    icon: Icons.account_balance_outlined,
+                    title: 'No institutions connected yet',
+                    body: 'Connect a bank to start syncing your finances.',
                   ),
                 for (final group in _groupByMember(_viewModel.connections)) ...[
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16, bottom: 4),
-                    child: Text(
-                      group.label,
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                  ),
+                  SectionHeader(title: group.label),
                   for (final connection in group.connections)
                     Card(
                       child: ListTile(
                         leading: const Icon(Icons.account_balance),
                         title: Text(connection.pluggyItemId),
-                        subtitle: Text('Status: ${connection.status}'),
+                        trailing: StatusChip.connectionStatus(connection.status),
                       ),
                     ),
                 ],

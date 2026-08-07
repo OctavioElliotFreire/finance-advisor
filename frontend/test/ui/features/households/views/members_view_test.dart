@@ -212,7 +212,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('No members yet.'), findsOneWidget);
+    expect(find.text('No members yet'), findsOneWidget);
   });
 
   testWidgets('inviting an existing user adds them to the list', (
@@ -234,7 +234,7 @@ void main() {
     await tester.tap(find.byIcon(Icons.person_add));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextField), 'newmember@example.com');
+    await tester.enterText(find.byType(TextFormField), 'newmember@example.com');
     await tester.tap(find.text('Invite'));
     await tester.pumpAndSettle();
 
@@ -266,7 +266,7 @@ void main() {
     await tester.tap(find.byIcon(Icons.person_add));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextField), 'ghost@example.com');
+    await tester.enterText(find.byType(TextFormField), 'ghost@example.com');
     await tester.tap(find.text('Invite'));
     await tester.pumpAndSettle();
 
@@ -294,7 +294,7 @@ void main() {
     await tester.tap(find.byIcon(Icons.person_add));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextField), 'never-signed-up@example.com');
+    await tester.enterText(find.byType(TextFormField), 'never-signed-up@example.com');
     await tester.tap(find.text('Invite'));
     await tester.pumpAndSettle();
 

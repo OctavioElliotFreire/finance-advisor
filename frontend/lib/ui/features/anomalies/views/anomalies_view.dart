@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../../../data/models/anomaly.dart';
 import '../../../../data/repositories/anomaly_repository.dart';
+import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/error_banner.dart';
+import '../../../core/widgets/loading_state.dart';
+import '../../../core/widgets/severity_chip.dart';
 import '../view_models/anomalies_view_model.dart';
 
 const _statusFilters = <String?, String>{
@@ -56,15 +59,16 @@ class _AnomaliesViewState extends State<AnomaliesView> {
               ),
               Expanded(
                 child: _viewModel.isLoading && _viewModel.anomalies.isEmpty
-                    ? const Center(child: CircularProgressIndicator())
+                    ? const LoadingState()
                     : RefreshIndicator(
                         onRefresh: () => _viewModel.load(statusFilter: _viewModel.statusFilter),
                         child: _viewModel.anomalies.isEmpty
                             ? ListView(
                                 children: const [
-                                  Padding(
-                                    padding: EdgeInsets.only(top: 48),
-                                    child: Center(child: Text('No anomalies found.')),
+                                  AppEmptyState(
+                                    icon: Icons.check_circle_outline,
+                                    title: 'No anomalies found',
+                                    body: 'Nothing needs your attention right now.',
                                   ),
                                 ],
                               )
@@ -119,26 +123,6 @@ class _StatusFilterRow extends StatelessWidget {
   }
 }
 
-class _SeverityChip extends StatelessWidget {
-  const _SeverityChip({required this.severity});
-
-  final String severity;
-
-  @override
-  Widget build(BuildContext context) {
-    final (color, label) = switch (severity) {
-      'high' => (Colors.red, 'High'),
-      'medium' => (Colors.orange, 'Medium'),
-      'low' => (Colors.grey, 'Low'),
-      _ => (Colors.grey, severity),
-    };
-    return Chip(
-      label: Text(label),
-      avatar: CircleAvatar(backgroundColor: color, radius: 6),
-    );
-  }
-}
-
 class _AnomalyCard extends StatelessWidget {
   const _AnomalyCard({
     required this.anomaly,
@@ -165,7 +149,7 @@ class _AnomalyCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _SeverityChip(severity: anomaly.severity),
+                SeverityChip(severity: anomaly.severity),
                 Text(anomaly.status, style: Theme.of(context).textTheme.labelMedium),
               ],
             ),

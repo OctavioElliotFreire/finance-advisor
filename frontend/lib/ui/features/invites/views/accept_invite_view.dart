@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../../../data/repositories/auth_repository.dart';
 import '../../../../data/repositories/household_repository.dart';
+import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/error_banner.dart';
 import '../../../core/widgets/loading_button.dart';
+import '../../../core/widgets/loading_state.dart';
 import '../view_models/accept_invite_view_model.dart';
 
 class AcceptInviteView extends StatefulWidget {
@@ -75,7 +77,7 @@ class _AcceptInviteViewState extends State<AcceptInviteView> {
                 final preview = _viewModel.preview;
 
                 if (_viewModel.isLoading && preview == null) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const LoadingState();
                 }
 
                 if (preview == null) {
@@ -90,16 +92,18 @@ class _AcceptInviteViewState extends State<AcceptInviteView> {
                 }
 
                 if (preview.accepted) {
-                  return const Text(
-                    'This invite has already been accepted. Please log in.',
-                    textAlign: TextAlign.center,
+                  return const AppEmptyState(
+                    icon: Icons.check_circle_outline,
+                    title: 'This invite has already been accepted',
+                    body: 'Please log in.',
                   );
                 }
 
                 if (preview.expired) {
-                  return const Text(
-                    'This invite has expired. Ask the household owner to invite you again.',
-                    textAlign: TextAlign.center,
+                  return const AppEmptyState(
+                    icon: Icons.event_busy_outlined,
+                    title: 'This invite has expired',
+                    body: 'Ask the household owner to invite you again.',
                   );
                 }
 

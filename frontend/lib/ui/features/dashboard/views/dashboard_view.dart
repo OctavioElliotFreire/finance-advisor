@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../../../data/models/dashboard.dart';
 import '../../../../data/repositories/dashboard_repository.dart';
 import '../../../core/formatting/money.dart';
 import '../../../core/widgets/error_banner.dart';
+import '../../../core/widgets/loading_state.dart';
+import '../../../core/widgets/status_chip.dart';
+import '../../../core/widgets/summary_card.dart';
 import '../view_models/dashboard_view_model.dart';
 import '../widgets/cash_flow_chart.dart';
 import '../widgets/cash_flow_chart_data.dart';
@@ -88,7 +92,7 @@ class _DashboardViewState extends State<DashboardView> {
           body: Builder(
             builder: (context) {
               if (_viewModel.isLoading && dashboard == null) {
-                return const Center(child: CircularProgressIndicator());
+                return const LoadingState();
               }
 
               return RefreshIndicator(
@@ -163,78 +167,35 @@ class _OverviewSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final syncStatus = dashboard.syncStatus;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return SummaryCard(
+      label: 'Total balance',
+      value: formatMoney(dashboard.totalBalance, _dominantCurrency(dashboard)),
+      trailing: StatusChip.syncStatus(dashboard.syncStatus.status),
+      child: dashboard.accounts.isEmpty
+          ? const Text('No accounts synced yet.')
+          : Column(
               children: [
-                Text('Total balance', style: Theme.of(context).textTheme.titleMedium),
-                _SyncStatusChip(syncStatus: syncStatus),
+                for (final account in dashboard.accounts)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(account.name ?? account.type ?? 'Account'),
+                        ),
+                        Text(formatMoney(account.balance ?? 0, account.currencyCode)),
+                      ],
+                    ),
+                  ),
               ],
             ),
-            const SizedBox(height: 4),
-            Text(
-              formatMoney(dashboard.totalBalance, _dominantCurrency(dashboard)),
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            const SizedBox(height: 16),
-            if (dashboard.accounts.isEmpty)
-              const Text('No accounts synced yet.')
-            else
-              for (final account in dashboard.accounts)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(account.name ?? account.type ?? 'Account'),
-                      ),
-                      Text(formatMoney(account.balance ?? 0, account.currencyCode)),
-                    ],
-                  ),
-                ),
-          ],
-        ),
-      ),
     );
   }
 
   String _dominantCurrency(Dashboard dashboard) {
     if (dashboard.accounts.isEmpty) return 'BRL';
     return dashboard.accounts.first.currencyCode;
-  }
-}
-
-class _SyncStatusChip extends StatelessWidget {
-  const _SyncStatusChip({required this.syncStatus});
-
-  final SyncStatus syncStatus;
-
-  @override
-  Widget build(BuildContext context) {
-    final status = syncStatus.status;
-    if (status == null) {
-      return const Chip(label: Text('Never synced'));
-    }
-
-    final (color, label) = switch (status) {
-      'completed' => (Colors.green, 'Synced'),
-      'partially_completed' => (Colors.orange, 'Partially synced'),
-      'failed' => (Colors.red, 'Sync failed'),
-      'running' => (Colors.blue, 'Syncing…'),
-      _ => (Colors.grey, status),
-    };
-
-    return Chip(
-      label: Text(label),
-      avatar: CircleAvatar(backgroundColor: color, radius: 6),
-    );
   }
 }
 
@@ -297,7 +258,9 @@ class _RecentTransactionsSection extends StatelessWidget {
                   trailing: Text(
                     formatMoney(txn.amount, txn.currencyCode),
                     style: TextStyle(
-                      color: txn.amount >= 0 ? Colors.green : Colors.red,
+                      color: txn.amount >= 0
+                          ? context.semanticColors.success
+                          : Theme.of(context).colorScheme.error,
                       fontWeight: FontWeight.w600,
                     ),
                   ),

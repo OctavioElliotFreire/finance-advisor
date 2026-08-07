@@ -169,6 +169,6 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('No connections in this household yet.'), findsOneWidget);
+    expect(find.text('No connections in this household yet'), findsOneWidget);
   });
 }
