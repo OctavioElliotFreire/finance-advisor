@@ -74,13 +74,16 @@ class _AssistantViewState extends State<AssistantView> {
                     ? const AppEmptyState(
                         icon: Icons.chat_bubble_outline,
                         title: 'Ask a question about your household finances',
-                        body: 'For example: "How much did I spend on groceries this month?"',
+                        body:
+                            'For example: "How much did I spend on groceries this month?"',
                       )
                     : ListView.builder(
                         padding: const EdgeInsets.all(16),
                         itemCount: _viewModel.messages.length,
                         itemBuilder: (context, index) {
-                          return _MessageCard(message: _viewModel.messages[index]);
+                          return _MessageCard(
+                            message: _viewModel.messages[index],
+                          );
                         },
                       ),
               ),

@@ -28,9 +28,15 @@ class AppChartColors {
     return categoricalPalette[label.hashCode.abs() % categoricalPalette.length];
   }
 
-  static Color income(BuildContext context) => context.semanticColors.success;
+  /// Income bars — `ink-muted`, per the handoff's "income as bars (ink-muted)"
+  /// cash-flow spec. Never green: there is no success/positive color in this
+  /// design (`design.md`).
+  static Color income(BuildContext context) => AppPalette.inkMuted;
 
-  static Color expenses(BuildContext context) => Theme.of(context).colorScheme.error;
+  /// Spending/expenses line — `ink` by default. Only the *crossover* segment
+  /// (where spending exceeds income) renders in danger color — that's a
+  /// per-segment chart detail the caller applies, not this helper's job.
+  static Color expenses(BuildContext context) => Theme.of(context).colorScheme.onSurface;
 
   /// Theme-aware neutral for the "Other" category slice — replaces a
   /// hardcoded `Color(0xFF898781)` that read muddy in dark mode.

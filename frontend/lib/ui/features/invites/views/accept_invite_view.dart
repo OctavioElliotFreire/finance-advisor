@@ -85,7 +85,9 @@ class _AcceptInviteViewState extends State<AcceptInviteView> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       ErrorBanner(
-                        message: _viewModel.errorMessage ?? 'This invite could not be found.',
+                        message:
+                            _viewModel.errorMessage ??
+                            'This invite could not be found.',
                       ),
                     ],
                   );
@@ -125,14 +127,19 @@ class _AcceptInviteViewState extends State<AcceptInviteView> {
                       ),
                       const SizedBox(height: 24),
                       ErrorBanner(message: _viewModel.errorMessage),
-                      const Text('Set a password to finish creating your account.'),
+                      const Text(
+                        'Set a password to finish creating your account.',
+                      ),
                       const SizedBox(height: 12),
                       TextFormField(
                         key: const Key('accept_invite_password_field'),
                         controller: _passwordController,
                         obscureText: true,
-                        decoration: const InputDecoration(labelText: 'Password'),
-                        validator: (value) => (value == null || value.length < 8)
+                        decoration: const InputDecoration(
+                          labelText: 'Password',
+                        ),
+                        validator: (value) =>
+                            (value == null || value.length < 8)
                             ? 'Use at least 8 characters'
                             : null,
                       ),
@@ -141,7 +148,9 @@ class _AcceptInviteViewState extends State<AcceptInviteView> {
                         key: const Key('accept_invite_confirm_password_field'),
                         controller: _confirmController,
                         obscureText: true,
-                        decoration: const InputDecoration(labelText: 'Confirm password'),
+                        decoration: const InputDecoration(
+                          labelText: 'Confirm password',
+                        ),
                         validator: (value) => value != _passwordController.text
                             ? 'Passwords do not match'
                             : null,

@@ -93,7 +93,8 @@ class _MembersViewState extends State<MembersView> {
             return const LoadingState();
           }
 
-          final isOwner = widget.currentUserEmail != null &&
+          final isOwner =
+              widget.currentUserEmail != null &&
               _viewModel.members.any(
                 (m) => m.email == widget.currentUserEmail && m.role == 'owner',
               );
@@ -104,14 +105,16 @@ class _MembersViewState extends State<MembersView> {
               padding: const EdgeInsets.all(16),
               children: [
                 ErrorBanner(message: _viewModel.errorMessage),
-                if (_isInviting) _InviteMemberForm(
-                  formKey: _inviteFormKey,
-                  emailController: _inviteEmailController,
-                  role: _inviteRole,
-                  onRoleChanged: (value) => setState(() => _inviteRole = value),
-                  onSubmit: _submitInvite,
-                  onCancel: _toggleInviteForm,
-                ),
+                if (_isInviting)
+                  _InviteMemberForm(
+                    formKey: _inviteFormKey,
+                    emailController: _inviteEmailController,
+                    role: _inviteRole,
+                    onRoleChanged: (value) =>
+                        setState(() => _inviteRole = value),
+                    onSubmit: _submitInvite,
+                    onCancel: _toggleInviteForm,
+                  ),
                 if (_viewModel.members.isEmpty && !_viewModel.isLoading)
                   const AppEmptyState(
                     icon: Icons.people_outline,
@@ -127,8 +130,10 @@ class _MembersViewState extends State<MembersView> {
                           ? IconButton(
                               icon: const Icon(Icons.tune),
                               tooltip: 'Manage access',
-                              onPressed: () =>
-                                  widget.onManageAccess?.call(member.id, member.email),
+                              onPressed: () => widget.onManageAccess?.call(
+                                member.id,
+                                member.email,
+                              ),
                             )
                           : null,
                     ),
@@ -140,7 +145,9 @@ class _MembersViewState extends State<MembersView> {
                       child: ListTile(
                         leading: const Icon(Icons.hourglass_empty),
                         title: Text(invite.email),
-                        subtitle: Text('Role: ${invite.role} · not yet accepted'),
+                        subtitle: Text(
+                          'Role: ${invite.role} · not yet accepted',
+                        ),
                       ),
                     ),
                 ],
@@ -180,15 +187,19 @@ class _InviteMemberForm extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Invite member', style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                'Invite member',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: emailController,
                 autofocus: true,
                 keyboardType: TextInputType.emailAddress,
                 decoration: const InputDecoration(labelText: 'Email'),
-                validator: (value) =>
-                    (value == null || !value.contains('@')) ? 'Enter a valid email' : null,
+                validator: (value) => (value == null || !value.contains('@'))
+                    ? 'Enter a valid email'
+                    : null,
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
@@ -208,7 +219,10 @@ class _InviteMemberForm extends StatelessWidget {
                 children: [
                   TextButton(onPressed: onCancel, child: const Text('Cancel')),
                   const SizedBox(width: 8),
-                  FilledButton(onPressed: onSubmit, child: const Text('Invite')),
+                  FilledButton(
+                    onPressed: onSubmit,
+                    child: const Text('Invite'),
+                  ),
                 ],
               ),
             ],

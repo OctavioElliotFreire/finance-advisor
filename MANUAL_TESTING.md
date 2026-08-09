@@ -199,7 +199,9 @@ echo $env:DATABASE_URL
 Must print the `localhost:5432` string, not blank.
 
 What we're testing: schema is current. Expect the final line to reference
-the newest revision (`552093f65de2` at time of writing). If the DB is
+the newest revision (`f08e50848c8c` at time of writing — check
+`backend/migrations/versions/` for the current head if this drifts again).
+If the DB is
 already at head, `alembic upgrade head` prints nothing but two `INFO` lines
 and no error — that's success, not a no-op failure. Confirm explicitly
 with:
@@ -292,7 +294,9 @@ on it (auth, households, sync).
 curl http://localhost:8000/health
 ```
 
-Expected: `{"status":"ok"}`
+Expected: `{"status":"ok","database":"ok"}` (a `503` with
+`{"status":"error","database":"unreachable"}` means the DB check itself is
+failing — see Milestone 10's Monitoring notes in `PLAN.md`).
 
 ### A6. Get a real Supabase access token
 
@@ -655,6 +659,86 @@ curl -i http://localhost:8000/v1/households/%HOUSEHOLD_ID%/anomalies -H "Authori
 Expected: `403` on both — this is the critical tenant-isolation guarantee
 called out in `PLAN.md`.
 
+### A15b. Member invites (existing user + new user), Assistant, audit/alerts/export, deletion
+
+**Why this step:** Milestone 10 (and the invite flow extension noted in
+`PLAN.md`) shipped these after this checklist was first written — they had
+no coverage here at all. Not exhaustive, just enough to confirm each
+endpoint responds sanely.
+
+Invite an **existing** user (the second Supabase user from A14, if you ran
+it — otherwise create one via A6 first) directly into the household:
+
+```cmd
+curl -i -X POST http://localhost:8000/v1/households/%HOUSEHOLD_ID%/members -H "Authorization: Bearer %TOKEN%" -H "Content-Type: application/json" -d "{\"email\":\"manual-test-2@example.com\",\"role\":\"member\"}"
+```
+
+Expected: `201`, membership added directly (no email sent — the account
+already exists).
+
+Invite a **new** email (no `app_users` row yet):
+
+```cmd
+curl -i -X POST http://localhost:8000/v1/households/%HOUSEHOLD_ID%/members -H "Authorization: Bearer %TOKEN%" -H "Content-Type: application/json" -d "{\"email\":\"manual-test-invite@example.com\",\"role\":\"member\"}"
+```
+
+Expected: `201` with a pending-invite result, and an invite email actually
+sent (check the Supabase Auth logs / your inbox if using a real address).
+
+**Gotcha found 2026-08-09:** if Supabase's free-tier email-send rate limit
+(`over_email_send_rate_limit`, the same one called out elsewhere in
+`CLAUDE.md`'s Lessons Learned) trips while inviting a **new** email, this
+call used to fail as a bare `500 Internal Server Error` with no body — and
+in the Flutter Web UI it showed up as a browser CORS error on the
+`POST .../members` request (no `Access-Control-Allow-Origin` header, because
+CORS middleware never gets to run on an unhandled exception — same failure
+shape as the Pluggy-timeout CORS gotcha in `CLAUDE.md`). Root cause:
+`InviteSender.invite_user_by_email` (`backend/app/auth/supabase_admin.py`)
+called `resp.raise_for_status()` with no try/except, so any non-2xx from
+Supabase's `/auth/v1/invite` propagated as an unhandled exception. Fixed by
+wrapping that call in `household_members.py`'s `invite_member` and raising a
+clean `503` with a friendly message instead (matching the pattern already
+used by the anomaly-explain and assistant endpoints). If this endpoint ever
+500s again with a CORS-looking error in the browser, check the actual
+backend response via curl first — it's very unlikely to be a real CORS
+config issue.
+
+Accept it via the token from that invite:
+
+```cmd
+curl -i http://localhost:8000/v1/invites/%INVITE_ID%
+curl -i -X POST http://localhost:8000/v1/invites/%INVITE_ID%/accept -H "Authorization: Bearer %TOKEN%"
+```
+
+Assistant — ask a question about the household's own data:
+
+```cmd
+curl -i -X POST http://localhost:8000/v1/households/%HOUSEHOLD_ID%/assistant/ask -H "Authorization: Bearer %TOKEN%" -H "Content-Type: application/json" -d "{\"question\":\"What did I spend the most on last month?\"}"
+```
+
+Expected: `200` with an answer, or a clear degraded-state error if no LLM
+API key is configured (per `CLAUDE.md`) — not a raw 500.
+
+Audit events, alerts, export:
+
+```cmd
+curl -i http://localhost:8000/v1/households/%HOUSEHOLD_ID%/audit-events -H "Authorization: Bearer %TOKEN%"
+curl -i http://localhost:8000/v1/households/%HOUSEHOLD_ID%/alerts -H "Authorization: Bearer %TOKEN%"
+curl -i http://localhost:8000/v1/households/%HOUSEHOLD_ID%/export -H "Authorization: Bearer %TOKEN%"
+```
+
+Expected: `200` on all three; audit-events should already list the invite
+actions from above.
+
+Household deletion — **destructive, only run this against a throwaway test
+household**, e.g. the one from A14, not your main manual-test household:
+
+```cmd
+curl -i -X DELETE http://localhost:8000/v1/households/%HOUSEHOLD_ID_2% -H "Authorization: Bearer %TOKEN2%"
+```
+
+Expected: `204`, and a follow-up `GET` on that household returns `403`/`404`.
+
 ### A15. Cleanup (optional, avoids sandbox item buildup)
 
 **Why this step:** Pluggy sandbox items accumulate under your Pluggy
@@ -845,6 +929,18 @@ What we're testing:
 3. Changing status (e.g. dismiss) via the UI calls `PATCH .../{id}` and the
    item updates/disappears from the default filtered view accordingly.
 
+**Gotcha found 2026-08-09:** Confirm/Dismiss looked like a no-op in the
+browser — the PATCH returned `200` (checked via Network tab / curl) and the
+status genuinely changed in Postgres, but the card's severity/status text
+never updated on screen until some *other* action forced a rebuild (e.g.
+switching filter tabs). Root cause:
+`anomalies_view_model.dart`'s `updateStatus()` called `_replace(updated)` on
+the success path but never called `notifyListeners()` there — only the two
+error branches did. Fixed by adding `notifyListeners()` after `_replace()`
+in the try block. If a future anomaly-status change ever looks stuck again
+in the UI despite a `200` on the network tab, check for this exact
+missing-notifyListeners pattern first.
+
 ### B9. Responsive layout check
 
 **Why this step:** the whole point of choosing Flutter (per `PLAN.md`) was
@@ -862,21 +958,50 @@ milestone goal — layouts should reflow (e.g. cards stacking vertically on
 narrow width) rather than clipping, overflowing, or requiring horizontal
 scroll.
 
+### B9b. Members / access screens, invite-accept, Assistant
+
+**Why this step:** these screens exist (`members_view.dart`,
+`member_access_view.dart`, `accept_invite_view.dart`,
+`assistant_view.dart`) but had no manual-QA coverage here — added
+alongside A15b's backend coverage of the same features.
+
+1. **Members** — from the household, open the members screen. Invite the
+   existing second test user (A14) by email; confirm it's added directly.
+   Invite a brand-new email; confirm a pending-invite state shows (not a
+   silent no-op).
+2. **Accept invite** — using the invite link/token from the step above,
+   open `/accept-invite?...` as the invited user (a different browser
+   profile or logged-out session). Confirm `accept_invite_view.dart` shows
+   the household name and an accept action, and that accepting lands the
+   user in that household's dashboard. This is the screen affected by the
+   go_router web deep-link bug in `CLAUDE.md`'s Lessons Learned — if it
+   throws `GoException: no routes for location: /access_token=...`, that's
+   the known issue, check the fix is actually in place.
+3. **Member access** — as the owner, open a member's access screen and
+   toggle which connections they can see. Confirm the change persists
+   (reload the screen) and — if you have a second logged-in session as
+   that member — that their dashboard/finances actually reflect the new
+   scope.
+4. **Assistant** — open the assistant screen, ask a question about the
+   household's data. Confirm a real answer renders, or a clear degraded
+   error state if no LLM key is configured (same caveat as B8's explain
+   feature) — not a blank screen or raw exception.
+
 ### B10. Automated Flutter tests
 
-**Why this step:** included for completeness, but per `CLAUDE.md` this
-doesn't yet prove anything about the real app — worth running so you get
-in the habit of checking it, but don't mistake a green result here for
-real coverage.
+**Why this step:** real coverage now exists — repository/data-layer tests,
+auth/household widget tests, and per-chart data-mapper + widget tests (see
+`CLAUDE.md`'s Known Test Surfaces). A pass here is meaningful for what it
+covers, but it's still not full end-to-end coverage (no integration test
+drives a real login → sync → chart-render path, and newer features —
+member invites, Assistant, audit/alerts/export — have no dedicated widget
+tests yet), so keep pairing it with Parts B1-B9 above for anything crossing
+that boundary.
 
 ```cmd
 cd frontend
 flutter test
 ```
-
-Per `CLAUDE.md`: today this only runs the stock `flutter create` placeholder
-test. A pass here does **not** prove anything about the real app — treat
-Parts B1-B9 above as the actual coverage until real widget tests exist.
 
 ---
 

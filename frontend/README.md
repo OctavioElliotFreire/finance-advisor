@@ -1,17 +1,26 @@
-# frontend
+# Family Finance — Flutter frontend
 
-A new Flutter project.
+Flutter client for Family Finance (web, Android, iOS — see repo root [`README.md`](../README.md) and [`PLAN.md`](../PLAN.md) for the full architecture). Talks to the FastAPI backend in `../backend/` and to Supabase Auth directly for login/session.
 
-## Getting Started
+Structure (`lib/`):
+- `app/` — routing (`go_router`)
+- `core/` — config, formatting, theme tokens, shared widgets
+- `data/` — models, repositories, `BackendApiService` (the HTTP client)
+- `ui/features/` — one directory per screen area: `auth`, `households`, `invites`, `connections`, `dashboard`, `finances`, `anomalies`, `assistant`
 
-This project is a starting point for a Flutter application.
+## Running
 
-A few resources to get you started if this is your first Flutter project:
+```
+flutter pub get
+flutter build web --dart-define-from-file=.env
+```
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+A plain `flutter run -d web-server` hangs in a headless/no-extension session — see `CLAUDE.md`'s Lessons Learned at the repo root before debugging that. Building against `.env` is required — a build with no `--dart-define-from-file` compiles empty Supabase config and every login silently fails.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Testing
+
+```
+flutter test
+```
+
+See `../MANUAL_TESTING.md` for the manual QA checklist covering flows automated tests don't reach.

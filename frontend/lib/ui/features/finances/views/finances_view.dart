@@ -116,7 +116,9 @@ class _InvestmentsTab extends StatelessWidget {
           child: ListTile(
             title: Text(investment.name ?? investment.type ?? 'Investment'),
             subtitle: Text(investment.subtype ?? investment.type ?? ''),
-            trailing: Text(formatMoney(investment.balance ?? 0, investment.currencyCode)),
+            trailing: Text(
+              formatMoney(investment.balance ?? 0, investment.currencyCode),
+            ),
           ),
         );
       },
@@ -154,7 +156,9 @@ class _LoansTab extends StatelessWidget {
                 if (installments != null) '$installments installments',
               ].join(' · '),
             ),
-            trailing: Text(formatMoney(loan.outstandingBalance ?? 0, loan.currencyCode)),
+            trailing: Text(
+              formatMoney(loan.outstandingBalance ?? 0, loan.currencyCode),
+            ),
           ),
         );
       },
@@ -183,14 +187,18 @@ class _BillsTab extends StatelessWidget {
         return Card(
           child: ListTile(
             title: Text(
-              bill.dueDate == null ? 'Bill' : 'Due ${formatShortDate(bill.dueDate!)}',
+              bill.dueDate == null
+                  ? 'Bill'
+                  : 'Due ${formatShortDate(bill.dueDate!)}',
             ),
             subtitle: Text(
               bill.minimumPayment == null
                   ? ''
                   : 'Minimum payment ${formatMoney(bill.minimumPayment!, bill.currencyCode)}',
             ),
-            trailing: Text(formatMoney(bill.totalAmount ?? 0, bill.currencyCode)),
+            trailing: Text(
+              formatMoney(bill.totalAmount ?? 0, bill.currencyCode),
+            ),
           ),
         );
       },

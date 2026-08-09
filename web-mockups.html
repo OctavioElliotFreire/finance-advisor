@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>meu·lar — Mockups (mobile + web)</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/tabler-icons.min.css">
+<style>
+  :root{
+    --surface-page:#F7F8F6; --surface-card:#FFFFFF; --surface-fill:#EDEFEC;
+    --border:#E2E5E0; --border-strong:#CBCFC8;
+    --ink:#191C19; --ink-secondary:#565B55; --ink-muted:#878D86;
+    --warning-text:#8A5B14; --warning-bg:#FCF2DF;
+    --danger-text:#A63229; --danger-bg:#FBEAE7;
+    --m1:#6E63D2; --m2:#0E8A86; --m3:#CE5528; --m4:#B2497F;
+    --radius:8px;
+  }
+  *{box-sizing:border-box;}
+  body{background:var(--surface-page);font-family:'Inter',-apple-system,'Segoe UI',sans-serif;color:var(--ink);margin:0;padding:40px 20px;}
+  .mono{font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;}
+  .mut{color:var(--ink-muted);}
+  .sec{color:var(--ink-secondary);}
+  h1{font-size:20px;margin:0 0 4px;}
+  .intro{color:var(--ink-secondary);font-size:13px;max-width:640px;line-height:1.6;margin:0 0 36px;}
+  .group{margin-bottom:56px;}
+  .group-label{font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-muted);margin:0 0 14px;border-bottom:1px solid var(--border);padding-bottom:8px;}
+  .row{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;}
+  .frame-label{font-size:11px;color:var(--ink-muted);text-align:center;margin:0 0 8px;}
+
+  /* ---- mobile phone shell ---- */
+  .phone{width:320px;background:var(--surface-card);border:1px solid var(--border);border-radius:20px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+  .num{font-variant-numeric:tabular-nums;font-family:ui-monospace,monospace;}
+  .key{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-secondary);}
+  .sw{width:8px;height:8px;border-radius:2px;display:inline-block;}
+  .lrow{display:flex;justify-content:space-between;padding:8px 0;font-size:12px;}
+  .sec-p{padding:15px 16px;border-top:.5px solid var(--border);}
+  .seg{padding:14px 16px 12px;display:flex;gap:4px;}
+  .seg>div{flex:1;text-align:center;padding:6px;font-size:12px;color:var(--ink-muted);border-radius:var(--radius);}
+  .seg .on{background:var(--surface-fill);color:var(--ink);font-weight:500;}
+  .chip{display:flex;align-items:center;gap:5px;padding:4px 9px 4px 6px;border:.5px solid var(--border-strong);border-radius:20px;font-size:11px;}
+  .chip.off{color:var(--ink-muted);border-color:var(--border);}
+  .mh{padding:8px 16px;background:var(--surface-fill);display:flex;align-items:center;gap:7px;font-size:11px;font-weight:500;}
+  .arow{padding:11px 16px;border-top:.5px solid var(--border);}
+  .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;display:inline-block;}
+  .trk{height:4px;background:var(--surface-fill);border-radius:2px;margin-top:7px;overflow:hidden;}
+  .nav{display:flex;border-top:.5px solid var(--border);padding:10px 0 12px;}
+  .nav>div{flex:1;text-align:center;}
+  .nav i{font-size:19px;color:var(--ink-muted);}
+  .nav p{margin:2px 0 0;font-size:10px;color:var(--ink-muted);}
+  .nav .on i,.nav .on p{color:var(--ink);}
+  .crow{display:flex;align-items:center;gap:9px;margin-bottom:10px;}
+  .crow>span:first-child{width:78px;font-size:12px;}
+  .track{flex:1;height:6px;background:var(--surface-fill);border-radius:3px;}
+  .track>div{height:100%;background:var(--ink);border-radius:3px;}
+  .cap{margin:0 0 9px;font-size:11px;color:var(--ink-muted);}
+  .bg-warning{background:var(--warning-bg);}
+  .text-warning{color:var(--warning-text);}
+  .bg-danger{background:var(--danger-bg);}
+  .text-danger{color:var(--danger-text);}
+
+  /* ---- web frame shell ---- */
+  .web{width:1180px;max-width:100%;background:var(--surface-page);border-radius:12px;overflow:hidden;border:1px solid var(--border);}
+  .whdr{background:var(--surface-card);border-bottom:.5px solid var(--border);padding:0 20px;height:52px;display:flex;align-items:center;gap:22px;}
+  .brand{font-size:14px;font-weight:600;letter-spacing:-.01em;}
+  .wnv{display:flex;gap:2px;flex:1;}
+  .wnv a{padding:6px 12px;font-size:13px;color:var(--ink-muted);border-radius:var(--radius);text-decoration:none;}
+  .wnv .on{background:var(--surface-fill);color:var(--ink);font-weight:500;}
+  .hact{display:flex;align-items:center;gap:14px;}
+  .pill{display:flex;align-items:center;gap:6px;padding:5px 11px;background:var(--surface-fill);border-radius:20px;font-size:12px;font-weight:500;}
+  .wscope{padding:14px 20px;display:flex;align-items:center;gap:8px;border-bottom:.5px solid var(--border);background:var(--surface-page);}
+  .wmain{padding:20px;display:flex;flex-direction:column;gap:16px;}
+  .g{display:grid;gap:16px;}
+  .g21{grid-template-columns:1.9fr 1.1fr;}
+  .g11{grid-template-columns:1fr 1fr;}
+  .card{background:var(--surface-card);border:.5px solid var(--border);border-radius:12px;padding:18px;}
+  .ttl{margin:0 0 12px;font-size:11px;color:var(--ink-muted);letter-spacing:.03em;}
+  .wtrk{height:7px;background:var(--surface-fill);border-radius:4px;overflow:hidden;display:flex;}
+  .frow{display:flex;align-items:center;gap:10px;padding:9px 0;font-size:12px;}
+  table{width:100%;border-collapse:collapse;}
+  th{text-align:left;font-size:11px;font-weight:400;color:var(--ink-muted);padding:0 0 9px;}
+  td{padding:10px 0;font-size:13px;border-top:.5px solid var(--border);}
+  .al{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:.5px solid var(--border);border-radius:var(--radius);}
+  .cat-pill{font-size:11px;color:var(--ink-secondary);padding:2px 8px;background:var(--surface-fill);border-radius:20px;white-space:nowrap;}
+  .r{text-align:right;}
+  .wseg{display:flex;gap:3px;}
+  .wseg>div{padding:6px 16px;font-size:12px;color:var(--ink-muted);border-radius:var(--radius);}
+  .wseg .on{background:var(--surface-card);color:var(--ink);font-weight:500;border:.5px solid var(--border);}
+  .bar{display:flex;flex-direction:column;justify-content:flex-end;gap:2px;flex:1;}
+  .mn{flex:1;text-align:center;font-size:10px;color:var(--ink-muted);}
+  .tools{padding:14px 18px;display:flex;align-items:center;gap:8px;}
+  .srch{flex:1;display:flex;align-items:center;gap:8px;padding:6px 11px;border:.5px solid var(--border);border-radius:var(--radius);font-size:12px;color:var(--ink-muted);}
+  .fp{padding:5px 11px;border-radius:20px;font-size:12px;color:var(--ink-muted);}
+  .fp.on{background:var(--surface-fill);color:var(--ink);}
+  .sum{padding:11px 18px;background:var(--surface-fill);display:flex;gap:26px;font-size:12px;}
+</style>
+</head>
+<body>
+
+<h1>meu·lar — telas de referência</h1>
+<p class="intro">Reconstrução em HTML/CSS real de todas as telas discutidas na conversa de design, mobile e web, usando os tokens definidos no documento de handoff. Abra este arquivo em qualquer navegador para inspecionar a marcação diretamente.</p>
+
+<!-- ================= MOBILE ================= -->
+<div class="group">
+<p class="group-label">Mobile · Início</p>
+<div class="row">
+<div>
+<p class="frame-label">Início</p>
+<div class="phone">
+<div style="padding:14px 16px 0;display:flex;align-items:center;gap:8px">
+<i class="ti ti-chevron-left" style="font-size:17px;color:var(--ink-muted)"></i>
+<div style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:5px 12px;background:var(--surface-fill);border-radius:20px"><span style="font-size:12px;font-weight:500">Agosto 2026</span><i class="ti ti-chevron-down" style="font-size:13px;color:var(--ink-secondary)"></i></div>
+<i class="ti ti-chevron-right" style="font-size:17px;color:var(--ink-muted)"></i>
+<i class="ti ti-eye-off" style="font-size:17px;color:var(--ink-secondary);margin-left:4px"></i>
+</div>
+<div style="padding:16px">
+<p class="mut" style="margin:0 0 3px;font-size:11px">Gastos do mês</p>
+<p class="num" style="margin:0;font-size:30px;font-weight:500;line-height:1.1">R$ 8.450,00</p>
+<div class="trk" style="margin-top:15px;height:6px;overflow:hidden;display:flex"><div style="width:59%;background:var(--ink)"></div><div style="width:22%;background:var(--ink-muted)"></div></div>
+<div style="margin-top:10px;display:flex;gap:12px;flex-wrap:wrap">
+<span class="key"><span class="sw" style="background:var(--ink)"></span>Realizado</span>
+<span class="key"><span class="sw" style="background:var(--ink-muted)"></span>Comprometido R$ 3.120,00</span>
+</div>
+<div style="margin-top:13px;border-top:.5px solid var(--border);padding-top:4px">
+<div class="lrow"><span class="mut">Entradas</span><span class="num">R$ 14.200,00</span></div>
+<div class="lrow" style="border-top:.5px solid var(--border)"><span class="mut">Sobrou</span><span class="num" style="font-weight:500">R$ 2.630,00</span></div>
+</div>
+</div>
+<div class="sec-p">
+<div style="display:flex;justify-content:space-between;align-items:baseline">
+<span class="mut" style="font-size:11px">Limite disponível</span>
+<span class="num" style="font-size:14px;font-weight:500">R$ 27.110,00</span>
+</div>
+<div class="trk"><div style="width:35%;height:100%;background:var(--ink)"></div></div>
+<p class="num mut" style="margin:7px 0 0;font-size:11px">R$ 14.890,00 de R$ 42.000,00 · 3 cartões</p>
+</div>
+<div class="sec-p bg-warning" style="display:flex;align-items:center;gap:9px;border-top:.5px solid var(--border)">
+<i class="ti ti-alert-triangle text-warning" style="font-size:17px"></i>
+<span class="text-warning" style="font-size:12px;flex:1;line-height:1.4">Fatura do C6 vence em 3 dias · R$ 5.760,00</span>
+<i class="ti ti-chevron-right text-warning" style="font-size:15px"></i></div>
+<div class="sec-p" style="display:flex;align-items:center;gap:9px">
+<i class="ti ti-flag" style="font-size:17px;color:var(--ink-secondary)"></i><span style="font-size:12px;flex:1">2 cobranças incomuns para revisar</span><i class="ti ti-chevron-right" style="font-size:15px;color:var(--ink-muted)"></i></div>
+<div class="sec-p" style="padding-bottom:6px">
+<p class="cap">Por membro</p>
+<div style="display:flex;align-items:center;gap:10px;padding:8px 0"><span class="dot" style="background:var(--m1)"></span><div style="flex:1"><p style="margin:0;font-size:13px">Davi</p><p class="mut" style="margin:1px 0 0;font-size:11px">Dentro da média</p></div><span class="num" style="font-size:13px">R$ 3.980,00</span></div>
+<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:.5px solid var(--border)"><span class="dot" style="background:var(--m2)"></span><div style="flex:1"><p style="margin:0;font-size:13px">Ana</p><p class="mut" style="margin:1px 0 0;font-size:11px">Dentro da média</p></div><span class="num" style="font-size:13px">R$ 2.870,00</span></div>
+<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:.5px solid var(--border)"><span class="dot" style="background:var(--m3)"></span><div style="flex:1"><p style="margin:0;font-size:13px">Maia</p><p class="text-warning" style="margin:1px 0 0;font-size:11px">40% acima da média dela</p></div><span class="num text-warning" style="font-size:13px">R$ 1.600,00</span></div>
+</div>
+<div class="sec-p" style="display:flex;align-items:center;gap:7px"><i class="ti ti-refresh" style="font-size:13px;color:var(--ink-muted)"></i><span class="mut" style="font-size:11px">3 de 4 contas atualizadas há 2h</span></div>
+<div class="nav"><div class="on"><i class="ti ti-home"></i><p>Início</p></div><div><i class="ti ti-wallet"></i><p>Contas</p></div><div><i class="ti ti-chart-bar"></i><p>Análises</p></div><div><i class="ti ti-users"></i><p>Família</p></div></div>
+</div></div>
+
+<div>
+<p class="frame-label">Contas · Saldos</p>
+<div class="phone">
+<div class="seg"><div class="on">Saldos</div><div>Extrato</div></div>
+<div style="padding:0 16px 13px;display:flex;gap:5px;flex-wrap:wrap;border-bottom:.5px solid var(--border)">
+<span class="chip"><i class="ti ti-square-check" style="font-size:14px;color:var(--m1)"></i>Davi</span>
+<span class="chip"><i class="ti ti-square-check" style="font-size:14px;color:var(--m2)"></i>Ana</span>
+<span class="chip"><i class="ti ti-square-check" style="font-size:14px;color:var(--m3)"></i>Maia</span>
+</div>
+<div class="mh"><span class="dot" style="background:var(--m1)"></span>Davi</div>
+<div class="arow"><div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:13px">Itaú Conta Corrente ••7257</span><span class="num" style="font-size:13px">R$ 4.512,80</span></div></div>
+<div class="arow"><div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:13px">Itaú Visa Infinite</span><span class="num" style="font-size:13px">R$ 15.759,85</span></div><div class="trk"><div style="width:28%;height:100%;background:var(--ink)"></div></div><p class="num mut" style="margin:6px 0 0;font-size:11px">Fatura R$ 6.240,15 · fecha 28/08 · vence 05/09</p></div>
+<div class="mh" style="border-top:.5px solid var(--border)"><span class="dot" style="background:var(--m2)"></span>Ana</div>
+<div class="arow"><div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:13px">Nubank Conta ••4471</span><span class="num" style="font-size:13px">R$ 3.180,40</span></div></div>
+<div class="arow"><div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:13px">Nubank Ultravioleta</span><span class="num" style="font-size:13px">R$ 9.110,00</span></div><div class="trk"><div style="width:24%;height:100%;background:var(--ink)"></div></div><p class="num mut" style="margin:6px 0 0;font-size:11px">Fatura R$ 2.890,00 · fecha 02/09 · vence 10/09</p></div>
+<div class="mh" style="border-top:.5px solid var(--border)"><span class="dot" style="background:var(--m3)"></span>Maia</div>
+<div class="arow"><div style="display:flex;justify-content:space-between;align-items:baseline"><span class="mut" style="font-size:13px">C6 Conta ••8830</span><span class="num mut" style="font-size:13px">Sem sincronizar</span></div></div>
+<div class="arow"><div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:13px">C6 Mastercard</span><span class="num text-danger" style="font-size:13px">R$ 2.240,00</span></div><div class="trk"><div style="width:72%;height:100%;background:var(--danger-text)"></div></div><p class="num text-danger" style="margin:6px 0 0;font-size:11px">Fatura R$ 5.760,00 · vence em 3 dias</p></div>
+<div class="nav"><div><i class="ti ti-home"></i><p>Início</p></div><div class="on"><i class="ti ti-wallet"></i><p>Contas</p></div><div><i class="ti ti-chart-bar"></i><p>Análises</p></div><div><i class="ti ti-users"></i><p>Família</p></div></div>
+</div></div>
+
+<div>
+<p class="frame-label">Análises · Gastos</p>
+<div class="phone">
+<div class="seg"><div class="on">Gastos</div><div>Fluxo</div><div>Investimentos</div></div>
+<div style="padding:0 16px 13px;display:flex;gap:5px;flex-wrap:wrap;border-bottom:.5px solid var(--border)">
+<span class="chip"><i class="ti ti-square-check" style="font-size:14px;color:var(--m1)"></i>Davi</span>
+<span class="chip"><i class="ti ti-square-check" style="font-size:14px;color:var(--m2)"></i>Ana</span>
+<span class="chip"><i class="ti ti-square-check" style="font-size:14px;color:var(--m3)"></i>Maia</span>
+</div>
+<div style="padding:16px 16px 6px">
+<p class="mut" style="margin:0 0 2px;font-size:11px">Gastos do mês</p>
+<p class="num" style="margin:0 0 16px;font-size:24px;font-weight:500">R$ 8.450,00</p>
+<div style="display:flex;align-items:flex-end;gap:11px;height:110px">
+<div class="bar"><div style="height:20px;background:var(--m3);border-radius:2px 2px 0 0"></div><div style="height:37px;background:var(--m2)"></div><div style="height:52px;background:var(--m1);border-radius:0 0 2px 2px"></div></div>
+<div class="bar"><div style="height:24px;background:var(--m3);border-radius:2px 2px 0 0"></div><div style="height:41px;background:var(--m2)"></div><div style="height:50px;background:var(--m1);border-radius:0 0 2px 2px"></div></div>
+<div class="bar"><div style="height:28px;background:var(--m3);border-radius:2px 2px 0 0"></div><div style="height:39px;background:var(--m2)"></div><div style="height:55px;background:var(--m1);border-radius:0 0 2px 2px"></div></div>
+<div class="bar"><div style="height:26px;background:var(--m3);border-radius:2px 2px 0 0"></div><div style="height:45px;background:var(--m2)"></div><div style="height:47px;background:var(--m1);border-radius:0 0 2px 2px"></div></div>
+<div class="bar"><div style="height:24px;background:var(--m3);border-radius:2px 2px 0 0"></div><div style="height:41px;background:var(--m2)"></div><div style="height:60px;background:var(--m1);border-radius:0 0 2px 2px"></div></div>
+<div class="bar"><div style="height:28px;background:var(--m3);border-radius:2px 2px 0 0"></div><div style="height:45px;background:var(--m2)"></div><div style="height:57px;background:var(--m1);border-radius:0 0 2px 2px"></div></div>
+</div>
+<div style="display:flex;gap:11px;margin-top:7px"><span class="mn">mar</span><span class="mn">abr</span><span class="mn">mai</span><span class="mn">jun</span><span class="mn">jul</span><span class="mn">ago</span></div>
+</div>
+<div class="sec-p" style="margin-top:14px">
+<p class="cap">Por categoria</p>
+<div class="crow"><span>Mercado</span><div class="track"><div style="width:100%"></div></div><span class="num" style="width:44px;text-align:right;font-size:12px">R$ 980</span></div>
+<div class="crow"><span>Transporte</span><div class="track"><div style="width:62%"></div></div><span class="num" style="width:44px;text-align:right;font-size:12px">R$ 610</span></div>
+<div class="crow"><span>Restaurantes</span><div class="track"><div style="width:60%"></div></div><span class="num" style="width:44px;text-align:right;font-size:12px">R$ 585</span></div>
+<div class="crow"><span>Contas de casa</span><div class="track"><div style="width:43%"></div></div><span class="num" style="width:44px;text-align:right;font-size:12px">R$ 420</span></div>
+<div class="crow" style="margin-bottom:0"><span>Compras</span><div class="track"><div style="width:40%"></div></div><span class="num" style="width:44px;text-align:right;font-size:12px">R$ 395</span></div>
+</div>
+<div class="nav"><div><i class="ti ti-home"></i><p>Início</p></div><div><i class="ti ti-wallet"></i><p>Contas</p></div><div class="on"><i class="ti ti-chart-bar"></i><p>Análises</p></div><div><i class="ti ti-users"></i><p>Família</p></div></div>
+</div></div>
+
+<div>
+<p class="frame-label">Análises · Fluxo</p>
+<div class="phone">
+<div class="seg"><div>Gastos</div><div class="on">Fluxo</div><div>Investimentos</div></div>
+<div style="padding:0 16px 13px;display:flex;gap:5px;flex-wrap:wrap;border-bottom:.5px solid var(--border)">
+<span class="chip"><i class="ti ti-square-check" style="font-size:14px;color:var(--m1)"></i>Davi</span>
+<span class="chip"><i class="ti ti-square-check" style="font-size:14px;color:var(--m2)"></i>Ana</span>
+<span class="chip"><i class="ti ti-square-check" style="font-size:14px;color:var(--m3)"></i>Maia</span>
+</div>
+<div style="display:flex;gap:18px;padding:16px 16px 0">
+<div><p class="mut" style="margin:0;font-size:11px">Entradas</p><p class="num" style="margin:2px 0 0;font-size:17px;font-weight:500">R$ 14.200</p></div>
+<div><p class="mut" style="margin:0;font-size:11px">Saídas</p><p class="num" style="margin:2px 0 0;font-size:17px;font-weight:500">R$ 8.450</p></div>
+<div><p class="mut" style="margin:0;font-size:11px">Resultado</p><p class="num" style="margin:2px 0 0;font-size:17px;font-weight:500">+R$ 5.750</p></div>
+</div>
+<div style="padding:16px 16px 0">
+<svg viewBox="0 0 272 160" style="width:100%;height:160px">
+<rect x="16" y="15" width="29" height="130" rx="2" fill="var(--ink-muted)"/>
+<rect x="58" y="15" width="29" height="130" rx="2" fill="var(--ink-muted)"/>
+<rect x="100" y="5" width="29" height="140" rx="2" fill="var(--ink-muted)"/>
+<rect x="142" y="16" width="29" height="129" rx="2" fill="var(--ink-muted)"/>
+<rect x="184" y="13" width="29" height="132" rx="2" fill="var(--ink-muted)"/>
+<rect x="226" y="7" width="29" height="138" rx="2" fill="var(--border-strong)"/>
+<polyline points="30.5,81 72.5,76 114.5,71 156.5,75 198.5,71" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="198.5,71 240.5,68" fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="3 3" stroke-linecap="round"/>
+<circle cx="30.5" cy="81" r="2.5" fill="var(--ink)"/><circle cx="72.5" cy="76" r="2.5" fill="var(--ink)"/><circle cx="114.5" cy="71" r="2.5" fill="var(--ink)"/><circle cx="156.5" cy="75" r="2.5" fill="var(--ink)"/><circle cx="198.5" cy="71" r="2.5" fill="var(--ink)"/><circle cx="240.5" cy="68" r="2.5" fill="var(--ink)"/>
+<text x="30.5" y="157" text-anchor="middle" font-size="10" fill="var(--ink-muted)">mar</text>
+<text x="72.5" y="157" text-anchor="middle" font-size="10" fill="var(--ink-muted)">abr</text>
+<text x="114.5" y="157" text-anchor="middle" font-size="10" fill="var(--ink-muted)">mai</text>
+<text x="156.5" y="157" text-anchor="middle" font-size="10" fill="var(--ink-muted)">jun</text>
+<text x="198.5" y="157" text-anchor="middle" font-size="10" fill="var(--ink-muted)">jul</text>
+<text x="240.5" y="157" text-anchor="middle" font-size="10" fill="var(--ink-muted)">ago</text>
+</svg>
+<div style="display:flex;gap:14px;margin-top:2px;font-size:11px;color:var(--ink-secondary)">
+<span style="display:flex;align-items:center;gap:6px"><span style="width:11px;height:9px;border-radius:2px;background:var(--ink-muted)"></span>Entradas</span>
+<span style="display:flex;align-items:center;gap:6px"><span style="width:14px;height:2px;background:var(--ink)"></span>Saídas</span>
+</div>
+<p class="mut" style="margin:9px 0 0;font-size:11px">Agosto em andamento · 8 de 31 dias</p>
+</div>
+<div class="sec-p" style="margin-top:14px">
+<p class="cap">Por fonte</p>
+<div class="crow"><span>Salário</span><div class="track"><div style="width:100%"></div></div><span class="num" style="width:48px;text-align:right;font-size:12px">R$ 12.700</span></div>
+<div class="crow"><span>Freelance</span><div class="track"><div style="width:8%"></div></div><span class="num" style="width:48px;text-align:right;font-size:12px">R$ 1.100</span></div>
+<div class="crow" style="margin-bottom:0"><span>Dividendos</span><div class="track"><div style="width:3%"></div></div><span class="num" style="width:48px;text-align:right;font-size:12px">R$ 400</span></div>
+</div>
+<div style="padding:4px 16px 14px;display:flex;align-items:flex-start;gap:8px">
+<i class="ti ti-arrows-exchange" style="font-size:14px;color:var(--ink-muted);margin-top:1px"></i>
+<span class="mut" style="font-size:11px;line-height:1.5">R$ 1.200,00 em transferências entre contas da família foram excluídos.</span>
+</div>
+<div class="nav"><div><i class="ti ti-home"></i><p>Início</p></div><div><i class="ti ti-wallet"></i><p>Contas</p></div><div class="on"><i class="ti ti-chart-bar"></i><p>Análises</p></div><div><i class="ti ti-users"></i><p>Família</p></div></div>
+</div></div>
+
+<div>
+<p class="frame-label">Família</p>
+<div class="phone">
+<div style="padding:15px 16px;display:flex;justify-content:space-between;align-items:center">
+<span style="font-size:15px;font-weight:500">Família</span>
+<i class="ti ti-user-plus" style="font-size:18px;color:var(--ink-secondary)"></i>
+</div>
+<div class="sec-p">
+<div style="display:flex;align-items:center;gap:9px;margin-bottom:9px">
+<span class="dot" style="background:var(--m1);width:9px;height:9px"></span>
+<span style="font-size:14px;font-weight:500;flex:1">Davi</span>
+<span style="font-size:10px;padding:2px 7px;border-radius:20px;background:var(--surface-fill);color:var(--ink-secondary)">Responsável</span>
+</div>
+<div style="display:flex;align-items:center;gap:7px;font-size:12px;padding:3px 0"><span class="dot" style="background:var(--m2)"></span><span style="flex:1">Itaú ••7257</span><span class="mut" style="font-size:11px">Atualizado há 2h</span></div>
+<p class="mut" style="margin:4px 0 0 15px;font-size:11px">Acesso renova em 12/03/2027</p>
+</div>
+<div class="sec-p bg-warning">
+<div style="display:flex;align-items:center;gap:9px;margin-bottom:9px">
+<span class="dot" style="background:var(--m2);width:9px;height:9px"></span>
+<span style="font-size:14px;font-weight:500;flex:1">Ana</span>
+<span style="font-size:10px;padding:2px 7px;border-radius:20px;border:.5px solid var(--border-strong)">Vê toda a família</span>
+</div>
+<div style="display:flex;align-items:center;gap:7px;font-size:12px;padding:3px 0"><span class="dot" style="background:var(--warning-text)"></span><span style="flex:1">Nubank ••4471</span><span class="text-warning" style="font-size:11px">Atualizado há 2h</span></div>
+<p class="text-warning" style="margin:4px 0 0 15px;font-size:11px">Acesso expira em 18 dias · Ana precisa renovar</p>
+<button style="width:100%;margin-top:10px;padding:9px;border-radius:8px;border:none;background:var(--ink);color:var(--surface-card);font-size:13px">Pedir para Ana renovar</button>
+</div>
+<div class="sec-p">
+<div style="display:flex;align-items:center;gap:9px;margin-bottom:9px">
+<span class="dot" style="background:var(--m3);width:9px;height:9px"></span>
+<span style="font-size:14px;font-weight:500;flex:1">Maia</span>
+<span style="font-size:10px;padding:2px 7px;border-radius:20px;border:.5px solid var(--border-strong)">Vê só os próprios dados</span>
+</div>
+<div style="display:flex;align-items:center;gap:7px;font-size:12px;padding:3px 0"><span class="dot" style="background:var(--danger-text)"></span><span class="text-danger" style="flex:1">C6 Bank ••8830</span><span class="text-danger" style="font-size:11px">Falhou há 9 dias</span></div>
+<p class="mut" style="margin:4px 0 0 15px;font-size:11px">Dados exibidos são de 30/07</p>
+<button style="width:100%;margin-top:10px;padding:9px;border-radius:8px;border:.5px solid var(--border-strong);background:transparent;color:var(--ink);font-size:13px">Reconectar conta</button>
+</div>
+<div class="sec-p" style="display:flex;align-items:flex-start;gap:8px">
+<i class="ti ti-shield-check" style="font-size:15px;color:var(--ink-muted);margin-top:1px"></i>
+<span class="mut" style="font-size:11px;line-height:1.5">Cada membro pode desconectar suas contas quando quiser.</span>
+</div>
+<div class="nav"><div><i class="ti ti-home"></i><p>Início</p></div><div><i class="ti ti-wallet"></i><p>Contas</p></div><div><i class="ti ti-chart-bar"></i><p>Análises</p></div><div class="on"><i class="ti ti-users"></i><p>Família</p></div></div>
+</div></div>
+
+</div>
+</div>
+
+<!-- ================= WEB ================= -->
+<div class="group">
+<p class="group-label">Web · Início</p>
+<div class="web">
+<div class="whdr">
+<span class="brand">meu·lar</span>
+<nav class="wnv"><a class="on">Início</a><a>Contas</a><a>Análises</a><a>Família</a></nav>
+<div class="hact">
+<i class="ti ti-chevron-left mut" style="font-size:16px"></i>
+<span class="pill">Agosto 2026<i class="ti ti-chevron-down" style="font-size:13px"></i></span>
+<i class="ti ti-chevron-right mut" style="font-size:16px"></i>
+<i class="ti ti-eye-off" style="font-size:17px;color:var(--ink-secondary)"></i>
+<i class="ti ti-moon" style="font-size:17px;color:var(--ink-secondary)"></i>
+<span style="width:24px;height:24px;border-radius:50%;background:var(--m1);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:600">D</span>
+</div>
+</div>
+<div class="wscope">
+<span class="mut" style="font-size:11px;margin-right:4px">Membros</span>
+<span class="chip"><i class="ti ti-square-check" style="font-size:14px;color:var(--m1)"></i>Davi</span>
+<span class="chip"><i class="ti ti-square-check" style="font-size:14px;color:var(--m2)"></i>Ana</span>
+<span class="chip"><i class="ti ti-square-check" style="font-size:14px;color:var(--m3)"></i>Maia</span>
+<span class="chip off"><i class="ti ti-square" style="font-size:14px"></i>Léo</span>
+</div>
+<div class="wmain">
+<div class="g g21">
+<div class="card">
+<p class="ttl">Gastos do mês</p>
+<p class="num" style="margin:0;font-size:36px;font-weight:500;line-height:1">R$ 8.450,00</p>
+<div class="wtrk" style="margin-top:18px"><div style="width:59%;background:var(--ink)"></div><div style="width:22%;background:var(--ink-muted)"></div></div>
+<div style="margin-top:11px;display:flex;gap:18px">
+<span class="key"><span class="sw" style="background:var(--ink)"></span>Realizado</span>
+<span class="key"><span class="sw" style="background:var(--ink-muted)"></span>Comprometido <span class="num">R$ 3.120,00</span></span>
+</div>
+<div style="margin-top:16px;border-top:.5px solid var(--border);padding-top:2px">
+<div class="lrow"><span class="mut">Entradas</span><span class="num">R$ 14.200,00</span></div>
+<div class="lrow" style="border-top:.5px solid var(--border)"><span class="mut">Sobrou</span><span class="num" style="font-weight:500">R$ 2.630,00</span></div>
+</div>
+</div>
+<div class="card">
+<p class="ttl">Limite disponível</p>
+<p class="num" style="margin:0;font-size:22px;font-weight:500">R$ 27.110,00</p>
+<div class="wtrk" style="margin-top:12px;height:5px"><div style="width:35%;background:var(--ink)"></div></div>
+<p class="num mut" style="margin:8px 0 0;font-size:11px">R$ 14.890,00 de R$ 42.000,00</p>
+<p class="ttl" style="margin:18px 0 4px">Próximas faturas</p>
+<div class="frow" style="border-top:.5px solid var(--border)"><span class="dot" style="background:var(--m3)"></span><span style="flex:1">C6 Mastercard</span><span class="num text-warning">vence em 3 dias</span></div>
+<div class="frow" style="border-top:.5px solid var(--border)"><span class="dot" style="background:var(--m1)"></span><span style="flex:1">Itaú Visa</span><span class="num mut">05/09</span></div>
+<div class="frow" style="border-top:.5px solid var(--border)"><span class="dot" style="background:var(--m2)"></span><span style="flex:1">Nubank Ultravioleta</span><span class="num mut">10/09</span></div>
+</div>
+</div>
+<div class="card">
+<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px">
+<p class="ttl" style="margin:0">Cobranças incomuns</p>
+<span class="mut" style="font-size:11px">Ver todas</span>
+</div>
+<div class="g g11">
+<div class="al bg-warning" style="border-color:transparent">
+<i class="ti ti-alert-triangle text-warning" style="font-size:17px;margin-top:1px"></i>
+<div style="flex:1"><p class="text-warning" style="margin:0;font-size:13px;font-weight:500">Pagamento abaixo do valor da fatura</p><p class="mut" style="margin:3px 0 0;font-size:12px">Maia · fatura de julho · juros do rotativo</p></div>
+</div>
+<div class="al">
+<i class="ti ti-copy" style="font-size:17px;color:var(--ink-secondary);margin-top:1px"></i>
+<div style="flex:1"><p style="margin:0;font-size:13px;font-weight:500">Possível cobrança duplicada</p><p class="mut" style="margin:3px 0 0;font-size:12px">Ana · SmartFit <span class="num">R$ 89,90</span> · 01/08 e 04/08</p></div>
+</div>
+</div>
+</div>
+<div class="g g21">
+<div class="card">
+<p class="ttl">Por membro</p>
+<table>
+<thead><tr><th style="width:34%">Membro</th><th>Contas</th><th>Comparação</th><th style="text-align:right">Gastos</th></tr></thead>
+<tbody>
+<tr><td><span style="display:flex;align-items:center;gap:9px"><span class="dot" style="background:var(--m1)"></span>Davi</span></td><td class="mut">2</td><td class="mut">Dentro da média</td><td class="num" style="text-align:right">R$ 3.980,00</td></tr>
+<tr><td><span style="display:flex;align-items:center;gap:9px"><span class="dot" style="background:var(--m2)"></span>Ana</span></td><td class="mut">2</td><td class="mut">Dentro da média</td><td class="num" style="text-align:right">R$ 2.870,00</td></tr>
+<tr><td><span style="display:flex;align-items:center;gap:9px"><span class="dot" style="background:var(--m3)"></span>Maia</span></td><td class="mut">2</td><td class="text-warning">40% acima da média dela</td><td class="num" style="text-align:right">R$ 1.600,00</td></tr>
+</tbody></table>
+</div>
+<div class="card">
+<p class="ttl">Conexões</p>
+<div class="frow" style="border-top:.5px solid var(--border)"><span class="dot" style="background:var(--m2)"></span><span style="flex:1">Itaú · Nubank</span><span class="num mut">há 2h</span></div>
+<div class="frow" style="border-top:.5px solid var(--border)"><span class="dot" style="background:var(--warning-text)"></span><span class="text-warning" style="flex:1">Nubank · acesso expira</span><span class="num text-warning">18 dias</span></div>
+<div class="frow" style="border-top:.5px solid var(--border)"><span class="dot" style="background:var(--danger-text)"></span><span class="text-danger" style="flex:1">C6 Bank · falhou</span><span class="num text-danger">há 9 dias</span></div>
+<p class="mut" style="margin:14px 0 0;font-size:11px;line-height:1.5">Dados da Maia são de 30/07.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="group">
+<p class="group-label">Web · Contas · Extrato</p>
+<div class="web">
+<div class="whdr">
+<span class="brand">meu·lar</span>
+<nav class="wnv"><a>Início</a><a class="on">Contas</a><a>Análises</a><a>Família</a></nav>
+<div class="hact">
+<i class="ti ti-chevron-left mut" style="font-size:16px"></i>
+<span class="pill">Agosto 2026<i class="ti ti-chevron-down" style="font-size:13px"></i></span>
+<i class="ti ti-chevron-right mut" style="font-size:16px"></i>
+<i class="ti ti-eye-off" style="font-size:17px;color:var(--ink-secondary)"></i>
+<span style="width:24px;height:24px;border-radius:50%;background:var(--m1);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:600">D</span>
+</div>
+</div>
+<div class="wscope">
+<span class="mut" style="font-size:11px;margin-right:4px">Membros</span>
+<span class="chip"><i class="ti ti-square-check" style="font-size:14px;color:var(--m1)"></i>Davi</span>
+<span class="chip"><i class="ti ti-square-check" style="font-size:14px;color:var(--m2)"></i>Ana</span>
+<span class="chip"><i class="ti ti-square-check" style="font-size:14px;color:var(--m3)"></i>Maia</span>
+<span class="chip off"><i class="ti ti-square" style="font-size:14px"></i>Léo</span>
+</div>
+<div class="wmain">
+<div class="card" style="padding:0">
+<div class="wseg" style="padding:14px 18px 0"><div>Saldos</div><div class="on">Extrato</div></div>
+<div class="tools">
+<span class="srch"><i class="ti ti-search" style="font-size:14px"></i>Buscar transação…</span>
+<span class="fp on">Todas</span><span class="fp">Sinalizadas</span><span class="fp">Parceladas</span><span class="fp">Entradas</span><span class="fp">Saídas</span>
+<span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-secondary);margin-left:6px"><i class="ti ti-download" style="font-size:15px"></i>Exportar</span>
+</div>
+<div class="sum">
+<span><span class="mut">Entradas</span> <span class="num">R$ 14.200,00</span></span>
+<span><span class="mut">Saídas</span> <span class="num">R$ 8.450,00</span></span>
+<span class="mut num">142 transações</span>
+</div>
+<table style="padding:0 18px">
+<thead><tr><th style="width:8%;padding-left:18px">Data</th><th style="width:32%">Descrição</th><th style="width:13%">Membro</th><th style="width:19%">Conta</th><th style="width:14%">Categoria</th><th class="r" style="width:14%;padding-right:18px">Valor</th></tr></thead>
+<tbody>
+<tr><td class="num mut" style="padding-left:18px">06/08</td><td>Mercado Pão de Açúcar</td><td><span style="display:flex;align-items:center;gap:8px"><span class="dot" style="background:var(--m2)"></span>Ana</span></td><td class="mut num">Nubank ••4471</td><td><span class="cat-pill">Mercado</span></td><td class="num r" style="padding-right:18px">−R$ 342,80</td></tr>
+<tr><td class="num mut" style="padding-left:18px">06/08</td><td>Pix — Carlos Menezes</td><td><span style="display:flex;align-items:center;gap:8px"><span class="dot" style="background:var(--m1)"></span>Davi</span></td><td class="mut num">Itaú ••7257</td><td><span class="cat-pill mut">Sem categoria</span></td><td class="num r" style="padding-right:18px">−R$ 180,00</td></tr>
+<tr><td class="num mut" style="padding-left:18px">05/08</td><td>Posto Shell</td><td><span style="display:flex;align-items:center;gap:8px"><span class="dot" style="background:var(--m1)"></span>Davi</span></td><td class="mut num">Itaú Visa</td><td><span class="cat-pill">Transporte</span></td><td class="num r" style="padding-right:18px">−R$ 285,00</td></tr>
+<tr style="background:var(--warning-bg)"><td class="num text-warning" style="padding-left:18px">04/08</td><td class="text-warning"><i class="ti ti-flag" style="font-size:13px;margin-right:6px"></i>SmartFit Academia</td><td><span class="text-warning" style="display:flex;align-items:center;gap:8px"><span class="dot" style="background:var(--m2)"></span>Ana</span></td><td class="num text-warning">Nubank Ultravioleta</td><td><span class="cat-pill">Saúde</span></td><td class="num r text-warning" style="padding-right:18px">−R$ 89,90</td></tr>
+<tr><td class="num mut" style="padding-left:18px">04/08</td><td>Salário — Tecnova Ltda</td><td><span style="display:flex;align-items:center;gap:8px"><span class="dot" style="background:var(--m1)"></span>Davi</span></td><td class="mut num">Itaú ••7257</td><td><span class="cat-pill">Salário</span></td><td class="num r" style="padding-right:18px">+R$ 9.200,00</td></tr>
+<tr><td class="num mut" style="padding-left:18px">03/08</td><td>Samsung <span class="num mut">13/21</span></td><td><span style="display:flex;align-items:center;gap:8px"><span class="dot" style="background:var(--m3)"></span>Maia</span></td><td class="mut num">C6 Mastercard</td><td><span class="cat-pill">Compras</span></td><td class="num r" style="padding-right:18px">−R$ 289,50</td></tr>
+<tr><td class="num mut" style="padding-left:18px">02/08</td><td>Enel Distribuição</td><td><span style="display:flex;align-items:center;gap:8px"><span class="dot" style="background:var(--m2)"></span>Ana</span></td><td class="mut num">Nubank ••4471</td><td><span class="cat-pill">Contas de casa</span></td><td class="num r" style="padding-right:18px">−R$ 412,60</td></tr>
+<tr><td class="num mut" style="padding-left:18px">01/08</td><td>Transferência para Maia <i class="ti ti-arrows-exchange" style="font-size:13px;margin-left:5px;color:var(--ink-muted)"></i></td><td><span style="display:flex;align-items:center;gap:8px"><span class="dot" style="background:var(--m1)"></span>Davi</span></td><td class="mut num">Itaú ••7257</td><td><span class="cat-pill mut">Interna</span></td><td class="num r mut" style="padding-right:18px">−R$ 600,00</td></tr>
+</tbody></table>
+</div>
+</div>
+</div>
+</div>
+
+<div class="group">
+<p class="group-label">Web · Análises · Gastos</p>
+<div class="web">
+<div class="whdr">
+<span class="brand">meu·lar</span>
+<nav class="wnv"><a>Início</a><a>Contas</a><a class="on">Análises</a><a>Família</a></nav>
+<div class="hact">
+<i class="ti ti-chevron-left mut" style="font-size:16px"></i>
+<span class="pill">Últimos 12 meses<i class="ti ti-chevron-down" style="font-size:13px"></i></span>
+<i class="ti ti-chevron-right mut" style="font-size:16px"></i>
+<i class="ti ti-eye-off" style="font-size:17px;color:var(--ink-secondary)"></i>
+<span style="width:24px;height:24px;border-radius:50%;background:var(--m1);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:600">D</span>
+</div>
+</div>
+<div class="wscope">
+<span class="mut" style="font-size:11px;margin-right:4px">Membros</span>
+<span class="chip"><i class="ti ti-square-check" style="font-size:14px;color:var(--m1)"></i>Davi</span>
+<span class="chip"><i class="ti ti-square-check" style="font-size:14px;color:var(--m2)"></i>Ana</span>
+<span class="chip"><i class="ti ti-square-check" style="font-size:14px;color:var(--m3)"></i>Maia</span>
+<span class="chip off"><i class="ti ti-square" style="font-size:14px"></i>Léo</span>
+</div>
+<div class="wmain">
+<div class="wseg"><div class="on">Gastos</div><div>Fluxo</div><div>Investimentos</div></div>
+<div class="g g21">
+<div class="card">
+<div style="display:flex;justify-content:space-between;align-items:flex-start">
+<div><p class="ttl" style="margin-bottom:4px">Gastos em agosto</p><p class="num" style="margin:0;font-size:26px;font-weight:500">R$ 8.450,00</p></div>
+<span class="num" style="font-size:12px;color:var(--ink-secondary)">−1,7% vs julho</span>
+</div>
+<div style="display:flex;align-items:flex-end;gap:9px;height:180px;margin-top:22px">
+<div class="bar"><div style="height:28px;background:var(--m3);border-radius:2px 2px 0 0"></div><div style="height:50px;background:var(--m2)"></div><div style="height:69px;background:var(--m1);border-radius:0 0 2px 2px"></div></div>
+<div class="bar"><div style="height:29px;background:var(--m3);border-radius:2px 2px 0 0"></div><div style="height:52px;background:var(--m2)"></div><div style="height:71px;background:var(--m1);border-radius:0 0 2px 2px"></div></div>
+<div class="bar"><div style="height:30px;background:var(--m3);border-radius:2px 2px 0 0"></div><div style="height:53px;background:var(--m2)"></div><div style="height:73px;background:var(--m1);border-radius:0 0 2px 2px"></div></div>
+<div class="bar"><div style="height:37px;background:var(--m3);border-radius:2px 2px 0 0"></div><div style="height:62px;background:var(--m2)"></div><div style="height:81px;background:var(--m1);border-radius:0 0 2px 2px"></div></div>
+<div class="bar"><div style="height:25px;background:var(--m3);border-radius:2px 2px 0 0"></div><div style="height:46px;background:var(--m2)"></div><div style="height:64px;background:var(--m1);border-radius:0 0 2px 2px"></div></div>
+<div class="bar"><div style="height:27px;background:var(--m3);border-radius:2px 2px 0 0"></div><div style="height:48px;background:var(--m2)"></div><div style="height:66px;background:var(--m1);border-radius:0 0 2px 2px"></div></div>
+<div class="bar"><div style="height:28px;background:var(--m3);border-radius:2px 2px 0 0"></div><div style="height:50px;background:var(--m2)"></div><div style="height:70px;background:var(--m1);border-radius:0 0 2px 2px"></div></div>
+<div class="bar"><div style="height:29px;background:var(--m3);border-radius:2px 2px 0 0"></div><div style="height:52px;background:var(--m2)"></div><div style="height:72px;background:var(--m1);border-radius:0 0 2px 2px"></div></div>
+<div class="bar"><div style="height:29px;background:var(--m3);border-radius:2px 2px 0 0"></div><div style="height:51px;background:var(--m2)"></div><div style="height:71px;background:var(--m1);border-radius:0 0 2px 2px"></div></div>
+<div class="bar"><div style="height:30px;background:var(--m3);border-radius:2px 2px 0 0"></div><div style="height:53px;background:var(--m2)"></div><div style="height:73px;background:var(--m1);border-radius:0 0 2px 2px"></div></div>
+<div class="bar"><div style="height:31px;background:var(--m3);border-radius:2px 2px 0 0"></div><div style="height:55px;background:var(--m2)"></div><div style="height:76px;background:var(--m1);border-radius:0 0 2px 2px"></div></div>
+<div class="bar"><div style="height:30px;background:var(--m3);border-radius:2px 2px 0 0"></div><div style="height:54px;background:var(--m2)"></div><div style="height:75px;background:var(--m1);border-radius:0 0 2px 2px"></div></div>
+</div>
+<div style="display:flex;gap:9px;margin-top:8px"><span class="mn">set</span><span class="mn">out</span><span class="mn">nov</span><span class="mn">dez</span><span class="mn">jan</span><span class="mn">fev</span><span class="mn">mar</span><span class="mn">abr</span><span class="mn">mai</span><span class="mn">jun</span><span class="mn">jul</span><span class="mn">ago</span></div>
+<p class="mut" style="margin:12px 0 0;font-size:11px">Dezembro reflete gasto sazonal do 13º · agosto em andamento (8 de 31 dias)</p>
+</div>
+<div class="card">
+<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px"><p class="ttl" style="margin:0">Por categoria</p><span class="mut" style="font-size:11px">agosto</span></div>
+<div class="crow"><span>Mercado</span><div class="track"><div style="width:100%"></div></div><span class="num" style="width:66px;text-align:right;font-size:12px">R$ 2.180</span></div>
+<div class="crow"><span>Restaurantes</span><div class="track"><div style="width:70%"></div></div><span class="num" style="width:66px;text-align:right;font-size:12px">R$ 1.520</span></div>
+<div class="crow"><span>Transporte</span><div class="track"><div style="width:65%"></div></div><span class="num" style="width:66px;text-align:right;font-size:12px">R$ 1.420</span></div>
+<div class="crow"><span>Contas de casa</span><div class="track"><div style="width:57%"></div></div><span class="num" style="width:66px;text-align:right;font-size:12px">R$ 1.240</span></div>
+<div class="crow"><span>Compras</span><div class="track"><div style="width:41%"></div></div><span class="num" style="width:66px;text-align:right;font-size:12px">R$ 890</span></div>
+<div class="crow"><span>Saúde</span><div class="track"><div style="width:28%"></div></div><span class="num" style="width:66px;text-align:right;font-size:12px">R$ 620</span></div>
+<div class="crow"><span>Educação</span><div class="track"><div style="width:17%"></div></div><span class="num" style="width:66px;text-align:right;font-size:12px">R$ 380</span></div>
+<div class="crow" style="margin-bottom:0"><span>Lazer</span><div class="track"><div style="width:9%"></div></div><span class="num" style="width:66px;text-align:right;font-size:12px">R$ 200</span></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+</body>
+</html>

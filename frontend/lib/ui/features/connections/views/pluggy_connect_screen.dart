@@ -28,7 +28,9 @@ class PluggyConnectScreen extends StatelessWidget {
         },
         onError: (error) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Connection failed. Please try again.')),
+            const SnackBar(
+              content: Text('Connection failed. Please try again.'),
+            ),
           );
           Navigator.of(context).pop();
         },

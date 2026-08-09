@@ -1,73 +1,108 @@
 import 'package:flutter/material.dart';
 
-/// Brand seed — kept as `Colors.teal`, refined into a full ColorScheme in
-/// [AppTheme]. Negative/error semantics deliberately reuse [ColorScheme.error]
-/// and info semantics reuse [ColorScheme.tertiary] rather than adding more
-/// hues — see PLAN.md's design-system note: Restrained is the floor.
-const Color appSeedColor = Color(0xFF009688);
+/// Flat design-system palette per `design.md`, corrected against
+/// `handoff-app-financas-familiar.md` (the authoritative written handoff —
+/// supersedes the raw `web-mockups.html` extraction this was first drafted
+/// from). Replaces the earlier `Colors.teal` Material 3 seed — this is a
+/// deliberately mostly-monochrome palette, not a seeded scheme, so every role
+/// is spelled out explicitly rather than derived. Light tokens only — dark
+/// equivalents live inline in [AppTheme] (dark-mode *application* across
+/// every widget is still an open item per `design.md`, not just a token gap).
+class AppPalette {
+  const AppPalette._();
 
-/// Success/warning tokens Material's [ColorScheme] has no role for.
-/// Tone-paired the same way M3 pairs error/onError/errorContainer/onErrorContainer.
+  // Surfaces
+  static const Color surfacePage = Color(0xFFF7F8F6);
+  static const Color surfaceCard = Color(0xFFFFFFFF);
+  static const Color surfaceFill = Color(0xFFEDEFEC);
+
+  // Borders (hairline only — this design has no elevation/shadow)
+  static const Color border = Color(0xFFE2E5E0);
+  static const Color borderStrong = Color(0xFFCBCFC8);
+
+  // Ink (text)
+  static const Color ink = Color(0xFF191C19);
+  static const Color inkSecondary = Color(0xFF565B55);
+  static const Color inkMuted = Color(0xFF878D86);
+
+  // Semantic state — warning/danger only. There is deliberately no
+  // success/positive token: income and a healthy month are never green,
+  // per the handoff's explicit "no positive/success color" principle.
+  static const Color warningText = Color(0xFF8A5B14);
+  static const Color warningBg = Color(0xFFFCF2DF);
+  static const Color dangerText = Color(0xFFA63229);
+  static const Color dangerBg = Color(0xFFFBEAE7);
+}
+
+/// Member-identity accent colors — one per household member, assigned by
+/// join order via [AppMemberColors.forIndex]. These are identity colors, not
+/// a general categorical chart palette (see [AppChartColors] for that).
+///
+/// Six is the ceiling (handoff §2): the 7th+ member folds into [outros] for
+/// charting — they still appear individually in lists, just without a unique
+/// chart color.
+class AppMemberColors {
+  const AppMemberColors._();
+
+  static const List<Color> accents = [
+    Color(0xFF6E63D2), // 1 — Roxo
+    Color(0xFF0E8A86), // 2 — Teal
+    Color(0xFFCE5528), // 3 — Laranja
+    Color(0xFFB2497F), // 4 — Magenta
+    Color(0xFF2F76B8), // 5 — Azul
+    Color(0xFF8A7A1C), // 6 — Ocre
+  ];
+
+  static const Color outros = Color(0xFF9AA098);
+
+  static Color forIndex(int index) =>
+      index < accents.length ? accents[index] : outros;
+}
+
+/// Warning tokens Material's [ColorScheme] has no role for. Danger reuses
+/// [ColorScheme.error]/[ColorScheme.errorContainer] directly (see
+/// [AppTheme]) rather than a second bespoke pair here.
+///
+/// There is intentionally no `success`/`onSuccess`/`successContainer` field —
+/// removed per the handoff's "no positive/success color at all" rule. If a
+/// call site needs a "this is fine" signal, that's `StatusTone.neutral` (plain
+/// ink), not a color — color means *person* or *problem*, never approval.
 @immutable
 class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
   const AppSemanticColors({
-    required this.success,
-    required this.onSuccess,
-    required this.successContainer,
-    required this.onSuccessContainer,
     required this.warning,
     required this.onWarning,
     required this.warningContainer,
     required this.onWarningContainer,
   });
 
-  final Color success;
-  final Color onSuccess;
-  final Color successContainer;
-  final Color onSuccessContainer;
   final Color warning;
   final Color onWarning;
   final Color warningContainer;
   final Color onWarningContainer;
 
   static const AppSemanticColors light = AppSemanticColors(
-    success: Color(0xFF2E7D53),
-    onSuccess: Color(0xFFFFFFFF),
-    successContainer: Color(0xFFC8F0D9),
-    onSuccessContainer: Color(0xFF0B3D22),
-    warning: Color(0xFF8A5300),
+    warning: AppPalette.warningText,
     onWarning: Color(0xFFFFFFFF),
-    warningContainer: Color(0xFFFFDEA6),
-    onWarningContainer: Color(0xFF2B1700),
+    warningContainer: AppPalette.warningBg,
+    onWarningContainer: AppPalette.warningText,
   );
 
   static const AppSemanticColors dark = AppSemanticColors(
-    success: Color(0xFF8FD9AE),
-    onSuccess: Color(0xFF0B3D22),
-    successContainer: Color(0xFF1E5B3B),
-    onSuccessContainer: Color(0xFFC8F0D9),
-    warning: Color(0xFFFFB74D),
-    onWarning: Color(0xFF452B00),
-    warningContainer: Color(0xFF663D00),
-    onWarningContainer: Color(0xFFFFDEA6),
+    warning: Color(0xFFE0B45C),
+    onWarning: Color(0xFF302716),
+    warningContainer: Color(0xFF302716),
+    onWarningContainer: Color(0xFFE0B45C),
   );
 
   @override
   AppSemanticColors copyWith({
-    Color? success,
-    Color? onSuccess,
-    Color? successContainer,
-    Color? onSuccessContainer,
     Color? warning,
     Color? onWarning,
     Color? warningContainer,
     Color? onWarningContainer,
   }) {
     return AppSemanticColors(
-      success: success ?? this.success,
-      onSuccess: onSuccess ?? this.onSuccess,
-      successContainer: successContainer ?? this.successContainer,
-      onSuccessContainer: onSuccessContainer ?? this.onSuccessContainer,
       warning: warning ?? this.warning,
       onWarning: onWarning ?? this.onWarning,
       warningContainer: warningContainer ?? this.warningContainer,
@@ -79,10 +114,6 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
   AppSemanticColors lerp(ThemeExtension<AppSemanticColors>? other, double t) {
     if (other is! AppSemanticColors) return this;
     return AppSemanticColors(
-      success: Color.lerp(success, other.success, t)!,
-      onSuccess: Color.lerp(onSuccess, other.onSuccess, t)!,
-      successContainer: Color.lerp(successContainer, other.successContainer, t)!,
-      onSuccessContainer: Color.lerp(onSuccessContainer, other.onSuccessContainer, t)!,
       warning: Color.lerp(warning, other.warning, t)!,
       onWarning: Color.lerp(onWarning, other.onWarning, t)!,
       warningContainer: Color.lerp(warningContainer, other.warningContainer, t)!,

@@ -115,7 +115,14 @@ async def invite_member(
         db.flush()
 
     redirect_to = f"{settings.frontend_base_url}/?invite={invite.id}"
-    await invite_sender.invite_user_by_email(payload.email, redirect_to)
+    try:
+        await invite_sender.invite_user_by_email(payload.email, redirect_to)
+    except Exception as exc:  # noqa: BLE001 - never leak raw HTTP/SDK errors
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Could not send the invite email right now. Please try again shortly.",
+        ) from exc
 
     record_audit_event(
         db,

@@ -2,7 +2,10 @@ import '../../../../data/models/extended_finance.dart';
 import '../../../core/formatting/money.dart';
 
 class BalanceHistoryChartPoint {
-  const BalanceHistoryChartPoint({required this.dateLabel, required this.balance});
+  const BalanceHistoryChartPoint({
+    required this.dateLabel,
+    required this.balance,
+  });
 
   final String dateLabel;
   final double balance;

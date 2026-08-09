@@ -73,7 +73,8 @@ class _LoginViewState extends State<LoginView> {
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
                         decoration: const InputDecoration(labelText: 'Email'),
-                        validator: (value) => (value == null || !value.contains('@'))
+                        validator: (value) =>
+                            (value == null || !value.contains('@'))
                             ? 'Enter a valid email'
                             : null,
                       ),

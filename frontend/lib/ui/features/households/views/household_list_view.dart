@@ -47,8 +47,9 @@ class _HouseholdListViewState extends State<HouseholdListView> {
             controller: controller,
             autofocus: true,
             decoration: const InputDecoration(labelText: 'Household name'),
-            validator: (value) =>
-                (value == null || value.trim().isEmpty) ? 'Enter a household name' : null,
+            validator: (value) => (value == null || value.trim().isEmpty)
+                ? 'Enter a household name'
+                : null,
           ),
         ),
         actions: [

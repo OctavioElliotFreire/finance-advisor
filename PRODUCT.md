@@ -24,11 +24,11 @@ Household members log in via Supabase Auth, connect one or more real bank instit
 
 ## Capabilities and Constraints
 
-Multi-tenant household isolation is a hard constraint (every screen and every LLM prompt is scoped to the current household's access grants). Currency is BRL. No native iOS/Android design divergence — this is one Material Design product, not an adaptive per-OS one; "adaptive" work later would still start from this same Material system. Assistant/anomaly-explain features depend on an LLM provider (Gemini or Anthropic) and degrade to a clear error state when no API key is configured.
+Multi-tenant household isolation is a hard constraint (every screen and every LLM prompt is scoped to the current household's access grants). Currency is BRL. No native iOS/Android design divergence — this is one Material Design product, not an adaptive per-OS one; "adaptive" work later would still start from this same Material system. Assistant/anomaly-explain features depend on an LLM provider (Gemini or Anthropic) and degrade to a clear error state when no API key is configured. UI language is moving to pt-BR (was English/locale-neutral) as part of the redesign in `design.md` — direct string/formatter swap, no multi-locale framework. **No success/positive color exists in the design system** — income and a healthy month are never rendered in green; color is reserved for things that need attention (warning/danger), never for approval. **Privacy is enforced via consent lifecycle, not a UI-only hide toggle** — an account holder can disconnect their own accounts at any time; hiding amounts behind an eye-off icon was considered and explicitly rejected (API returns everything regardless, so UI-only hiding would be theatre, not real privacy).
 
 ## Brand Commitments
 
-None yet — no existing logo, marketing, or voice guide. Product name "Family Finance" and a teal (`Colors.teal`) accent are the only carried-over decisions; both are confirmed to keep, not open for reinterpretation in this pass.
+No existing logo, marketing, or voice guide. Product name "Family Finance" stays. The teal (`Colors.teal`) accent is **no longer a fixed commitment** — a full visual redesign is underway (see `design.md`), driven by a real HTML/CSS mockup (`web-mockups.html`), replacing the teal seed with a flat, mostly-monochrome palette (member-identity accents + warning/danger semantic colors only). `design.md` is the current source of truth for palette/typography/spacing/shape, not this file's prior teal commitment. The mockup's "meu·lar" brand mark is a placeholder from the source design exercise — not adopted; product name is unaffected by the redesign.
 
 ## Evidence on Hand
 
@@ -40,7 +40,14 @@ No customer testimonials, case studies, or marketing assets exist — this is an
 - Trustworthy and precise over playful — this is where a family checks real account balances; legibility and correctness read louder than personality.
 - Consistency over surprise across screens (Operate-mode default) — the same status/severity/loading/empty-state vocabulary everywhere, not per-screen invention.
 - Real financial data, including negative/expense signage, must never be ambiguous — color and text both carry meaning, not color alone.
+- **Zero configuration** — no budgets, no manually-set limits. Every number is derived from connected account data; nothing requires setup, nothing goes stale because a target wasn't updated (source: `handoff-app-financas-familiar.md`, folded into `design.md`).
+- **One question per screen** — Início answers "are we okay this month?" and nothing on that screen competes with it.
+- **People before accounts** — hierarchy is Família → Membro → Conta → Transação, not Household → Account → Transaction with members as an afterthought.
+- **Quiet by default, loud on exception** — near-monochrome; color means *person* or *problem*, never decoration.
+- **Two taps to anything** — four destinations (Início/Contas/Análises/Família), no nested menus.
+- **Consequence worth preserving**: without budgets, the app never tells anyone they did something wrong — it reports, compares people to their own history, and flags anomalies, never a red "over budget" banner. Where one person is looking at another person's money, that's a meaningfully different relationship than a judgmental app, and probably the reason it stays installed.
 
 ## Accessibility & Inclusion
 
-Status/severity signaling must not rely on color alone (colorblind-safe) — confirmed as a requirement carried into the `StatusChip`/`SeverityChip` design (container-color + text, not just a colored dot).
+- Status/severity signaling must not rely on color alone (colorblind-safe) — confirmed as a requirement carried into the `StatusChip`/`SeverityChip` design (container-color + text, not just a colored dot).
+- Segmented controls are capped at 3 segments — a 4th truncates at accessibility text sizes (verified during the design handoff; see `design.md`'s Component Patterns). Any new segmented control must respect this cap, not just the ones already speced.

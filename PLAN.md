@@ -819,14 +819,18 @@ Example permissions:
 
 Permissions must be enforced by FastAPI, not only hidden in Flutter.
 
-"Invite users" (added 2026-07-31) is implemented as `POST
-/v1/households/{id}/members`, owner-only, by email — **existing users
-only**: if the email has no `app_users` account yet (no prior Supabase
-login), the invite 404s with a message asking them to sign up first, rather
-than creating a pending invite or sending an email itself. This sidesteps
-Supabase's free-tier email-send rate limit (see `CLAUDE.md`) entirely for
-this feature. Inviting someone with no account yet, changing a member's
-role after invite, and removing a member are all explicitly deferred.
+"Invite users" (added 2026-07-31, extended since) is implemented as `POST
+/v1/households/{id}/members`, owner-only, by email. If the email already
+has an `app_users` account, it's added directly. If not, it now creates a
+`HouseholdInvite` row and sends an actual invite email via
+`invite_sender.invite_user_by_email` (`backend/app/api/household_members.py`)
+— the recipient accepts through `POST /v1/invites/{token}/accept`
+(`backend/app/api/invites.py`) and the Flutter `/accept-invite` route
+(`frontend/lib/ui/features/invites/views/accept_invite_view.dart`). The
+"existing users only, 404 otherwise" behavior described in earlier drafts of
+this doc no longer matches the code. Changing a member's role after invite
+and removing a member are still explicitly deferred (no such endpoints
+exist).
 
 ---
 
@@ -1675,6 +1679,67 @@ against a real target):
    note) confirm connectivity immediately after.
 9. Keep the Supabase Postgres instance paused (not deleted) for a rollback
    window before decommissioning it.
+
+### Milestone 12 — Design System + Mockup-Driven Redesign (in progress)
+
+* Shipped a first Flutter design system (2026-08-07, commit `6ddbca3`):
+  theme tokens (`frontend/lib/core/theme/` — colors, typography, spacing,
+  shape, chart palette) and shared widgets (`frontend/lib/ui/core/widgets/`
+  — `StatusChip`/`SeverityChip`, `SummaryCard`, `SectionHeader`,
+  `AppEmptyState`, `LoadingState`), applied across all existing screens.
+  Added `PRODUCT.md` (product-schema doc for design work) alongside it.
+* Started a full visual + IA redesign (2026-08-09), driven by a real
+  HTML/CSS/SVG mockup (`web-mockups.html`, repo root) rather than the
+  teal Material 3 look above. `design.md` (repo root) is the running spec:
+  a flat palette, new chart styles (horizontal-bar category breakdown,
+  combo bar+line cash flow), and a 4-tab navigation restructure
+  (Início/Contas/Análises/Família) replacing today's
+  Dashboard/Finances/Anomalies/Connections/Households routes. Also
+  adopting pt-BR as the app's UI language (direct string/formatter swap,
+  no l10n framework). A first theme-token code pass was started against
+  this mockup-only extraction (`app_colors.dart`/`app_typography.dart`/
+  `app_theme.dart`, plus a `google_fonts` dependency).
+* A second, far more authoritative source arrived the same day:
+  `handoff-app-financas-familiar.md` (repo root), a full written design
+  handoff. It **corrected** several mockup-only guesses already in
+  `design.md` and in the theme-token code above: the real UI/numeral
+  typefaces are Instrument Sans/Geist Mono, not Inter/JetBrains Mono; the
+  radius scale is 5-tier (2/8/12/16/20), not 3-tier; member identity
+  colors are 6 + an "Outros" fallback, not 4; and there is **no
+  success/positive color at all** (income renders `ink-muted`, never
+  green — the theme code's green-income mapping was wrong). It also
+  resolved prior Open Questions (per-member monthly stacking confirmed,
+  dark palette now given, Investimentos tab now specified) and added
+  net-new specs with no prior equivalent: a global period/member scope
+  model, a data model section (internal-transfer netting, income
+  classification, fatura/parcela/Pix/13º-salário rules), and a full
+  alerts spec (6 named anomaly types, "Rotativo" — payment below the
+  fatura — called out as the single highest-value alert in the Brazilian
+  market). The theme-token code pass above is being corrected against
+  this handoff doc before implementation continues, not built on top of
+  as-is. Phased implementation plan lives in the assistant's plan-mode
+  scratch file, not in this doc; `design.md`'s Changelog is the durable
+  record of what's been decided and corrected.
+* **Phase 1 implemented (2026-08-09)**: theme tokens corrected to match the
+  handoff (Instrument Sans/Geist Mono via `google_fonts`, 5-tier radius,
+  6+Outros member colors, no success color anywhere — `StatusTone.success`
+  removed outright). Nav restructured to the 4-tab shell via
+  `StatefulShellRoute` (`frontend/lib/app/household_shell.dart`,
+  `router.dart`): new `home`/`accounts`/`analytics`/`family` feature
+  directories, reusing existing repositories/view-models with **no backend
+  changes** — `DashboardView` becomes the Início tab as-is; Contas/Análises
+  are new segmented-control screens over the same dashboard/finance data;
+  Família is a new grouped read-view over members+connections, with
+  mutation flows (invite, connect, edit access) still routed to the
+  existing standalone screens rather than rebuilt inline. 9 new shared/
+  chart widgets added per `design.md`'s Component Patterns/Chart Style
+  Guide. `flutter analyze` clean, `flutter test` 116/116 (99 prior + 17
+  new). **Known gaps, not yet done**: no manual browser QA was run this
+  session (automated tests aren't a substitute — see `CLAUDE.md`'s
+  Verification Policy); web's top-bar nav (vs. the bottom-nav shell built
+  here) isn't implemented; Início/Contas real-spec strings, per-member
+  grouping, and the global period/member scope controls are still
+  Phase 2+ work per the phased plan.
 
 ---
 

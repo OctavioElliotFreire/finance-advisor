@@ -39,9 +39,14 @@ class SummaryCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.xs),
             Text(
               value,
-              style: AppTypography.amountLarge.copyWith(color: Theme.of(context).colorScheme.onSurface),
+              style: AppTypography.amountLarge.copyWith(
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
             ),
-            if (child != null) ...[const SizedBox(height: AppSpacing.lg), child!],
+            if (child != null) ...[
+              const SizedBox(height: AppSpacing.lg),
+              child!,
+            ],
           ],
         ),
       ),

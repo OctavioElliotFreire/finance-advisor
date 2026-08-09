@@ -16,14 +16,16 @@ milestone history.
 finance-advisor/
 ├── backend/              # FastAPI + SQLAlchemy + Alembic + Pluggy sync worker
 │   ├── app/
-│   │   ├── api/          # Route handlers (households, connections, dashboard,
-│   │   │                 # extended finance, anomalies)
+│   │   ├── api/          # Route handlers (households, members, invites, connections,
+│   │   │                 # dashboard, extended finance, anomalies, assistant,
+│   │   │                 # audit, alerts, export, me)
 │   │   ├── auth/          # Supabase token verification, household authorization
 │   │   ├── database/      # SQLAlchemy session/engine
 │   │   ├── llm/           # LLM provider abstraction + redaction (anomaly explain)
 │   │   ├── models/        # SQLAlchemy models
 │   │   ├── schemas/       # Pydantic response/request schemas
-│   │   ├── services/      # Business logic (deterministic anomaly rules)
+│   │   ├── services/      # Business logic (anomaly rules, audit, household
+│   │   │                 # deletion/export, rate limiting)
 │   │   ├── sync/          # Pluggy client + Postgres upsert/normalization
 │   │   └── workers/       # Sync worker (polls queued sync jobs)
 │   ├── migrations/        # Alembic migrations
@@ -33,8 +35,8 @@ finance-advisor/
 │       ├── app/           # Routing
 │       ├── core/          # Config, formatting, shared widgets
 │       ├── data/          # Models, repositories, API service
-│       └── ui/features/   # auth, households, connections, dashboard,
-│                          # finances, anomalies
+│       └── ui/features/   # auth, households, invites, connections, dashboard,
+│                          # finances, anomalies, assistant
 ├── infrastructure/
 ├── docker-compose.yml     # Local Postgres for development/testing
 └── PLAN.md

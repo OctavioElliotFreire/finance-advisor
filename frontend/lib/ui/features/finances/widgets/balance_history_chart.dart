@@ -23,7 +23,9 @@ class BalanceHistoryChart extends StatelessWidget {
     final minBalance = balances.reduce((a, b) => a < b ? a : b);
     final maxBalance = balances.reduce((a, b) => a > b ? a : b);
     final range = maxBalance - minBalance;
-    final padding = range > 0 ? range * 0.15 : (maxBalance.abs() * 0.1).clamp(1.0, double.infinity);
+    final padding = range > 0
+        ? range * 0.15
+        : (maxBalance.abs() * 0.1).clamp(1.0, double.infinity);
     final maxX = points.length <= 1 ? 1.0 : (points.length - 1).toDouble();
     final yInterval = ((maxBalance + padding) - (minBalance - padding)) / 4;
     final labelStep = (points.length / 5).ceil().clamp(1, points.length);
@@ -90,7 +92,9 @@ class BalanceHistoryChart extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Theme.of(context).colorScheme.primary.withValues(alpha: 0.24),
+                    Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.24),
                     Theme.of(context).colorScheme.primary.withValues(alpha: 0),
                   ],
                 ),

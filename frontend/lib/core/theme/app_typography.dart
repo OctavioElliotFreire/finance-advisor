@@ -1,37 +1,59 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-/// Typography tokens for an Operate-mode surface: one family (Roboto, the
-/// Flutter engine default — declared explicitly rather than left implicit),
-/// a tight ~1.11-1.17 scale ratio (denser than a marketing scale), and three
-/// monetary styles outside the M3 roles for tabular-figure amount rendering.
+/// Typography tokens per `design.md`'s handoff-driven spec
+/// (`handoff-app-financas-familiar.md` §2): UI text is **Instrument Sans**
+/// (400/500), numerals are a monospace tabular face — the doc's first choice
+/// is **Geist Mono** with **IBM Plex Mono** as the named fallback. Geist Mono
+/// isn't in the pinned `google_fonts` 6.3.3 catalog (checked directly against
+/// the package source — no `geistMono` entry exists), so this uses the named
+/// fallback, not a substitution of convenience.
+///
+/// The type scale below is the handoff's real explicit scale — NOT the
+/// Material default scale used before (`displayLarge` 40px etc). The handoff
+/// gives only 5 non-money roles (Screen title 15/20, Body 13/18, Label 12/16,
+/// Caption 11/15, Nav 10/13) and is explicit that "no sizes between 13 and
+/// 17" should exist. Flutter's [TextTheme] has 15 slots; this collapses
+/// Material's upper roles (display*/headlineLarge/headlineMedium/titleLarge)
+/// flat onto "Screen title" (nothing in this app needs anything bigger — a
+/// deliberate choice, not an oversight), and fills titleSmall/labelLarge at
+/// Body size + weight 500 so a "title" reads as emphasized without
+/// introducing a forbidden in-between size.
 class AppTypography {
   const AppTypography._();
 
-  static const String fontFamily = 'Roboto';
+  static String get fontFamily => GoogleFonts.instrumentSans().fontFamily!;
 
   static TextTheme buildTextTheme(ColorScheme colorScheme) {
+    // Named per the handoff's roles, mapped onto Material's TextTheme slots.
+    final screenTitle = _sans(15, 20, FontWeight.w500, colorScheme.onSurface);
+    final body = _sans(13, 18, FontWeight.w400, colorScheme.onSurface);
+    final bodyEmphasis = _sans(13, 18, FontWeight.w500, colorScheme.onSurface);
+    final label = _sans(12, 16, FontWeight.w400, colorScheme.onSurfaceVariant);
+    final caption = _sans(11, 15, FontWeight.w400, colorScheme.onSurfaceVariant);
+    final nav = _sans(10, 13, FontWeight.w400, colorScheme.onSurfaceVariant);
+
     return TextTheme(
-      displayLarge: _style(40, 48, FontWeight.w400, colorScheme.onSurface),
-      displayMedium: _style(34, 42, FontWeight.w400, colorScheme.onSurface),
-      displaySmall: _style(29, 36, FontWeight.w400, colorScheme.onSurface),
-      headlineLarge: _style(26, 32, FontWeight.w600, colorScheme.onSurface),
-      headlineMedium: _style(23, 29, FontWeight.w600, colorScheme.onSurface),
-      headlineSmall: _style(20, 26, FontWeight.w600, colorScheme.onSurface),
-      titleLarge: _style(18, 24, FontWeight.w600, colorScheme.onSurface),
-      titleMedium: _style(16, 22, FontWeight.w600, colorScheme.onSurface),
-      titleSmall: _style(14, 20, FontWeight.w600, colorScheme.onSurface),
-      bodyLarge: _style(16, 24, FontWeight.w400, colorScheme.onSurface),
-      bodyMedium: _style(14, 20, FontWeight.w400, colorScheme.onSurface),
-      bodySmall: _style(12, 16, FontWeight.w400, colorScheme.onSurfaceVariant),
-      labelLarge: _style(14, 20, FontWeight.w500, colorScheme.onSurface),
-      labelMedium: _style(12, 16, FontWeight.w500, colorScheme.onSurfaceVariant),
-      labelSmall: _style(11, 16, FontWeight.w500, colorScheme.onSurfaceVariant),
+      displayLarge: screenTitle,
+      displayMedium: screenTitle,
+      displaySmall: screenTitle,
+      headlineLarge: screenTitle,
+      headlineMedium: screenTitle,
+      headlineSmall: screenTitle,
+      titleLarge: screenTitle,
+      titleMedium: screenTitle,
+      titleSmall: bodyEmphasis,
+      bodyLarge: body,
+      bodyMedium: body,
+      bodySmall: caption,
+      labelLarge: bodyEmphasis,
+      labelMedium: label,
+      labelSmall: nav,
     );
   }
 
-  static TextStyle _style(double size, double height, FontWeight weight, Color color) {
-    return TextStyle(
-      fontFamily: fontFamily,
+  static TextStyle _sans(double size, double height, FontWeight weight, Color color) {
+    return GoogleFonts.instrumentSans(
       fontSize: size,
       height: height / size,
       fontWeight: weight,
@@ -39,31 +61,21 @@ class AppTypography {
     );
   }
 
-  /// Dashboard hero total-balance figure.
-  static const TextStyle amountLarge = TextStyle(
-    fontFamily: fontFamily,
-    fontSize: 28,
-    height: 1.15,
-    fontWeight: FontWeight.w700,
-    letterSpacing: -0.5,
-    fontFeatures: [FontFeature.tabularFigures()],
-  );
+  static TextStyle _mono(double size, double height, FontWeight weight) {
+    return GoogleFonts.ibmPlexMono(
+      fontSize: size,
+      height: height / size,
+      fontWeight: weight,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+  }
 
-  /// Per-account balances, card-level totals.
-  static const TextStyle amountMedium = TextStyle(
-    fontFamily: fontFamily,
-    fontSize: 18,
-    height: 1.2,
-    fontWeight: FontWeight.w700,
-    fontFeatures: [FontFeature.tabularFigures()],
-  );
+  /// Money hero — dashboard/Início hero total.
+  static TextStyle get amountLarge => _mono(30, 34, FontWeight.w500);
 
-  /// Transaction-list trailing amount, chart tooltips.
-  static const TextStyle amountSmall = TextStyle(
-    fontFamily: fontFamily,
-    fontSize: 14,
-    height: 1.3,
-    fontWeight: FontWeight.w600,
-    fontFeatures: [FontFeature.tabularFigures()],
-  );
+  /// Money medium — per-account balances, card-level totals.
+  static TextStyle get amountMedium => _mono(17, 22, FontWeight.w500);
+
+  /// Money inline — transaction-list trailing amount, chart tooltips.
+  static TextStyle get amountSmall => _mono(13, 18, FontWeight.w400);
 }

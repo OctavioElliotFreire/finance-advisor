@@ -3,9 +3,13 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 
 /// Semantic tone for a status/severity signal. Maps onto [AppSemanticColors]
-/// (success/warning) or the base [ColorScheme] (negative -> error, info ->
-/// tertiary) rather than adding more hues — see PLAN.md's design-system note.
-enum StatusTone { neutral, info, success, warning, negative }
+/// (warning) or the base [ColorScheme] (negative -> error, info -> tertiary)
+/// rather than adding more hues — see PLAN.md's design-system note.
+///
+/// There is deliberately no `success` tone — per `design.md`'s handoff-driven
+/// correction, there is no positive/success color anywhere in this design.
+/// A "this is fine" status is [neutral] (plain ink), not colored green.
+enum StatusTone { neutral, info, warning, negative }
 
 /// Colorblind-safe status chip: container-color background + on-container
 /// text, with a small color dot as secondary reinforcement (not the only
@@ -23,7 +27,7 @@ class StatusChip extends StatelessWidget {
       return const StatusChip(label: 'Never synced', tone: StatusTone.neutral);
     }
     final (tone, label) = switch (status) {
-      'completed' => (StatusTone.success, 'Synced'),
+      'completed' => (StatusTone.neutral, 'Synced'),
       'partially_completed' => (StatusTone.warning, 'Partially synced'),
       'failed' => (StatusTone.negative, 'Sync failed'),
       'running' => (StatusTone.info, 'Syncing…'),
@@ -42,7 +46,7 @@ class StatusChip extends StatelessWidget {
   static StatusChip connectionStatus(String status) {
     final (tone, label) = switch (status.toUpperCase()) {
       'PENDING' => (StatusTone.neutral, 'Pending first sync'),
-      'UPDATED' => (StatusTone.success, 'Active'),
+      'UPDATED' => (StatusTone.neutral, 'Active'),
       'UPDATING' => (StatusTone.info, 'Updating…'),
       'OUTDATED' => (StatusTone.warning, 'Outdated'),
       'WAITING_USER_INPUT' => (StatusTone.warning, 'Needs attention'),
@@ -64,18 +68,21 @@ class StatusChip extends StatelessWidget {
         colorScheme.onSurfaceVariant,
         colorScheme.onSurfaceVariant,
       ),
-      StatusTone.info => (colorScheme.tertiaryContainer, colorScheme.onTertiaryContainer, colorScheme.tertiary),
-      StatusTone.success => (
-        semanticColors.successContainer,
-        semanticColors.onSuccessContainer,
-        semanticColors.success,
+      StatusTone.info => (
+        colorScheme.tertiaryContainer,
+        colorScheme.onTertiaryContainer,
+        colorScheme.tertiary,
       ),
       StatusTone.warning => (
         semanticColors.warningContainer,
         semanticColors.onWarningContainer,
         semanticColors.warning,
       ),
-      StatusTone.negative => (colorScheme.errorContainer, colorScheme.onErrorContainer, colorScheme.error),
+      StatusTone.negative => (
+        colorScheme.errorContainer,
+        colorScheme.onErrorContainer,
+        colorScheme.error,
+      ),
     };
 
     return Chip(

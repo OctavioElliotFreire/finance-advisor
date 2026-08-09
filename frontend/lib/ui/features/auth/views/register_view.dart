@@ -87,7 +87,8 @@ class _RegisterViewState extends State<RegisterView> {
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
                         decoration: const InputDecoration(labelText: 'Email'),
-                        validator: (value) => (value == null || !value.contains('@'))
+                        validator: (value) =>
+                            (value == null || !value.contains('@'))
                             ? 'Enter a valid email'
                             : null,
                       ),
@@ -99,7 +100,8 @@ class _RegisterViewState extends State<RegisterView> {
                         decoration: const InputDecoration(
                           labelText: 'Password',
                         ),
-                        validator: (value) => (value == null || value.length < 8)
+                        validator: (value) =>
+                            (value == null || value.length < 8)
                             ? 'Use at least 8 characters'
                             : null,
                       ),

@@ -51,7 +51,10 @@ class _ConnectionsViewState extends State<ConnectionsView> {
 
     final currentUserEmail = widget.currentUserEmail;
     final otherEmails =
-        byEmail.keys.whereType<String>().where((email) => email != currentUserEmail).toList()
+        byEmail.keys
+            .whereType<String>()
+            .where((email) => email != currentUserEmail)
+            .toList()
           ..sort();
 
     return [
@@ -75,7 +78,9 @@ class _ConnectionsViewState extends State<ConnectionsView> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Could not open the connection widget. Please try again.'),
+              content: Text(
+                'Could not open the connection widget. Please try again.',
+              ),
             ),
           );
         }
@@ -83,7 +88,9 @@ class _ConnectionsViewState extends State<ConnectionsView> {
       }
     } else {
       itemId = await Navigator.of(context).push<String>(
-        MaterialPageRoute(builder: (_) => PluggyConnectScreen(connectToken: token)),
+        MaterialPageRoute(
+          builder: (_) => PluggyConnectScreen(connectToken: token),
+        ),
       );
     }
 
@@ -127,7 +134,9 @@ class _ConnectionsViewState extends State<ConnectionsView> {
                       child: ListTile(
                         leading: const Icon(Icons.account_balance),
                         title: Text(connection.pluggyItemId),
-                        trailing: StatusChip.connectionStatus(connection.status),
+                        trailing: StatusChip.connectionStatus(
+                          connection.status,
+                        ),
                       ),
                     ),
                 ],

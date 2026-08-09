@@ -36,7 +36,10 @@ class CategoryBreakdownChart extends StatelessWidget {
                 for (final slice in slices)
                   PieChartSectionData(
                     value: slice.total <= 0 ? 0.0001 : slice.total,
-                    color: AppChartColors.categoricalColorFor(context, slice.label),
+                    color: AppChartColors.categoricalColorFor(
+                      context,
+                      slice.label,
+                    ),
                     title: '',
                     radius: 48,
                   ),
@@ -45,7 +48,9 @@ class CategoryBreakdownChart extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 16),
-        Expanded(child: _CategoryLegend(slices: slices, total: total)),
+        Expanded(
+          child: _CategoryLegend(slices: slices, total: total),
+        ),
       ],
     );
   }
@@ -71,7 +76,10 @@ class _CategoryLegend extends StatelessWidget {
                 Container(
                   width: 12,
                   height: 12,
-                  color: AppChartColors.categoricalColorFor(context, slice.label),
+                  color: AppChartColors.categoricalColorFor(
+                    context,
+                    slice.label,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(child: Text(slice.label)),
@@ -81,9 +89,7 @@ class _CategoryLegend extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  total <= 0
-                      ? '0%'
-                      : '${(slice.total / total * 100).round()}%',
+                  total <= 0 ? '0%' : '${(slice.total / total * 100).round()}%',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],

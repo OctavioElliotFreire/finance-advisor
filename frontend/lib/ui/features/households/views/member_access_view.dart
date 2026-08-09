@@ -41,9 +41,9 @@ class _MemberAccessViewState extends State<MemberAccessView> {
   Future<void> _save() async {
     final success = await _viewModel.save();
     if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Access updated.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Access updated.')));
     }
   }
 
@@ -80,8 +80,10 @@ class _MemberAccessViewState extends State<MemberAccessView> {
                               title: Text(entry.pluggyItemId),
                               subtitle: Text(entry.status),
                               value: entry.granted,
-                              onChanged: (value) =>
-                                  _viewModel.toggle(entry.connectionId, value ?? false),
+                              onChanged: (value) => _viewModel.toggle(
+                                entry.connectionId,
+                                value ?? false,
+                              ),
                             ),
                         ],
                       ),

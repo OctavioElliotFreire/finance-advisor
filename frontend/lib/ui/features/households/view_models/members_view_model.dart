@@ -34,7 +34,9 @@ class MembersViewModel extends ChangeNotifier {
 
     try {
       _members = await _householdRepository.listMembers(_householdId);
-      _pendingInvites = await _householdRepository.listPendingInvites(_householdId);
+      _pendingInvites = await _householdRepository.listPendingInvites(
+        _householdId,
+      );
     } on ApiException catch (e) {
       _errorMessage = e.message;
     } catch (e) {

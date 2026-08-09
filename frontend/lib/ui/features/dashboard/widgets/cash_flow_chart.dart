@@ -87,9 +87,15 @@ class CashFlowChart extends StatelessWidget {
         const SizedBox(height: 8),
         Row(
           children: [
-            LegendSwatch(color: AppChartColors.income(context), label: 'Income'),
+            LegendSwatch(
+              color: AppChartColors.income(context),
+              label: 'Income',
+            ),
             const SizedBox(width: 16),
-            LegendSwatch(color: AppChartColors.expenses(context), label: 'Expenses'),
+            LegendSwatch(
+              color: AppChartColors.expenses(context),
+              label: 'Expenses',
+            ),
           ],
         ),
       ],

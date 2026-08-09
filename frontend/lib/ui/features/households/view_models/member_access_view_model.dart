@@ -33,7 +33,10 @@ class MemberAccessViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _entries = await _householdRepository.getMemberAccess(_householdId, _memberId);
+      _entries = await _householdRepository.getMemberAccess(
+        _householdId,
+        _memberId,
+      );
     } on ApiException catch (e) {
       _errorMessage = e.message;
     } catch (e) {
@@ -47,7 +50,10 @@ class MemberAccessViewModel extends ChangeNotifier {
   void toggle(String connectionId, bool granted) {
     _entries = [
       for (final entry in _entries)
-        if (entry.connectionId == connectionId) entry.copyWith(granted: granted) else entry,
+        if (entry.connectionId == connectionId)
+          entry.copyWith(granted: granted)
+        else
+          entry,
     ];
     notifyListeners();
   }
@@ -58,7 +64,10 @@ class MemberAccessViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final grantedIds = _entries.where((e) => e.granted).map((e) => e.connectionId).toList();
+      final grantedIds = _entries
+          .where((e) => e.granted)
+          .map((e) => e.connectionId)
+          .toList();
       _entries = await _householdRepository.updateMemberAccess(
         _householdId,
         _memberId,

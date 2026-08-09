@@ -61,14 +61,17 @@ class _AnomaliesViewState extends State<AnomaliesView> {
                 child: _viewModel.isLoading && _viewModel.anomalies.isEmpty
                     ? const LoadingState()
                     : RefreshIndicator(
-                        onRefresh: () => _viewModel.load(statusFilter: _viewModel.statusFilter),
+                        onRefresh: () => _viewModel.load(
+                          statusFilter: _viewModel.statusFilter,
+                        ),
                         child: _viewModel.anomalies.isEmpty
                             ? ListView(
                                 children: const [
                                   AppEmptyState(
                                     icon: Icons.check_circle_outline,
                                     title: 'No anomalies found',
-                                    body: 'Nothing needs your attention right now.',
+                                    body:
+                                        'Nothing needs your attention right now.',
                                   ),
                                 ],
                               )
@@ -79,12 +82,19 @@ class _AnomaliesViewState extends State<AnomaliesView> {
                                   final anomaly = _viewModel.anomalies[index];
                                   return _AnomalyCard(
                                     anomaly: anomaly,
-                                    isExplaining: _viewModel.isExplaining(anomaly.id),
-                                    onExplain: () => _viewModel.explain(anomaly.id),
-                                    onConfirm: () =>
-                                        _viewModel.updateStatus(anomaly.id, 'confirmed'),
-                                    onDismiss: () =>
-                                        _viewModel.updateStatus(anomaly.id, 'dismissed'),
+                                    isExplaining: _viewModel.isExplaining(
+                                      anomaly.id,
+                                    ),
+                                    onExplain: () =>
+                                        _viewModel.explain(anomaly.id),
+                                    onConfirm: () => _viewModel.updateStatus(
+                                      anomaly.id,
+                                      'confirmed',
+                                    ),
+                                    onDismiss: () => _viewModel.updateStatus(
+                                      anomaly.id,
+                                      'dismissed',
+                                    ),
                                   );
                                 },
                               ),
@@ -150,7 +160,10 @@ class _AnomalyCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 SeverityChip(severity: anomaly.severity),
-                Text(anomaly.status, style: Theme.of(context).textTheme.labelMedium),
+                Text(
+                  anomaly.status,
+                  style: Theme.of(context).textTheme.labelMedium,
+                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -159,9 +172,9 @@ class _AnomalyCard extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 anomaly.explanation!,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  fontStyle: FontStyle.italic,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic),
               ),
             ],
             const SizedBox(height: 12),
@@ -176,7 +189,11 @@ class _AnomalyCard extends StatelessWidget {
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : Text(anomaly.explanation == null ? 'Explain' : 'Re-explain'),
+                      : Text(
+                          anomaly.explanation == null
+                              ? 'Explain'
+                              : 'Re-explain',
+                        ),
                 ),
                 OutlinedButton(
                   onPressed: anomaly.status == 'confirmed' ? null : onConfirm,

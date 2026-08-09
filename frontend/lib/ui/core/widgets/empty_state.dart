@@ -29,17 +29,15 @@ class AppEmptyState extends StatelessWidget {
         children: [
           Icon(icon, size: 40, color: colorScheme.onSurfaceVariant),
           const SizedBox(height: 12),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: textTheme.titleSmall,
-          ),
+          Text(title, textAlign: TextAlign.center, style: textTheme.titleSmall),
           if (body != null) ...[
             const SizedBox(height: 4),
             Text(
               body!,
               textAlign: TextAlign.center,
-              style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+              style: textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
           if (action != null) ...[const SizedBox(height: 16), action!],

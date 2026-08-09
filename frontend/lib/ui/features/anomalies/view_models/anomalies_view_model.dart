@@ -51,7 +51,10 @@ class AnomaliesViewModel extends ChangeNotifier {
     _explainingIds.add(anomalyId);
     notifyListeners();
     try {
-      final updated = await _anomalyRepository.explainAnomaly(_householdId, anomalyId);
+      final updated = await _anomalyRepository.explainAnomaly(
+        _householdId,
+        anomalyId,
+      );
       _replace(updated);
     } on ApiException catch (e) {
       _errorMessage = e.message;
@@ -71,6 +74,7 @@ class AnomaliesViewModel extends ChangeNotifier {
         status,
       );
       _replace(updated);
+      notifyListeners();
     } on ApiException catch (e) {
       _errorMessage = e.message;
       notifyListeners();

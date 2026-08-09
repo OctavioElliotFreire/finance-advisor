@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../data/models/dashboard.dart';
 import '../../../../data/repositories/dashboard_repository.dart';
 import '../../../core/formatting/money.dart';
@@ -104,7 +103,9 @@ class _DashboardViewState extends State<DashboardView> {
                     if (dashboard == null && !_viewModel.isLoading)
                       const Padding(
                         padding: EdgeInsets.only(top: 48),
-                        child: Center(child: Text('Could not load the dashboard.')),
+                        child: Center(
+                          child: Text('Could not load the dashboard.'),
+                        ),
                       )
                     else if (dashboard != null)
                       _DashboardBody(dashboard: dashboard),
@@ -130,7 +131,9 @@ class _DashboardBody extends StatelessWidget {
       builder: (context, constraints) {
         final isWide = constraints.maxWidth >= _wideLayoutBreakpoint;
         final overview = _OverviewSection(dashboard: dashboard);
-        final cashFlow = _CashFlowSection(monthlyCashFlow: dashboard.monthlyCashFlow);
+        final cashFlow = _CashFlowSection(
+          monthlyCashFlow: dashboard.monthlyCashFlow,
+        );
         final transactions = _RecentTransactionsSection(
           transactions: dashboard.recentTransactions,
         );
@@ -138,7 +141,13 @@ class _DashboardBody extends StatelessWidget {
         if (!isWide) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [overview, const SizedBox(height: 16), cashFlow, const SizedBox(height: 16), transactions],
+            children: [
+              overview,
+              const SizedBox(height: 16),
+              cashFlow,
+              const SizedBox(height: 16),
+              transactions,
+            ],
           );
         }
 
@@ -182,9 +191,16 @@ class _OverviewSection extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Expanded(
-                          child: Text(account.name ?? account.type ?? 'Account'),
+                          child: Text(
+                            account.name ?? account.type ?? 'Account',
+                          ),
                         ),
-                        Text(formatMoney(account.balance ?? 0, account.currencyCode)),
+                        Text(
+                          formatMoney(
+                            account.balance ?? 0,
+                            account.currencyCode,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -212,7 +228,10 @@ class _CashFlowSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Monthly cash flow', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Monthly cash flow',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 12),
             if (monthlyCashFlow.isEmpty)
               const Text('No transactions synced yet.')
@@ -240,7 +259,10 @@ class _RecentTransactionsSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Recent transactions', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Recent transactions',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 8),
             if (transactions.isEmpty)
               const Padding(
@@ -258,9 +280,7 @@ class _RecentTransactionsSection extends StatelessWidget {
                   trailing: Text(
                     formatMoney(txn.amount, txn.currencyCode),
                     style: TextStyle(
-                      color: txn.amount >= 0
-                          ? context.semanticColors.success
-                          : Theme.of(context).colorScheme.error,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
