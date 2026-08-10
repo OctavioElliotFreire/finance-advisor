@@ -136,7 +136,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField), 'How much did I spend on Food?');
-    await tester.tap(find.text('Ask'));
+    await tester.tap(find.text('Perguntar'));
     await tester.pumpAndSettle();
 
     expect(find.text('How much did I spend on Food?'), findsOneWidget);
@@ -161,7 +161,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField), 'How much did I spend on Food?');
-    await tester.tap(find.text('Ask'));
+    await tester.tap(find.text('Perguntar'));
     await tester.pump();
 
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
@@ -200,7 +200,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField), 'One more question?');
-    await tester.tap(find.text('Ask'));
+    await tester.tap(find.text('Perguntar'));
     await tester.pumpAndSettle();
 
     expect(

@@ -34,7 +34,7 @@ class ConnectionsViewModel extends ChangeNotifier {
     } on ApiException catch (e) {
       _errorMessage = e.message;
     } catch (e) {
-      _errorMessage = 'Could not load connections.';
+      _errorMessage = 'Não foi possível carregar as conexões.';
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -52,7 +52,7 @@ class ConnectionsViewModel extends ChangeNotifier {
       _errorMessage = e.message;
       return null;
     } catch (e) {
-      _errorMessage = 'Could not start the connection flow.';
+      _errorMessage = 'Não foi possível iniciar o fluxo de conexão.';
       return null;
     } finally {
       _isConnecting = false;
@@ -72,7 +72,7 @@ class ConnectionsViewModel extends ChangeNotifier {
       _errorMessage = e.message;
       notifyListeners();
     } catch (e) {
-      _errorMessage = 'Connected, but saving the connection failed.';
+      _errorMessage = 'Conectado, mas não foi possível salvar a conexão.';
       notifyListeners();
     }
   }

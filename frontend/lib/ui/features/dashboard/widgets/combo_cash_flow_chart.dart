@@ -16,8 +16,8 @@ class ComboCashFlowChart extends StatelessWidget {
   const ComboCashFlowChart({
     super.key,
     required this.data,
-    this.inflowLabel = 'Inflows',
-    this.outflowLabel = 'Outflows',
+    this.inflowLabel = 'Entradas',
+    this.outflowLabel = 'Saídas',
   });
 
   final CashFlowChartData data;
@@ -30,7 +30,7 @@ class ComboCashFlowChart extends StatelessWidget {
     if (points.isEmpty) {
       return const SizedBox(
         height: 180,
-        child: Center(child: Text('No cash flow data yet.')),
+        child: Center(child: Text('Nenhum dado de fluxo de caixa ainda.')),
       );
     }
 

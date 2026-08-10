@@ -9,11 +9,20 @@ import '../../../core/widgets/severity_chip.dart';
 import '../view_models/anomalies_view_model.dart';
 
 const _statusFilters = <String?, String>{
-  null: 'All',
-  'open': 'Open',
-  'confirmed': 'Confirmed',
-  'dismissed': 'Dismissed',
+  null: 'Todas',
+  'open': 'Abertas',
+  'confirmed': 'Confirmadas',
+  'dismissed': 'Dispensadas',
 };
+
+String _statusLabel(String status) {
+  return switch (status) {
+    'open' => 'aberta',
+    'confirmed' => 'confirmada',
+    'dismissed' => 'dispensada',
+    _ => status,
+  };
+}
 
 class AnomaliesView extends StatefulWidget {
   const AnomaliesView({
@@ -46,7 +55,7 @@ class _AnomaliesViewState extends State<AnomaliesView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('${widget.householdName} · Anomalies')),
+      appBar: AppBar(title: Text('${widget.householdName} · Anomalias')),
       body: ListenableBuilder(
         listenable: _viewModel,
         builder: (context, _) {
@@ -69,9 +78,9 @@ class _AnomaliesViewState extends State<AnomaliesView> {
                                 children: const [
                                   AppEmptyState(
                                     icon: Icons.check_circle_outline,
-                                    title: 'No anomalies found',
+                                    title: 'Nenhuma anomalia encontrada',
                                     body:
-                                        'Nothing needs your attention right now.',
+                                        'Nada precisa da sua atenção agora.',
                                   ),
                                 ],
                               )
@@ -161,7 +170,7 @@ class _AnomalyCard extends StatelessWidget {
               children: [
                 SeverityChip(severity: anomaly.severity),
                 Text(
-                  anomaly.status,
+                  _statusLabel(anomaly.status),
                   style: Theme.of(context).textTheme.labelMedium,
                 ),
               ],
@@ -191,17 +200,17 @@ class _AnomalyCard extends StatelessWidget {
                         )
                       : Text(
                           anomaly.explanation == null
-                              ? 'Explain'
-                              : 'Re-explain',
+                              ? 'Explicar'
+                              : 'Explicar novamente',
                         ),
                 ),
                 OutlinedButton(
                   onPressed: anomaly.status == 'confirmed' ? null : onConfirm,
-                  child: const Text('Confirm'),
+                  child: const Text('Confirmar'),
                 ),
                 OutlinedButton(
                   onPressed: anomaly.status == 'dismissed' ? null : onDismiss,
-                  child: const Text('Dismiss'),
+                  child: const Text('Dispensar'),
                 ),
               ],
             ),

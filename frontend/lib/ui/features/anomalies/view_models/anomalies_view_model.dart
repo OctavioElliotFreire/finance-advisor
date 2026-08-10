@@ -40,7 +40,7 @@ class AnomaliesViewModel extends ChangeNotifier {
     } on ApiException catch (e) {
       _errorMessage = e.message;
     } catch (e) {
-      _errorMessage = 'Could not load anomalies.';
+      _errorMessage = 'Não foi possível carregar as anomalias.';
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -59,7 +59,7 @@ class AnomaliesViewModel extends ChangeNotifier {
     } on ApiException catch (e) {
       _errorMessage = e.message;
     } catch (e) {
-      _errorMessage = 'Could not explain this anomaly.';
+      _errorMessage = 'Não foi possível explicar esta anomalia.';
     } finally {
       _explainingIds.remove(anomalyId);
       notifyListeners();
@@ -79,7 +79,7 @@ class AnomaliesViewModel extends ChangeNotifier {
       _errorMessage = e.message;
       notifyListeners();
     } catch (e) {
-      _errorMessage = 'Could not update this anomaly.';
+      _errorMessage = 'Não foi possível atualizar esta anomalia.';
       notifyListeners();
     }
   }

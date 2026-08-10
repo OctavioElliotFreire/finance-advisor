@@ -16,8 +16,8 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: Scaffold(body: ComboCashFlowChart(data: data))));
     await tester.pumpAndSettle();
 
-    expect(find.text('Inflows'), findsOneWidget);
-    expect(find.text('Outflows'), findsOneWidget);
+    expect(find.text('Entradas'), findsOneWidget);
+    expect(find.text('Saídas'), findsOneWidget);
   });
 
   testWidgets('renders custom legend labels when given', (tester) async {
@@ -28,14 +28,14 @@ void main() {
     await tester.pumpWidget(
       const MaterialApp(
         home: Scaffold(
-          body: ComboCashFlowChart(data: data, inflowLabel: 'Entradas', outflowLabel: 'Saídas'),
+          body: ComboCashFlowChart(data: data, inflowLabel: 'Receitas', outflowLabel: 'Despesas'),
         ),
       ),
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Entradas'), findsOneWidget);
-    expect(find.text('Saídas'), findsOneWidget);
+    expect(find.text('Receitas'), findsOneWidget);
+    expect(find.text('Despesas'), findsOneWidget);
   });
 
   testWidgets('renders a fallback message when there is no data', (tester) async {
@@ -43,6 +43,6 @@ void main() {
 
     await tester.pumpWidget(const MaterialApp(home: Scaffold(body: ComboCashFlowChart(data: data))));
 
-    expect(find.text('No cash flow data yet.'), findsOneWidget);
+    expect(find.text('Nenhum dado de fluxo de caixa ainda.'), findsOneWidget);
   });
 }

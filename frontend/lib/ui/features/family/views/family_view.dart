@@ -5,6 +5,7 @@ import '../../../../data/models/pluggy_connection.dart';
 import '../../../../data/repositories/connection_repository.dart';
 import '../../../../data/repositories/household_repository.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../core/formatting/role_label.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/error_banner.dart';
 import '../../../core/widgets/loading_state.dart';
@@ -68,13 +69,13 @@ class _FamilyViewState extends State<FamilyView> {
 
   (StatusTone, String) _connectionHealth(String status) {
     return switch (status.toUpperCase()) {
-      'PENDING' => (StatusTone.neutral, 'Pending first sync'),
-      'UPDATED' => (StatusTone.neutral, 'Active'),
-      'UPDATING' => (StatusTone.info, 'Updating…'),
-      'OUTDATED' => (StatusTone.warning, 'Outdated'),
-      'WAITING_USER_INPUT' => (StatusTone.warning, 'Needs attention'),
-      'LOGIN_ERROR' => (StatusTone.negative, 'Login error'),
-      'ERROR' => (StatusTone.negative, 'Error'),
+      'PENDING' => (StatusTone.neutral, 'Aguardando primeira sincronização'),
+      'UPDATED' => (StatusTone.neutral, 'Ativo'),
+      'UPDATING' => (StatusTone.info, 'Atualizando…'),
+      'OUTDATED' => (StatusTone.warning, 'Desatualizado'),
+      'WAITING_USER_INPUT' => (StatusTone.warning, 'Requer atenção'),
+      'LOGIN_ERROR' => (StatusTone.negative, 'Erro de login'),
+      'ERROR' => (StatusTone.negative, 'Erro'),
       _ => (StatusTone.neutral, status),
     };
   }
@@ -83,17 +84,17 @@ class _FamilyViewState extends State<FamilyView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Family'),
+        title: const Text('Família'),
         actions: [
           IconButton(
             icon: const Icon(Icons.person_add_outlined),
-            tooltip: 'Manage members',
+            tooltip: 'Gerenciar membros',
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => MembersView(
                   householdRepository: widget.householdRepository,
                   householdId: widget.householdId,
-                  householdName: 'Household',
+                  householdName: 'Família',
                   currentUserEmail: widget.currentUserEmail,
                   onManageAccess: (memberId, memberEmail) => Navigator.of(context).push(
                     MaterialPageRoute(
@@ -111,13 +112,13 @@ class _FamilyViewState extends State<FamilyView> {
           ),
           IconButton(
             icon: const Icon(Icons.add_link),
-            tooltip: 'Connect institution',
+            tooltip: 'Conectar instituição',
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => ConnectionsView(
                   connectionRepository: widget.connectionRepository,
                   householdId: widget.householdId,
-                  householdName: 'Household',
+                  householdName: 'Família',
                   currentUserEmail: widget.currentUserEmail,
                 ),
               ),
@@ -137,7 +138,7 @@ class _FamilyViewState extends State<FamilyView> {
 
           final members = _membersViewModel.members;
           if (members.isEmpty) {
-            return const AppEmptyState(icon: Icons.groups_outlined, title: 'No members yet');
+            return const AppEmptyState(icon: Icons.groups_outlined, title: 'Nenhum membro ainda');
           }
 
           final connectionsByEmail = <String, List<PluggyConnection>>{};
@@ -164,7 +165,7 @@ class _FamilyViewState extends State<FamilyView> {
                   ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Each member can disconnect their own accounts at any time.',
+                  'Cada membro pode desconectar suas próprias contas quando quiser.',
                   style: TextStyle(color: AppPalette.inkMuted, fontSize: 11),
                 ),
               ],
@@ -199,12 +200,12 @@ class _MemberSection extends StatelessWidget {
           children: [
             SectionHeader(
               title: member.email,
-              trailing: Text(member.role, style: Theme.of(context).textTheme.bodySmall),
+              trailing: Text(roleLabel(member.role), style: Theme.of(context).textTheme.bodySmall),
             ),
             if (connections.isEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 4),
-                child: Text('No connected accounts', style: Theme.of(context).textTheme.bodySmall),
+                child: Text('Nenhuma conta conectada', style: Theme.of(context).textTheme.bodySmall),
               )
             else
               for (final connection in connections)

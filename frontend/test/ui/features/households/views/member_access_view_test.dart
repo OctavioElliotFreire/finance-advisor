@@ -145,11 +145,11 @@ void main() {
 
     await tester.tap(find.byType(CheckboxListTile));
     await tester.pump();
-    await tester.tap(find.text('Save'));
+    await tester.tap(find.text('Salvar'));
     await tester.pumpAndSettle();
 
     expect(backendService.savedConnectionIds, ['conn-1']);
-    expect(find.text('Access updated.'), findsOneWidget);
+    expect(find.text('Acesso atualizado.'), findsOneWidget);
   });
 
   testWidgets('shows an empty state when the household has no connections', (
@@ -169,6 +169,6 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('No connections in this household yet'), findsOneWidget);
+    expect(find.text('Nenhuma conexão nesta família ainda'), findsOneWidget);
   });
 }

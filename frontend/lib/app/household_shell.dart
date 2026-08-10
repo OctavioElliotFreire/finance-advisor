@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 /// Bottom-nav shell for the 4-tab restructure (Início/Contas/Análises/Família
-/// in `design.md`'s spec — English labels for now, pt-BR is its own later
-/// pass per the phased implementation plan). Wraps a [StatefulNavigationShell]
+/// per `design.md`'s spec). Wraps a [StatefulNavigationShell]
 /// so each tab keeps its own navigation stack/scroll position when switching.
 ///
 /// Known simplification: this always renders the mobile bottom-nav pattern.
@@ -24,18 +23,18 @@ class HouseholdShell extends StatelessWidget {
         onDestinationSelected: (index) =>
             navigationShell.goBranch(index, initialLocation: index == navigationShell.currentIndex),
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
+          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Início'),
           NavigationDestination(
             icon: Icon(Icons.account_balance_wallet_outlined),
             selectedIcon: Icon(Icons.account_balance_wallet),
-            label: 'Accounts',
+            label: 'Contas',
           ),
           NavigationDestination(
             icon: Icon(Icons.bar_chart_outlined),
             selectedIcon: Icon(Icons.bar_chart),
-            label: 'Analytics',
+            label: 'Análises',
           ),
-          NavigationDestination(icon: Icon(Icons.groups_outlined), selectedIcon: Icon(Icons.groups), label: 'Family'),
+          NavigationDestination(icon: Icon(Icons.groups_outlined), selectedIcon: Icon(Icons.groups), label: 'Família'),
         ],
       ),
     );

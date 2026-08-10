@@ -48,7 +48,7 @@ class _AccountsViewState extends State<AccountsView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Accounts')),
+      appBar: AppBar(title: const Text('Contas')),
       body: ListenableBuilder(
         listenable: _viewModel,
         builder: (context, _) {
@@ -67,8 +67,8 @@ class _AccountsViewState extends State<AccountsView> {
                   selected: _segment,
                   onChanged: (value) => setState(() => _segment = value),
                   segments: const [
-                    AppSegment(value: _AccountsSegment.balances, label: 'Balances'),
-                    AppSegment(value: _AccountsSegment.statement, label: 'Statement'),
+                    AppSegment(value: _AccountsSegment.balances, label: 'Saldos'),
+                    AppSegment(value: _AccountsSegment.statement, label: 'Extrato'),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -98,8 +98,8 @@ class _BalancesList extends StatelessWidget {
     if (accounts.isEmpty) {
       return const AppEmptyState(
         icon: Icons.account_balance_outlined,
-        title: 'No accounts yet',
-        body: 'Connect the first account to get started.',
+        title: 'Nenhuma conta ainda',
+        body: 'Conecte a primeira conta para começar.',
       );
     }
     return Column(
@@ -107,7 +107,7 @@ class _BalancesList extends StatelessWidget {
         for (final account in accounts)
           Card(
             child: ListTile(
-              title: Text(account.name ?? 'Account'),
+              title: Text(account.name ?? 'Conta'),
               subtitle: Text(account.subtype ?? account.type ?? ''),
               trailing: Text(
                 account.balance == null ? '—' : formatMoney(account.balance!, account.currencyCode),
@@ -129,14 +129,14 @@ class _StatementList extends StatelessWidget {
   Widget build(BuildContext context) {
     final transactions = dashboard.recentTransactions;
     if (transactions.isEmpty) {
-      return const AppEmptyState(icon: Icons.receipt_long_outlined, title: 'No transactions yet');
+      return const AppEmptyState(icon: Icons.receipt_long_outlined, title: 'Nenhuma movimentação ainda');
     }
     return Column(
       children: [
         for (final txn in transactions)
           ListTile(
             contentPadding: EdgeInsets.zero,
-            title: Text(txn.description ?? 'Transaction'),
+            title: Text(txn.description ?? 'Movimentação'),
             subtitle: Text(txn.accountName ?? ''),
             trailing: Text(
               formatMoney(txn.amount, txn.currencyCode),

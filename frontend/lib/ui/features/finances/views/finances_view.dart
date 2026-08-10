@@ -46,15 +46,15 @@ class _FinancesViewState extends State<FinancesView> {
       length: 5,
       child: Scaffold(
         appBar: AppBar(
-          title: Text('${widget.householdName} · Finances'),
+          title: Text('${widget.householdName} · Finanças'),
           bottom: const TabBar(
             isScrollable: true,
             tabs: [
-              Tab(text: 'Investments'),
-              Tab(text: 'Loans'),
-              Tab(text: 'Bills'),
-              Tab(text: 'Balance History'),
-              Tab(text: 'Categories'),
+              Tab(text: 'Investimentos'),
+              Tab(text: 'Empréstimos'),
+              Tab(text: 'Faturas'),
+              Tab(text: 'Histórico de saldo'),
+              Tab(text: 'Categorias'),
             ],
           ),
         ),
@@ -104,7 +104,7 @@ class _InvestmentsTab extends StatelessWidget {
     if (investments.isEmpty) {
       return const AppEmptyState(
         icon: Icons.trending_up_outlined,
-        title: 'No investments synced yet',
+        title: 'Nenhum investimento sincronizado ainda',
       );
     }
     return ListView.builder(
@@ -114,7 +114,7 @@ class _InvestmentsTab extends StatelessWidget {
         final investment = investments[index];
         return Card(
           child: ListTile(
-            title: Text(investment.name ?? investment.type ?? 'Investment'),
+            title: Text(investment.name ?? investment.type ?? 'Investimento'),
             subtitle: Text(investment.subtype ?? investment.type ?? ''),
             trailing: Text(
               formatMoney(investment.balance ?? 0, investment.currencyCode),
@@ -136,7 +136,7 @@ class _LoansTab extends StatelessWidget {
     if (loans.isEmpty) {
       return const AppEmptyState(
         icon: Icons.account_balance_outlined,
-        title: 'No loans synced yet',
+        title: 'Nenhum empréstimo sincronizado ainda',
       );
     }
     return ListView.builder(
@@ -149,11 +149,11 @@ class _LoansTab extends StatelessWidget {
             : '${loan.installmentsPaid ?? 0}/${loan.installmentsTotal}';
         return Card(
           child: ListTile(
-            title: Text(loan.type ?? 'Loan'),
+            title: Text(loan.type ?? 'Empréstimo'),
             subtitle: Text(
               [
                 if (loan.status != null) loan.status!,
-                if (installments != null) '$installments installments',
+                if (installments != null) '$installments parcelas',
               ].join(' · '),
             ),
             trailing: Text(
@@ -176,7 +176,7 @@ class _BillsTab extends StatelessWidget {
     if (bills.isEmpty) {
       return const AppEmptyState(
         icon: Icons.credit_card_outlined,
-        title: 'No credit card bills synced yet',
+        title: 'Nenhuma fatura de cartão sincronizada ainda',
       );
     }
     return ListView.builder(
@@ -188,13 +188,13 @@ class _BillsTab extends StatelessWidget {
           child: ListTile(
             title: Text(
               bill.dueDate == null
-                  ? 'Bill'
-                  : 'Due ${formatShortDate(bill.dueDate!)}',
+                  ? 'Fatura'
+                  : 'Vencimento ${formatShortDate(bill.dueDate!)}',
             ),
             subtitle: Text(
               bill.minimumPayment == null
                   ? ''
-                  : 'Minimum payment ${formatMoney(bill.minimumPayment!, bill.currencyCode)}',
+                  : 'Pagamento mínimo ${formatMoney(bill.minimumPayment!, bill.currencyCode)}',
             ),
             trailing: Text(
               formatMoney(bill.totalAmount ?? 0, bill.currencyCode),
@@ -216,7 +216,7 @@ class _BalanceHistoryTab extends StatelessWidget {
     if (points.isEmpty) {
       return const AppEmptyState(
         icon: Icons.show_chart_outlined,
-        title: 'No balance history yet',
+        title: 'Nenhum histórico de saldo ainda',
       );
     }
     return Padding(
@@ -238,7 +238,7 @@ class _CategoriesTab extends StatelessWidget {
     if (categories.isEmpty) {
       return const AppEmptyState(
         icon: Icons.pie_chart_outline,
-        title: 'No categorized spending yet',
+        title: 'Nenhum gasto categorizado ainda',
       );
     }
     return Padding(

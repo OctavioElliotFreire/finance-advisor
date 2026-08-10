@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../data/repositories/auth_repository.dart';
 import '../../../../data/repositories/household_repository.dart';
+import '../../../core/formatting/role_label.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/error_banner.dart';
 import '../../../core/widgets/loading_button.dart';
@@ -87,7 +88,7 @@ class _AcceptInviteViewState extends State<AcceptInviteView> {
                       ErrorBanner(
                         message:
                             _viewModel.errorMessage ??
-                            'This invite could not be found.',
+                            'Não foi possível encontrar este convite.',
                       ),
                     ],
                   );
@@ -96,16 +97,16 @@ class _AcceptInviteViewState extends State<AcceptInviteView> {
                 if (preview.accepted) {
                   return const AppEmptyState(
                     icon: Icons.check_circle_outline,
-                    title: 'This invite has already been accepted',
-                    body: 'Please log in.',
+                    title: 'Este convite já foi aceito',
+                    body: 'Faça login.',
                   );
                 }
 
                 if (preview.expired) {
                   return const AppEmptyState(
                     icon: Icons.event_busy_outlined,
-                    title: 'This invite has expired',
-                    body: 'Ask the household owner to invite you again.',
+                    title: 'Este convite expirou',
+                    body: 'Peça ao responsável pela família para convidar você novamente.',
                   );
                 }
 
@@ -116,19 +117,19 @@ class _AcceptInviteViewState extends State<AcceptInviteView> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        "You've been invited to join",
+                        'Você foi convidado para',
                         style: Theme.of(context).textTheme.titleMedium,
                         textAlign: TextAlign.center,
                       ),
                       Text(
-                        '${preview.householdName} (${preview.role})',
+                        '${preview.householdName} (${roleLabel(preview.role)})',
                         style: Theme.of(context).textTheme.headlineSmall,
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 24),
                       ErrorBanner(message: _viewModel.errorMessage),
                       const Text(
-                        'Set a password to finish creating your account.',
+                        'Defina uma senha para concluir a criação da sua conta.',
                       ),
                       const SizedBox(height: 12),
                       TextFormField(
@@ -136,11 +137,11 @@ class _AcceptInviteViewState extends State<AcceptInviteView> {
                         controller: _passwordController,
                         obscureText: true,
                         decoration: const InputDecoration(
-                          labelText: 'Password',
+                          labelText: 'Senha',
                         ),
                         validator: (value) =>
                             (value == null || value.length < 8)
-                            ? 'Use at least 8 characters'
+                            ? 'Use pelo menos 8 caracteres'
                             : null,
                       ),
                       const SizedBox(height: 12),
@@ -149,15 +150,15 @@ class _AcceptInviteViewState extends State<AcceptInviteView> {
                         controller: _confirmController,
                         obscureText: true,
                         decoration: const InputDecoration(
-                          labelText: 'Confirm password',
+                          labelText: 'Confirmar senha',
                         ),
                         validator: (value) => value != _passwordController.text
-                            ? 'Passwords do not match'
+                            ? 'As senhas não coincidem'
                             : null,
                       ),
                       const SizedBox(height: 20),
                       LoadingButton(
-                        label: 'Join household',
+                        label: 'Entrar na família',
                         isLoading: _viewModel.isSubmitting,
                         onPressed: _submit,
                       ),

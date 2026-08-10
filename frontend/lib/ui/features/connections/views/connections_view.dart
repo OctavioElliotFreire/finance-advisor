@@ -59,10 +59,10 @@ class _ConnectionsViewState extends State<ConnectionsView> {
 
     return [
       if (byEmail.containsKey(currentUserEmail) && currentUserEmail != null)
-        _ConnectionGroup('You', byEmail[currentUserEmail]!),
+        _ConnectionGroup('Você', byEmail[currentUserEmail]!),
       for (final email in otherEmails) _ConnectionGroup(email, byEmail[email]!),
       if (byEmail.containsKey(null))
-        _ConnectionGroup('Unknown', byEmail[null]!),
+        _ConnectionGroup('Desconhecido', byEmail[null]!),
     ];
   }
 
@@ -79,7 +79,7 @@ class _ConnectionsViewState extends State<ConnectionsView> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
-                'Could not open the connection widget. Please try again.',
+                'Não foi possível abrir o widget de conexão. Tente novamente.',
               ),
             ),
           );
@@ -102,11 +102,11 @@ class _ConnectionsViewState extends State<ConnectionsView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('${widget.householdName} — Connections')),
+      appBar: AppBar(title: Text('${widget.householdName} — Conexões')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _connect,
         icon: const Icon(Icons.add_link),
-        label: const Text('Connect institution'),
+        label: const Text('Conectar instituição'),
       ),
       body: ListenableBuilder(
         listenable: _viewModel,
@@ -124,8 +124,8 @@ class _ConnectionsViewState extends State<ConnectionsView> {
                 if (_viewModel.connections.isEmpty && !_viewModel.isLoading)
                   const AppEmptyState(
                     icon: Icons.account_balance_outlined,
-                    title: 'No institutions connected yet',
-                    body: 'Connect a bank to start syncing your finances.',
+                    title: 'Nenhuma instituição conectada ainda',
+                    body: 'Conecte um banco para começar a sincronizar suas finanças.',
                   ),
                 for (final group in _groupByMember(_viewModel.connections)) ...[
                   SectionHeader(title: group.label),

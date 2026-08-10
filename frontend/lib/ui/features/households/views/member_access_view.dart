@@ -43,14 +43,14 @@ class _MemberAccessViewState extends State<MemberAccessView> {
     if (success && mounted) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Access updated.')));
+      ).showSnackBar(const SnackBar(content: Text('Acesso atualizado.')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('${widget.memberEmail} · Access')),
+      appBar: AppBar(title: Text('${widget.memberEmail} · Acesso')),
       body: ListenableBuilder(
         listenable: _viewModel,
         builder: (context, _) {
@@ -64,14 +64,14 @@ class _MemberAccessViewState extends State<MemberAccessView> {
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Text(
-                  'Choose which connected banks this member can see.',
+                  'Escolha quais bancos conectados este membro pode ver.',
                 ),
               ),
               Expanded(
                 child: _viewModel.entries.isEmpty
                     ? const AppEmptyState(
                         icon: Icons.account_balance_outlined,
-                        title: 'No connections in this household yet',
+                        title: 'Nenhuma conexão nesta família ainda',
                       )
                     : ListView(
                         children: [
@@ -91,7 +91,7 @@ class _MemberAccessViewState extends State<MemberAccessView> {
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: LoadingButton(
-                  label: 'Save',
+                  label: 'Salvar',
                   isLoading: _viewModel.isSaving,
                   onPressed: _save,
                 ),

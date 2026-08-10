@@ -40,7 +40,7 @@ class MembersViewModel extends ChangeNotifier {
     } on ApiException catch (e) {
       _errorMessage = e.message;
     } catch (e) {
-      _errorMessage = 'Could not load members.';
+      _errorMessage = 'Não foi possível carregar os membros.';
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -70,7 +70,7 @@ class MembersViewModel extends ChangeNotifier {
       _errorMessage = e.message;
       return null;
     } catch (e) {
-      _errorMessage = 'Could not invite this member.';
+      _errorMessage = 'Não foi possível convidar este membro.';
       return null;
     } finally {
       _isInviting = false;

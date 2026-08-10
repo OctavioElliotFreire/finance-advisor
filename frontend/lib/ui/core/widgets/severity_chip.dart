@@ -12,9 +12,9 @@ class SeverityChip extends StatelessWidget {
 
   static (StatusTone, String) _toneAndLabel(String severity) {
     return switch (severity) {
-      'high' => (StatusTone.negative, 'High'),
-      'medium' => (StatusTone.warning, 'Medium'),
-      'low' => (StatusTone.neutral, 'Low'),
+      'high' => (StatusTone.negative, 'Alta'),
+      'medium' => (StatusTone.warning, 'Média'),
+      'low' => (StatusTone.neutral, 'Baixa'),
       _ => (StatusTone.neutral, severity),
     };
   }

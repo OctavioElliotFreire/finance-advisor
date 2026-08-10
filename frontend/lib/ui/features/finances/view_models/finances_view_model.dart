@@ -51,7 +51,7 @@ class FinancesViewModel extends ChangeNotifier {
     } on ApiException catch (e) {
       _errorMessage = e.message;
     } catch (e) {
-      _errorMessage = 'Could not load your finances.';
+      _errorMessage = 'Não foi possível carregar suas finanças.';
     } finally {
       _isLoading = false;
       notifyListeners();

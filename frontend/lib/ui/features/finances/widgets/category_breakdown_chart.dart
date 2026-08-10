@@ -16,7 +16,7 @@ class CategoryBreakdownChart extends StatelessWidget {
     if (slices.isEmpty) {
       return const SizedBox(
         height: 160,
-        child: Center(child: Text('No categorized spending yet.')),
+        child: Center(child: Text('Nenhum gasto categorizado ainda.')),
       );
     }
 

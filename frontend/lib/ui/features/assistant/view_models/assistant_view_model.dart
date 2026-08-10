@@ -34,7 +34,7 @@ class AssistantViewModel extends ChangeNotifier {
     } on ApiException catch (e) {
       _errorMessage = e.message;
     } catch (e) {
-      _errorMessage = 'Could not load the assistant history.';
+      _errorMessage = 'Não foi possível carregar o histórico do assistente.';
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -52,7 +52,7 @@ class AssistantViewModel extends ChangeNotifier {
     } on ApiException catch (e) {
       _errorMessage = e.message;
     } catch (e) {
-      _errorMessage = 'Could not ask the assistant right now.';
+      _errorMessage = 'Não foi possível perguntar ao assistente agora.';
     } finally {
       _isAsking = false;
       notifyListeners();

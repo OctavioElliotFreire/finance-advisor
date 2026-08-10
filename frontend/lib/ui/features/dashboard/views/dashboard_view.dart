@@ -63,27 +63,27 @@ class _DashboardViewState extends State<DashboardView> {
             actions: [
               IconButton(
                 icon: const Icon(Icons.pie_chart),
-                tooltip: 'Finances',
+                tooltip: 'Finanças',
                 onPressed: widget.onViewFinances,
               ),
               IconButton(
                 icon: const Icon(Icons.warning_amber_rounded),
-                tooltip: 'Anomalies',
+                tooltip: 'Anomalias',
                 onPressed: widget.onViewAnomalies,
               ),
               IconButton(
                 icon: const Icon(Icons.account_balance),
-                tooltip: 'Connections',
+                tooltip: 'Conexões',
                 onPressed: widget.onManageConnections,
               ),
               IconButton(
                 icon: const Icon(Icons.group),
-                tooltip: 'Members',
+                tooltip: 'Membros',
                 onPressed: widget.onManageMembers,
               ),
               IconButton(
                 icon: const Icon(Icons.chat_bubble_outline),
-                tooltip: 'Assistant',
+                tooltip: 'Assistente',
                 onPressed: widget.onOpenAssistant,
               ),
             ],
@@ -104,7 +104,7 @@ class _DashboardViewState extends State<DashboardView> {
                       const Padding(
                         padding: EdgeInsets.only(top: 48),
                         child: Center(
-                          child: Text('Could not load the dashboard.'),
+                          child: Text('Não foi possível carregar o painel.'),
                         ),
                       )
                     else if (dashboard != null)
@@ -177,11 +177,11 @@ class _OverviewSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SummaryCard(
-      label: 'Total balance',
+      label: 'Saldo total',
       value: formatMoney(dashboard.totalBalance, _dominantCurrency(dashboard)),
       trailing: StatusChip.syncStatus(dashboard.syncStatus.status),
       child: dashboard.accounts.isEmpty
-          ? const Text('No accounts synced yet.')
+          ? const Text('Nenhuma conta sincronizada ainda.')
           : Column(
               children: [
                 for (final account in dashboard.accounts)
@@ -192,7 +192,7 @@ class _OverviewSection extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            account.name ?? account.type ?? 'Account',
+                            account.name ?? account.type ?? 'Conta',
                           ),
                         ),
                         Text(
@@ -229,12 +229,12 @@ class _CashFlowSection extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Monthly cash flow',
+              'Fluxo de caixa mensal',
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 12),
             if (monthlyCashFlow.isEmpty)
-              const Text('No transactions synced yet.')
+              const Text('Nenhuma movimentação sincronizada ainda.')
             else
               CashFlowChart(
                 data: CashFlowChartData.fromMonthlyCashFlow(monthlyCashFlow),
@@ -260,20 +260,20 @@ class _RecentTransactionsSection extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Recent transactions',
+              'Movimentações recentes',
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
             if (transactions.isEmpty)
               const Padding(
                 padding: EdgeInsets.only(top: 8),
-                child: Text('No transactions synced yet.'),
+                child: Text('Nenhuma movimentação sincronizada ainda.'),
               )
             else
               for (final txn in transactions)
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: Text(txn.description ?? 'Transaction'),
+                  title: Text(txn.description ?? 'Movimentação'),
                   subtitle: Text(
                     '${txn.accountName ?? ''} · ${formatShortDate(txn.transactionDate)}',
                   ),

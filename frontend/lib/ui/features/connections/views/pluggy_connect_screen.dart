@@ -17,10 +17,10 @@ class PluggyConnectScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Connect your institution')),
+      appBar: AppBar(title: const Text('Conecte sua instituição')),
       body: PluggyConnect(
         connectToken: connectToken,
-        language: 'en',
+        language: 'pt',
         includeSandbox: AppConfig.pluggyIncludeSandbox,
         onSuccess: (data) {
           final itemId = (data as Map?)?['item']?['id'] as String?;
@@ -29,7 +29,7 @@ class PluggyConnectScreen extends StatelessWidget {
         onError: (error) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Connection failed. Please try again.'),
+              content: Text('A conexão falhou. Tente novamente.'),
             ),
           );
           Navigator.of(context).pop();

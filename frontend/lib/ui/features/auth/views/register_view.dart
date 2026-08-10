@@ -61,11 +61,11 @@ class _RegisterViewState extends State<RegisterView> {
                 if (_viewModel.needsEmailConfirmation) {
                   return AppEmptyState(
                     icon: Icons.mark_email_read_outlined,
-                    title: 'Check your email',
-                    body: 'Confirm your account, then log in.',
+                    title: 'Verifique seu e-mail',
+                    body: 'Confirme sua conta e depois entre.',
                     action: TextButton(
                       onPressed: widget.onNavigateToLogin,
-                      child: const Text('Back to login'),
+                      child: const Text('Voltar ao login'),
                     ),
                   );
                 }
@@ -76,7 +76,7 @@ class _RegisterViewState extends State<RegisterView> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        'Create your account',
+                        'Crie sua conta',
                         style: Theme.of(context).textTheme.headlineMedium,
                         textAlign: TextAlign.center,
                       ),
@@ -86,10 +86,10 @@ class _RegisterViewState extends State<RegisterView> {
                         key: const Key('register_email_field'),
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
-                        decoration: const InputDecoration(labelText: 'Email'),
+                        decoration: const InputDecoration(labelText: 'E-mail'),
                         validator: (value) =>
                             (value == null || !value.contains('@'))
-                            ? 'Enter a valid email'
+                            ? 'Informe um e-mail válido'
                             : null,
                       ),
                       const SizedBox(height: 12),
@@ -98,22 +98,22 @@ class _RegisterViewState extends State<RegisterView> {
                         controller: _passwordController,
                         obscureText: true,
                         decoration: const InputDecoration(
-                          labelText: 'Password',
+                          labelText: 'Senha',
                         ),
                         validator: (value) =>
                             (value == null || value.length < 8)
-                            ? 'Use at least 8 characters'
+                            ? 'Use pelo menos 8 caracteres'
                             : null,
                       ),
                       const SizedBox(height: 20),
                       LoadingButton(
-                        label: 'Register',
+                        label: 'Criar conta',
                         isLoading: _viewModel.isLoading,
                         onPressed: _submit,
                       ),
                       TextButton(
                         onPressed: widget.onNavigateToLogin,
-                        child: const Text('Already have an account? Log in'),
+                        child: const Text('Já tem uma conta? Entrar'),
                       ),
                     ],
                   ),

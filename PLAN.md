@@ -1734,12 +1734,47 @@ against a real target):
   existing standalone screens rather than rebuilt inline. 9 new shared/
   chart widgets added per `design.md`'s Component Patterns/Chart Style
   Guide. `flutter analyze` clean, `flutter test` 116/116 (99 prior + 17
-  new). **Known gaps, not yet done**: no manual browser QA was run this
-  session (automated tests aren't a substitute — see `CLAUDE.md`'s
-  Verification Policy); web's top-bar nav (vs. the bottom-nav shell built
+  new). **Manual browser QA run 2026-08-09** against the built 4-tab shell
+  at `:8901` (`expect` MCP) — found and fixed two real bugs unrelated to the
+  design content itself: `AnomaliesViewModel.updateStatus()` wasn't calling
+  `notifyListeners()` on success (Confirm/Dismiss silently didn't update the
+  UI), and `InviteSender`'s unhandled Supabase rate-limit error surfaced to
+  the browser as a bare CORS failure instead of a clean 503. Both fixed and
+  re-verified live; see `CLAUDE.md`'s Lessons Learned and
+  `MANUAL_TESTING.md`'s A13/A15b gotcha notes. Responsive layout (375/768/
+  1440px), a11y audit, and perf trace all came back clean/expected. **Known
+  gaps, still not done**: web's top-bar nav (vs. the bottom-nav shell built
   here) isn't implemented; Início/Contas real-spec strings, per-member
   grouping, and the global period/member scope controls are still
   Phase 2+ work per the phased plan.
+* **Phase 2, part 1 — pt-BR localization (2026-08-09)**: direct string
+  replacement across the whole app (no ARB/l10n framework, per `design.md`),
+  including auth/invite screens even though their *visual* redesign is still
+  out of scope. `Intl.defaultLocale`/`initializeDateFormatting` pinned to
+  `pt_BR` in `main.dart`; `money.dart`'s `formatMoney` now emits `R$ 8.450,00`
+  (confirmed via `flutter test` that the space is a real NBSP, not a plain
+  space) with a leading minus sign for negatives; `formatShortDate` gives
+  `dd/MM/yyyy`. `formatMonth` was first ported to the full `yMMM` pt-BR
+  pattern ("abr. de 2026") but that overlapped neighboring labels on the
+  dashboard/analytics charts' x-axis at mobile width — caught during the
+  browser-QA pass, fixed by switching to a compact `MMM/yy` pattern
+  ("abr./26"). Added `test/flutter_test_config.dart` so the whole test suite
+  initializes `pt_BR` locale data once (any test exercising `DateFormat`
+  otherwise throws `LocaleDataException`). New `roleLabel()` helper
+  (`lib/ui/core/formatting/role_label.dart`) centralizes owner/member/viewer
+  → Responsável/Membro/Visualizador across households, invites, and family
+  screens. Pluggy Connect widget's `language` param switched from a
+  hardcoded `'en'` override to `'pt'` (the package's own default — this app
+  had been overriding it away from Portuguese). `flutter analyze` clean,
+  `flutter test` 121/121 (116 prior + 5 new `money_test.dart` cases).
+  Re-verified live end-to-end via `expect` MCP: login/register/household/
+  dashboard/finances/anomalies/family all render correctly in Portuguese
+  with correct currency/date formatting at mobile, tablet, and desktop
+  widths. Backend-generated content (LLM anomaly explanations, transaction
+  descriptions from bank feeds, category names from Pluggy) is intentionally
+  untouched — out of scope for a frontend string-replacement pass. **Not
+  done this pass**: Início/Contas real-spec content, per-member grouping,
+  and the global period/member scope controls remain later Phase 2+ work.
 
 ---
 

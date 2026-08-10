@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../data/models/household.dart';
 import '../../../../data/repositories/household_repository.dart';
+import '../../../core/formatting/role_label.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/error_banner.dart';
 import '../../../core/widgets/loading_state.dart';
@@ -40,29 +41,29 @@ class _HouseholdListViewState extends State<HouseholdListView> {
     final name = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Create household'),
+        title: const Text('Criar família'),
         content: Form(
           key: formKey,
           child: TextFormField(
             controller: controller,
             autofocus: true,
-            decoration: const InputDecoration(labelText: 'Household name'),
+            decoration: const InputDecoration(labelText: 'Nome da família'),
             validator: (value) => (value == null || value.trim().isEmpty)
-                ? 'Enter a household name'
+                ? 'Informe um nome para a família'
                 : null,
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: const Text('Cancelar'),
           ),
           FilledButton(
             onPressed: () {
               if (!formKey.currentState!.validate()) return;
               Navigator.of(context).pop(controller.text.trim());
             },
-            child: const Text('Create'),
+            child: const Text('Criar'),
           ),
         ],
       ),
@@ -77,12 +78,12 @@ class _HouseholdListViewState extends State<HouseholdListView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Your households'),
+        title: const Text('Suas famílias'),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: widget.onLogout,
-            tooltip: 'Log out',
+            tooltip: 'Sair',
           ),
         ],
       ),
@@ -106,14 +107,14 @@ class _HouseholdListViewState extends State<HouseholdListView> {
                 if (_viewModel.households.isEmpty && !_viewModel.isLoading)
                   const AppEmptyState(
                     icon: Icons.house_outlined,
-                    title: 'No households yet',
-                    body: 'Create one to get started.',
+                    title: 'Nenhuma família ainda',
+                    body: 'Crie uma para começar.',
                   ),
                 for (final household in _viewModel.households)
                   Card(
                     child: ListTile(
                       title: Text(household.name),
-                      subtitle: Text('Role: ${household.role}'),
+                      subtitle: Text('Papel: ${roleLabel(household.role)}'),
                       onTap: () => widget.onHouseholdSelected(household),
                     ),
                   ),

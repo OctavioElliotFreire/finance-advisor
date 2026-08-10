@@ -15,7 +15,7 @@ class BalanceHistoryChart extends StatelessWidget {
     if (points.isEmpty) {
       return const SizedBox(
         height: 220,
-        child: Center(child: Text('No balance history yet.')),
+        child: Center(child: Text('Nenhum histórico de saldo ainda.')),
       );
     }
 

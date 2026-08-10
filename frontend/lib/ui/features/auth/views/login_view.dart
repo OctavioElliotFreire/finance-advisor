@@ -72,10 +72,10 @@ class _LoginViewState extends State<LoginView> {
                         key: const Key('login_email_field'),
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
-                        decoration: const InputDecoration(labelText: 'Email'),
+                        decoration: const InputDecoration(labelText: 'E-mail'),
                         validator: (value) =>
                             (value == null || !value.contains('@'))
-                            ? 'Enter a valid email'
+                            ? 'Informe um e-mail válido'
                             : null,
                       ),
                       const SizedBox(height: 12),
@@ -84,21 +84,21 @@ class _LoginViewState extends State<LoginView> {
                         controller: _passwordController,
                         obscureText: true,
                         decoration: const InputDecoration(
-                          labelText: 'Password',
+                          labelText: 'Senha',
                         ),
                         validator: (value) => (value == null || value.isEmpty)
-                            ? 'Enter your password'
+                            ? 'Informe sua senha'
                             : null,
                       ),
                       const SizedBox(height: 20),
                       LoadingButton(
-                        label: 'Log in',
+                        label: 'Entrar',
                         isLoading: _viewModel.isLoading,
                         onPressed: _submit,
                       ),
                       TextButton(
                         onPressed: widget.onNavigateToRegister,
-                        child: const Text("Don't have an account? Register"),
+                        child: const Text('Ainda não tem conta? Criar conta'),
                       ),
                     ],
                   ),

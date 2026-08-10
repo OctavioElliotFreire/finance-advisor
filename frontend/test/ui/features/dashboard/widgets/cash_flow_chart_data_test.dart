@@ -13,10 +13,10 @@ void main() {
 
       expect(data.isEmpty, isFalse);
       expect(data.points, hasLength(2));
-      expect(data.points[0].monthLabel, 'Jun 2026');
+      expect(data.points[0].monthLabel, 'jun./26');
       expect(data.points[0].income, 5000);
       expect(data.points[0].expenses, 3200);
-      expect(data.points[1].monthLabel, 'Jul 2026');
+      expect(data.points[1].monthLabel, 'jul./26');
     });
 
     test('handles an empty list without throwing', () {

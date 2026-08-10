@@ -66,7 +66,7 @@ class _AnalyticsViewState extends State<AnalyticsView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Analytics')),
+      appBar: AppBar(title: const Text('Análises')),
       body: ListenableBuilder(
         listenable: Listenable.merge([_dashboardViewModel, _financesViewModel]),
         builder: (context, _) {
@@ -88,9 +88,9 @@ class _AnalyticsViewState extends State<AnalyticsView> {
                   selected: _segment,
                   onChanged: (value) => setState(() => _segment = value),
                   segments: const [
-                    AppSegment(value: _AnalyticsSegment.spending, label: 'Spending'),
-                    AppSegment(value: _AnalyticsSegment.cashFlow, label: 'Cash flow'),
-                    AppSegment(value: _AnalyticsSegment.investments, label: 'Investments'),
+                    AppSegment(value: _AnalyticsSegment.spending, label: 'Gastos'),
+                    AppSegment(value: _AnalyticsSegment.cashFlow, label: 'Fluxo'),
+                    AppSegment(value: _AnalyticsSegment.investments, label: 'Investimentos'),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -128,17 +128,17 @@ class _SpendingSection extends StatelessWidget {
       children: [
         if (!chartData.isEmpty) MonthlySpendChart(data: chartData),
         const SizedBox(height: 24),
-        Text('By category', style: Theme.of(context).textTheme.titleSmall),
+        Text('Por categoria', style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 8),
         if (categories.isEmpty)
-          const AppEmptyState(icon: Icons.pie_chart_outline, title: 'No categorized spending yet')
+          const AppEmptyState(icon: Icons.pie_chart_outline, title: 'Nenhum gasto categorizado ainda')
         else
           for (final item in categories)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: Row(
                 children: [
-                  Expanded(child: Text(item.category ?? 'Uncategorized')),
+                  Expanded(child: Text(item.category ?? 'Sem categoria')),
                   Text(
                     formatMoney(item.total, 'BRL'),
                     style: Theme.of(context).textTheme.bodySmall,
@@ -161,7 +161,7 @@ class _CashFlowSection extends StatelessWidget {
     final monthlyCashFlow = dashboardViewModel.dashboard?.monthlyCashFlow ?? const [];
     final chartData = CashFlowChartData.fromMonthlyCashFlow(monthlyCashFlow);
     if (chartData.isEmpty) {
-      return const AppEmptyState(icon: Icons.show_chart, title: 'No cash flow data yet');
+      return const AppEmptyState(icon: Icons.show_chart, title: 'Nenhum dado de fluxo de caixa ainda');
     }
     return ComboCashFlowChart(data: chartData);
   }
@@ -176,14 +176,14 @@ class _InvestmentsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final investments = financesViewModel.investments;
     if (investments.isEmpty) {
-      return const AppEmptyState(icon: Icons.trending_up, title: 'No investments synced yet');
+      return const AppEmptyState(icon: Icons.trending_up, title: 'Nenhum investimento sincronizado ainda');
     }
     return Column(
       children: [
         for (final investment in investments)
           Card(
             child: ListTile(
-              title: Text(investment.name ?? 'Investment'),
+              title: Text(investment.name ?? 'Investimento'),
               subtitle: Text(investment.subtype ?? investment.type ?? ''),
               trailing: Text(
                 investment.value == null ? '—' : formatMoney(investment.value!, investment.currencyCode),

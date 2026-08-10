@@ -22,8 +22,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(BarChart), findsOneWidget);
-    expect(find.text('Income'), findsOneWidget);
-    expect(find.text('Expenses'), findsOneWidget);
+    expect(find.text('Entradas'), findsOneWidget);
+    expect(find.text('Saídas'), findsOneWidget);
   });
 
   testWidgets('renders without throwing when there is no data', (

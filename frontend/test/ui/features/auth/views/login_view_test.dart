@@ -64,11 +64,11 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('Log in'));
+    await tester.tap(find.text('Entrar'));
     await tester.pump();
 
-    expect(find.text('Enter a valid email'), findsOneWidget);
-    expect(find.text('Enter your password'), findsOneWidget);
+    expect(find.text('Informe um e-mail válido'), findsOneWidget);
+    expect(find.text('Informe sua senha'), findsOneWidget);
   });
 
   testWidgets('calls onLoggedIn after a successful login', (tester) async {
@@ -92,7 +92,7 @@ void main() {
       find.byKey(const Key('login_password_field')),
       'hunter22',
     );
-    await tester.tap(find.text('Log in'));
+    await tester.tap(find.text('Entrar'));
     await tester.pumpAndSettle();
 
     expect(loggedIn, isTrue);

@@ -10,7 +10,7 @@ import '../../../core/widgets/loading_state.dart';
 import '../view_models/assistant_view_model.dart';
 
 const _disclaimer =
-    'Informational only — not financial advice, and the assistant can make mistakes.';
+    'Apenas informativo — não é aconselhamento financeiro, e o assistente pode cometer erros.';
 const _questionMaxLength = 500;
 
 class AssistantView extends StatefulWidget {
@@ -53,7 +53,7 @@ class _AssistantViewState extends State<AssistantView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('${widget.householdName} · Assistant')),
+      appBar: AppBar(title: Text('${widget.householdName} · Assistente')),
       body: ListenableBuilder(
         listenable: _viewModel,
         builder: (context, _) {
@@ -73,9 +73,9 @@ class _AssistantViewState extends State<AssistantView> {
                     : _viewModel.messages.isEmpty
                     ? const AppEmptyState(
                         icon: Icons.chat_bubble_outline,
-                        title: 'Ask a question about your household finances',
+                        title: 'Faça uma pergunta sobre as finanças da sua família',
                         body:
-                            'For example: "How much did I spend on groceries this month?"',
+                            'Por exemplo: "Quanto gastei com mercado este mês?"',
                       )
                     : ListView.builder(
                         padding: const EdgeInsets.all(16),
@@ -99,7 +99,7 @@ class _AssistantViewState extends State<AssistantView> {
                         maxLines: 3,
                         minLines: 1,
                         decoration: const InputDecoration(
-                          labelText: 'Ask about your finances',
+                          labelText: 'Pergunte sobre suas finanças',
                           border: OutlineInputBorder(),
                         ),
                         onSubmitted: (_) => _submit(),
@@ -107,7 +107,7 @@ class _AssistantViewState extends State<AssistantView> {
                     ),
                     const SizedBox(width: 12),
                     LoadingButton(
-                      label: 'Ask',
+                      label: 'Perguntar',
                       isLoading: _viewModel.isAsking,
                       onPressed: _submit,
                     ),

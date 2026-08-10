@@ -105,7 +105,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Elliot Family'), findsOneWidget);
-    expect(find.text('Set a password to finish creating your account.'), findsOneWidget);
+    expect(
+      find.text('Defina uma senha para concluir a criação da sua conta.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('shows an expired message and no form', (tester) async {
@@ -133,7 +136,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('expired'), findsOneWidget);
+    expect(find.textContaining('expirou'), findsOneWidget);
     expect(find.byType(TextFormField), findsNothing);
   });
 
@@ -177,7 +180,7 @@ void main() {
       find.byKey(const Key('accept_invite_confirm_password_field')),
       'newpassword1',
     );
-    await tester.tap(find.text('Join household'));
+    await tester.tap(find.text('Entrar na família'));
     await tester.pumpAndSettle();
 
     expect(fakeAuthService.passwordUpdates, ['newpassword1']);
@@ -222,7 +225,7 @@ void main() {
       find.byKey(const Key('accept_invite_confirm_password_field')),
       'newpassword1',
     );
-    await tester.tap(find.text('Join household'));
+    await tester.tap(find.text('Entrar na família'));
     await tester.pumpAndSettle();
 
     expect(find.text('This invite has already been accepted.'), findsOneWidget);
@@ -261,9 +264,9 @@ void main() {
       find.byKey(const Key('accept_invite_confirm_password_field')),
       'different',
     );
-    await tester.tap(find.text('Join household'));
+    await tester.tap(find.text('Entrar na família'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Passwords do not match'), findsOneWidget);
+    expect(find.text('As senhas não coincidem'), findsOneWidget);
   });
 }

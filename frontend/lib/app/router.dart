@@ -125,7 +125,7 @@ GoRouter buildRouter({
                       return DashboardView(
                         dashboardRepository: dashboardRepository,
                         householdId: householdId,
-                        householdName: 'Household',
+                        householdName: 'Família',
                         onManageConnections: () => context.push('/households/$householdId/connections'),
                         onViewFinances: () => context.push('/households/$householdId/finances'),
                         onViewAnomalies: () => context.push('/households/$householdId/anomalies'),
@@ -181,14 +181,14 @@ GoRouter buildRouter({
         builder: (context, state) => AssistantView(
           assistantRepository: assistantRepository,
           householdId: state.pathParameters['householdId']!,
-          householdName: state.extra as String? ?? 'Household',
+          householdName: state.extra as String? ?? 'Família',
         ),
       ),
       GoRoute(
         path: '/households/:householdId/members',
         builder: (context, state) {
           final householdId = state.pathParameters['householdId']!;
-          final householdName = state.extra as String? ?? 'Household';
+          final householdName = state.extra as String? ?? 'Família';
           return MembersView(
             householdRepository: householdRepository,
             householdId: householdId,
@@ -207,7 +207,7 @@ GoRouter buildRouter({
           householdRepository: householdRepository,
           householdId: state.pathParameters['householdId']!,
           memberId: state.pathParameters['memberId']!,
-          memberEmail: state.extra as String? ?? 'Member',
+          memberEmail: state.extra as String? ?? 'Membro',
         ),
       ),
       GoRoute(
@@ -215,7 +215,7 @@ GoRouter buildRouter({
         builder: (context, state) => ConnectionsView(
           connectionRepository: connectionRepository,
           householdId: state.pathParameters['householdId']!,
-          householdName: state.extra as String? ?? 'Household',
+          householdName: state.extra as String? ?? 'Família',
           currentUserEmail: authRepository.currentUser?.email,
         ),
       ),
@@ -224,7 +224,7 @@ GoRouter buildRouter({
         builder: (context, state) => FinancesView(
           financeRepository: financeRepository,
           householdId: state.pathParameters['householdId']!,
-          householdName: state.extra as String? ?? 'Household',
+          householdName: state.extra as String? ?? 'Família',
         ),
       ),
       GoRoute(
@@ -232,7 +232,7 @@ GoRouter buildRouter({
         builder: (context, state) => AnomaliesView(
           anomalyRepository: anomalyRepository,
           householdId: state.pathParameters['householdId']!,
-          householdName: state.extra as String? ?? 'Household',
+          householdName: state.extra as String? ?? 'Família',
         ),
       ),
     ],

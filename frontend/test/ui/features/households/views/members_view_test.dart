@@ -159,9 +159,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('owner@example.com'), findsOneWidget);
-    expect(find.text('Role: owner'), findsOneWidget);
+    expect(find.text('Papel: Responsável'), findsOneWidget);
     expect(find.text('kid@example.com'), findsOneWidget);
-    expect(find.text('Role: member'), findsOneWidget);
+    expect(find.text('Papel: Membro'), findsOneWidget);
   });
 
   testWidgets('shows existing pending invites on load', (tester) async {
@@ -191,9 +191,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Pending invites'), findsOneWidget);
+    expect(find.text('Convites pendentes'), findsOneWidget);
     expect(find.text('already-invited@example.com'), findsOneWidget);
-    expect(find.text('Role: viewer · not yet accepted'), findsOneWidget);
+    expect(find.text('Papel: Visualizador · ainda não aceito'), findsOneWidget);
   });
 
   testWidgets('shows an empty state when there are no members', (
@@ -212,7 +212,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('No members yet'), findsOneWidget);
+    expect(find.text('Nenhum membro ainda'), findsOneWidget);
   });
 
   testWidgets('inviting an existing user adds them to the list', (
@@ -235,11 +235,11 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextFormField), 'newmember@example.com');
-    await tester.tap(find.text('Invite'));
+    await tester.tap(find.text('Convidar'));
     await tester.pumpAndSettle();
 
     expect(find.text('newmember@example.com'), findsOneWidget);
-    expect(find.text('Role: member'), findsOneWidget);
+    expect(find.text('Papel: Membro'), findsOneWidget);
   });
 
   testWidgets('shows the backend error when invite fails', (tester) async {
@@ -267,7 +267,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextFormField), 'ghost@example.com');
-    await tester.tap(find.text('Invite'));
+    await tester.tap(find.text('Convidar'));
     await tester.pumpAndSettle();
 
     expect(find.text('This household has reached its member limit.'), findsOneWidget);
@@ -295,13 +295,16 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextFormField), 'never-signed-up@example.com');
-    await tester.tap(find.text('Invite'));
+    await tester.tap(find.text('Convidar'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Pending invites'), findsOneWidget);
+    expect(find.text('Convites pendentes'), findsOneWidget);
     expect(find.text('never-signed-up@example.com'), findsOneWidget);
-    expect(find.text('Role: member · not yet accepted'), findsOneWidget);
-    expect(find.text('Invite email sent to never-signed-up@example.com.'), findsOneWidget);
+    expect(find.text('Papel: Membro · ainda não aceito'), findsOneWidget);
+    expect(
+      find.text('E-mail de convite enviado para never-signed-up@example.com.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('owner sees a manage-access affordance only on non-owner rows', (
@@ -342,9 +345,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byTooltip('Manage access'), findsOneWidget);
+    expect(find.byTooltip('Gerenciar acesso'), findsOneWidget);
 
-    await tester.tap(find.byTooltip('Manage access'));
+    await tester.tap(find.byTooltip('Gerenciar acesso'));
     expect(manageAccessMemberId, 'member-2');
   });
 
@@ -382,6 +385,6 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byTooltip('Manage access'), findsNothing);
+    expect(find.byTooltip('Gerenciar acesso'), findsNothing);
   });
 }

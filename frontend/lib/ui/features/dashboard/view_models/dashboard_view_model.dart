@@ -32,7 +32,7 @@ class DashboardViewModel extends ChangeNotifier {
     } on ApiException catch (e) {
       _errorMessage = e.message;
     } catch (e) {
-      _errorMessage = 'Could not load the dashboard.';
+      _errorMessage = 'Não foi possível carregar o painel.';
     } finally {
       _isLoading = false;
       notifyListeners();

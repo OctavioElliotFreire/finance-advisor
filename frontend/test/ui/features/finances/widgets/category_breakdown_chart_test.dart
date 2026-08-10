@@ -51,6 +51,6 @@ void main() {
     await pump(tester, const CategoryBreakdownChartData(slices: []));
 
     expect(find.byType(PieChart), findsNothing);
-    expect(find.text('No categorized spending yet.'), findsOneWidget);
+    expect(find.text('Nenhum gasto categorizado ainda.'), findsOneWidget);
   });
 }

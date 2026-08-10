@@ -47,6 +47,6 @@ void main() {
     await pump(tester, const BalanceHistoryChartData(points: []));
 
     expect(find.byType(LineChart), findsNothing);
-    expect(find.text('No balance history yet.'), findsOneWidget);
+    expect(find.text('Nenhum histórico de saldo ainda.'), findsOneWidget);
   });
 }

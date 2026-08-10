@@ -40,7 +40,7 @@ class MemberAccessViewModel extends ChangeNotifier {
     } on ApiException catch (e) {
       _errorMessage = e.message;
     } catch (e) {
-      _errorMessage = 'Could not load this member\'s access.';
+      _errorMessage = 'Não foi possível carregar o acesso deste membro.';
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -78,7 +78,7 @@ class MemberAccessViewModel extends ChangeNotifier {
       _errorMessage = e.message;
       return false;
     } catch (e) {
-      _errorMessage = 'Could not save this member\'s access.';
+      _errorMessage = 'Não foi possível salvar o acesso deste membro.';
       return false;
     } finally {
       _isSaving = false;

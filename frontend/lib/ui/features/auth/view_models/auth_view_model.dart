@@ -44,7 +44,7 @@ class AuthViewModel extends ChangeNotifier {
       _errorMessage = e.message;
       return false;
     } catch (e) {
-      _errorMessage = 'Something went wrong. Please try again.';
+      _errorMessage = 'Algo deu errado. Tente novamente.';
       return false;
     } finally {
       _isLoading = false;

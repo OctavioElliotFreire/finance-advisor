@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../data/repositories/household_repository.dart';
+import '../../../core/formatting/role_label.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/error_banner.dart';
 import '../../../core/widgets/loading_state.dart';
@@ -69,8 +70,8 @@ class _MembersViewState extends State<MembersView> {
         SnackBar(
           content: Text(
             outcome == 'added'
-                ? '$email was added to the household.'
-                : 'Invite email sent to $email.',
+                ? '$email foi adicionado à família.'
+                : 'E-mail de convite enviado para $email.',
           ),
         ),
       );
@@ -80,11 +81,11 @@ class _MembersViewState extends State<MembersView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('${widget.householdName} — Members')),
+      appBar: AppBar(title: Text('${widget.householdName} — Membros')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _toggleInviteForm,
         icon: Icon(_isInviting ? Icons.close : Icons.person_add),
-        label: Text(_isInviting ? 'Cancel' : 'Invite member'),
+        label: Text(_isInviting ? 'Cancelar' : 'Convidar membro'),
       ),
       body: ListenableBuilder(
         listenable: _viewModel,
@@ -118,18 +119,18 @@ class _MembersViewState extends State<MembersView> {
                 if (_viewModel.members.isEmpty && !_viewModel.isLoading)
                   const AppEmptyState(
                     icon: Icons.people_outline,
-                    title: 'No members yet',
+                    title: 'Nenhum membro ainda',
                   ),
                 for (final member in _viewModel.members)
                   Card(
                     child: ListTile(
                       leading: const Icon(Icons.person),
                       title: Text(member.email),
-                      subtitle: Text('Role: ${member.role}'),
+                      subtitle: Text('Papel: ${roleLabel(member.role)}'),
                       trailing: isOwner && member.role != 'owner'
                           ? IconButton(
                               icon: const Icon(Icons.tune),
-                              tooltip: 'Manage access',
+                              tooltip: 'Gerenciar acesso',
                               onPressed: () => widget.onManageAccess?.call(
                                 member.id,
                                 member.email,
@@ -139,14 +140,14 @@ class _MembersViewState extends State<MembersView> {
                     ),
                   ),
                 if (_viewModel.pendingInvites.isNotEmpty) ...[
-                  const SectionHeader(title: 'Pending invites'),
+                  const SectionHeader(title: 'Convites pendentes'),
                   for (final invite in _viewModel.pendingInvites)
                     Card(
                       child: ListTile(
                         leading: const Icon(Icons.hourglass_empty),
                         title: Text(invite.email),
                         subtitle: Text(
-                          'Role: ${invite.role} · not yet accepted',
+                          'Papel: ${roleLabel(invite.role)} · ainda não aceito',
                         ),
                       ),
                     ),
@@ -188,7 +189,7 @@ class _InviteMemberForm extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Invite member',
+                'Convidar membro',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 16),
@@ -196,18 +197,18 @@ class _InviteMemberForm extends StatelessWidget {
                 controller: emailController,
                 autofocus: true,
                 keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(labelText: 'Email'),
+                decoration: const InputDecoration(labelText: 'E-mail'),
                 validator: (value) => (value == null || !value.contains('@'))
-                    ? 'Enter a valid email'
+                    ? 'Informe um e-mail válido'
                     : null,
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 initialValue: role,
-                decoration: const InputDecoration(labelText: 'Role'),
+                decoration: const InputDecoration(labelText: 'Papel'),
                 items: const [
-                  DropdownMenuItem(value: 'member', child: Text('Member')),
-                  DropdownMenuItem(value: 'viewer', child: Text('Viewer')),
+                  DropdownMenuItem(value: 'member', child: Text('Membro')),
+                  DropdownMenuItem(value: 'viewer', child: Text('Visualizador')),
                 ],
                 onChanged: (value) {
                   if (value != null) onRoleChanged(value);
@@ -217,11 +218,11 @@ class _InviteMemberForm extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  TextButton(onPressed: onCancel, child: const Text('Cancel')),
+                  TextButton(onPressed: onCancel, child: const Text('Cancelar')),
                   const SizedBox(width: 8),
                   FilledButton(
                     onPressed: onSubmit,
-                    child: const Text('Invite'),
+                    child: const Text('Convidar'),
                   ),
                 ],
               ),

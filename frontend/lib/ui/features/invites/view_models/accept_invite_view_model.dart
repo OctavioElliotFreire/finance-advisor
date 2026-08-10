@@ -40,7 +40,7 @@ class AcceptInviteViewModel extends ChangeNotifier {
     } on ApiException catch (e) {
       _errorMessage = e.message;
     } catch (e) {
-      _errorMessage = 'Could not load this invite.';
+      _errorMessage = 'Não foi possível carregar este convite.';
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -58,7 +58,7 @@ class AcceptInviteViewModel extends ChangeNotifier {
     } on ApiException catch (e) {
       _errorMessage = e.message;
     } catch (e) {
-      _errorMessage = 'Could not accept this invite.';
+      _errorMessage = 'Não foi possível aceitar este convite.';
     } finally {
       _isSubmitting = false;
       notifyListeners();

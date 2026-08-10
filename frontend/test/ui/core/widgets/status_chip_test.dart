@@ -17,29 +17,29 @@ void main() {
   });
 
   group('StatusChip.syncStatus', () {
-    testWidgets('maps null to Never synced', (tester) async {
+    testWidgets('maps null to Nunca sincronizado', (tester) async {
       await tester.pumpWidget(_withTheme(StatusChip.syncStatus(null)));
-      expect(find.text('Never synced'), findsOneWidget);
+      expect(find.text('Nunca sincronizado'), findsOneWidget);
     });
 
-    testWidgets('maps completed to Synced', (tester) async {
+    testWidgets('maps completed to Sincronizado', (tester) async {
       await tester.pumpWidget(_withTheme(StatusChip.syncStatus('completed')));
-      expect(find.text('Synced'), findsOneWidget);
+      expect(find.text('Sincronizado'), findsOneWidget);
     });
 
-    testWidgets('maps partially_completed to Partially synced', (tester) async {
+    testWidgets('maps partially_completed to Sincronizado parcialmente', (tester) async {
       await tester.pumpWidget(_withTheme(StatusChip.syncStatus('partially_completed')));
-      expect(find.text('Partially synced'), findsOneWidget);
+      expect(find.text('Sincronizado parcialmente'), findsOneWidget);
     });
 
-    testWidgets('maps failed to Sync failed', (tester) async {
+    testWidgets('maps failed to Falha na sincronização', (tester) async {
       await tester.pumpWidget(_withTheme(StatusChip.syncStatus('failed')));
-      expect(find.text('Sync failed'), findsOneWidget);
+      expect(find.text('Falha na sincronização'), findsOneWidget);
     });
 
-    testWidgets('maps running to Syncing…', (tester) async {
+    testWidgets('maps running to Sincronizando…', (tester) async {
       await tester.pumpWidget(_withTheme(StatusChip.syncStatus('running')));
-      expect(find.text('Syncing…'), findsOneWidget);
+      expect(find.text('Sincronizando…'), findsOneWidget);
     });
 
     testWidgets('falls back to the raw status for unknown values', (tester) async {
@@ -49,29 +49,29 @@ void main() {
   });
 
   group('StatusChip.connectionStatus', () {
-    testWidgets('maps pending to Pending first sync', (tester) async {
+    testWidgets('maps pending to Aguardando primeira sincronização', (tester) async {
       await tester.pumpWidget(_withTheme(StatusChip.connectionStatus('pending')));
-      expect(find.text('Pending first sync'), findsOneWidget);
+      expect(find.text('Aguardando primeira sincronização'), findsOneWidget);
     });
 
-    testWidgets('maps UPDATED to Active', (tester) async {
+    testWidgets('maps UPDATED to Ativo', (tester) async {
       await tester.pumpWidget(_withTheme(StatusChip.connectionStatus('UPDATED')));
-      expect(find.text('Active'), findsOneWidget);
+      expect(find.text('Ativo'), findsOneWidget);
     });
 
-    testWidgets('maps LOGIN_ERROR to Login error', (tester) async {
+    testWidgets('maps LOGIN_ERROR to Erro de login', (tester) async {
       await tester.pumpWidget(_withTheme(StatusChip.connectionStatus('LOGIN_ERROR')));
-      expect(find.text('Login error'), findsOneWidget);
+      expect(find.text('Erro de login'), findsOneWidget);
     });
 
-    testWidgets('maps WAITING_USER_INPUT to Needs attention', (tester) async {
+    testWidgets('maps WAITING_USER_INPUT to Requer atenção', (tester) async {
       await tester.pumpWidget(_withTheme(StatusChip.connectionStatus('WAITING_USER_INPUT')));
-      expect(find.text('Needs attention'), findsOneWidget);
+      expect(find.text('Requer atenção'), findsOneWidget);
     });
 
     testWidgets('is case-insensitive', (tester) async {
       await tester.pumpWidget(_withTheme(StatusChip.connectionStatus('updated')));
-      expect(find.text('Active'), findsOneWidget);
+      expect(find.text('Ativo'), findsOneWidget);
     });
   });
 }

@@ -25,7 +25,7 @@ class MonthlySpendChart extends StatelessWidget {
     if (points.isEmpty) {
       return const SizedBox(
         height: 160,
-        child: Center(child: Text('No spending data yet.')),
+        child: Center(child: Text('Nenhum dado de gastos ainda.')),
       );
     }
 

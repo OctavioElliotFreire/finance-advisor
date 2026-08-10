@@ -24,14 +24,17 @@ class StatusChip extends StatelessWidget {
   /// Maps a [SyncJob.status] value (`null` before any sync) to a chip.
   static StatusChip syncStatus(String? status) {
     if (status == null) {
-      return const StatusChip(label: 'Never synced', tone: StatusTone.neutral);
+      return const StatusChip(
+        label: 'Nunca sincronizado',
+        tone: StatusTone.neutral,
+      );
     }
     final (tone, label) = switch (status) {
-      'completed' => (StatusTone.neutral, 'Synced'),
-      'partially_completed' => (StatusTone.warning, 'Partially synced'),
-      'failed' => (StatusTone.negative, 'Sync failed'),
-      'running' => (StatusTone.info, 'Syncing…'),
-      'queued' => (StatusTone.info, 'Queued'),
+      'completed' => (StatusTone.neutral, 'Sincronizado'),
+      'partially_completed' => (StatusTone.warning, 'Sincronizado parcialmente'),
+      'failed' => (StatusTone.negative, 'Falha na sincronização'),
+      'running' => (StatusTone.info, 'Sincronizando…'),
+      'queued' => (StatusTone.info, 'Na fila'),
       _ => (StatusTone.neutral, status),
     };
     return StatusChip(label: label, tone: tone);
@@ -45,13 +48,13 @@ class StatusChip extends StatelessWidget {
   /// external and not guaranteed.
   static StatusChip connectionStatus(String status) {
     final (tone, label) = switch (status.toUpperCase()) {
-      'PENDING' => (StatusTone.neutral, 'Pending first sync'),
-      'UPDATED' => (StatusTone.neutral, 'Active'),
-      'UPDATING' => (StatusTone.info, 'Updating…'),
-      'OUTDATED' => (StatusTone.warning, 'Outdated'),
-      'WAITING_USER_INPUT' => (StatusTone.warning, 'Needs attention'),
-      'LOGIN_ERROR' => (StatusTone.negative, 'Login error'),
-      'ERROR' => (StatusTone.negative, 'Error'),
+      'PENDING' => (StatusTone.neutral, 'Aguardando primeira sincronização'),
+      'UPDATED' => (StatusTone.neutral, 'Ativo'),
+      'UPDATING' => (StatusTone.info, 'Atualizando…'),
+      'OUTDATED' => (StatusTone.warning, 'Desatualizado'),
+      'WAITING_USER_INPUT' => (StatusTone.warning, 'Requer atenção'),
+      'LOGIN_ERROR' => (StatusTone.negative, 'Erro de login'),
+      'ERROR' => (StatusTone.negative, 'Erro'),
       _ => (StatusTone.neutral, status),
     };
     return StatusChip(label: label, tone: tone);

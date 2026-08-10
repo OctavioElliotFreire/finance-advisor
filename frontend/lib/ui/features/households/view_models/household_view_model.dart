@@ -28,7 +28,7 @@ class HouseholdViewModel extends ChangeNotifier {
     } on ApiException catch (e) {
       _errorMessage = e.message;
     } catch (e) {
-      _errorMessage = 'Could not load households.';
+      _errorMessage = 'Não foi possível carregar as famílias.';
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -49,7 +49,7 @@ class HouseholdViewModel extends ChangeNotifier {
       notifyListeners();
       return false;
     } catch (e) {
-      _errorMessage = 'Could not create household.';
+      _errorMessage = 'Não foi possível criar a família.';
       notifyListeners();
       return false;
     }

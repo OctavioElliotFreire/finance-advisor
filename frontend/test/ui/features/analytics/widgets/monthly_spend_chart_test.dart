@@ -26,6 +26,6 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: Scaffold(body: MonthlySpendChart(data: data))));
 
     expect(find.byType(BarChart), findsNothing);
-    expect(find.text('No spending data yet.'), findsOneWidget);
+    expect(find.text('Nenhum dado de gastos ainda.'), findsOneWidget);
   });
 }
