@@ -1937,6 +1937,55 @@ against a real target):
   documented in `CLAUDE.md`'s Lessons Learned earlier this session
   (`pkill` doesn't reliably kill `uvicorn` here) — killed by PID via
   PowerShell before this pass's QA, per that entry.
+* **Web top-bar navigation (2026-08-10)**: `design.md`'s §6a responsive nav
+  shift implemented — below `household_shell.dart`'s new `_wideBreakpoint`
+  (1024px, matching §6a's Grid section verbatim) nothing changes; at or
+  above it, the bottom `NavigationBar` is replaced by a new `TopBarNav`
+  widget (brand mark · the same 4 destinations, now inline text labels ·
+  the period pill, right-aligned, shown only for tabs that already show it
+  today), with member chips rendered in their own strip beneath, per spec
+  order. Both the mobile `NavigationBar` and `TopBarNav` now build their
+  destinations from one shared `_destinations` list so the two layouts
+  can't drift out of sync with each other's labels/icons. Scoped down from
+  §6a's full ask on purpose — that section also specifies a 12-column
+  grid, side-by-side chart+breakdown layouts, a six-column Extrato table,
+  and a right-side drill-down panel; none of that is touched here, only
+  the nav chrome. Also scoped out: each of the 4 tab screens keeps its own
+  `Scaffold`/`AppBar` underneath the new strip (fully merging into one bar
+  would mean threading a "suppress my own AppBar" signal into all 4
+  screens — a materially bigger refactor discovered while scoping, not
+  attempted this pass), and the mockup's theme toggle/avatar are omitted
+  (dark-mode application is deliberately deferred; no settings screen or
+  user-menu exists anywhere in the shell for an avatar to open). `TopBarNav`
+  was deliberately extracted as its own small widget — taking plain
+  `currentIndex`/`onDestinationSelected` params instead of depending on
+  `StatefulNavigationShell` — specifically so it's unit-testable without a
+  real `go_router` shell, which has no test-friendly constructor and would
+  otherwise require a much heavier fake-session/fake-household fixture than
+  this change justifies (see `test/widget_test.dart` for how deep that
+  harness would need to go). New `test/app/top_bar_nav_test.dart` (4
+  tests: all labels + brand render, active tab visually distinguished,
+  tapping invokes the callback with the right index, period-pill slot
+  gated correctly) caught a real overflow bug on its first run — the nav
+  labels row didn't fit at exactly the test's default width, fixed by
+  wrapping the destinations in a horizontally-scrolling `Expanded` instead
+  of a plain `Row`, which also hardens real usage against a resize landing
+  awkwardly close to the breakpoint or larger system font scaling.
+  `flutter test` 176/176 (172 prior + 4 new), `flutter analyze` clean. The
+  responsive branch itself (bottom nav vs. top bar based on width) has
+  **no automated test** — `StatefulNavigationShell` can't be constructed
+  in isolation, so this is disclosed explicitly per `CLAUDE.md`'s
+  Verification Policy rather than silently skipped, and manual QA is the
+  real coverage for it. **Manual browser QA run 2026-08-10** against the
+  QA Test Household: confirmed at 400×800 the bottom nav still renders
+  exactly as before (no regression); at 1280×800 confirmed the top bar
+  appears with the brand mark, all 4 destinations, the active tab bolded,
+  and the period pill on Início; clicked "Contas" and "Família" in the top
+  bar and confirmed real navigation (active-tab highlight moves, screen
+  content changes, Contas' own local Extrato period pill still renders
+  correctly alongside — no double-pill duplication); confirmed Família's
+  top bar correctly shows neither a period pill nor a member-chip strip,
+  matching its `_showsPeriodAtShell`/`_showsMembers` entries.
 
 ---
 
