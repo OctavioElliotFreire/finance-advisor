@@ -28,3 +28,29 @@ String formatMonth(String yearMonth) {
 String formatShortDate(DateTime date) {
   return DateFormat.yMd('pt_BR').format(date);
 }
+
+/// Relative time for lists/footers per `design.md`'s Localization section:
+/// `há 2h`, `ontem`, `terça`. `now` is injectable for tests; defaults to
+/// `DateTime.now()`.
+String formatRelativeTime(DateTime dateTime, {DateTime? now}) {
+  final reference = now ?? DateTime.now();
+  final diff = reference.difference(dateTime);
+
+  if (diff.inMinutes < 1) return 'agora';
+  if (diff.inHours < 1) return 'há ${diff.inMinutes}min';
+  if (diff.inHours < 24 && dateTime.day == reference.day) {
+    return 'há ${diff.inHours}h';
+  }
+
+  final today = DateTime(reference.year, reference.month, reference.day);
+  final yesterday = today.subtract(const Duration(days: 1));
+  final dateDay = DateTime(dateTime.year, dateTime.month, dateTime.day);
+  if (dateDay == yesterday) return 'ontem';
+
+  if (diff.inDays < 7) {
+    final weekday = DateFormat('EEEE', 'pt_BR').format(dateTime);
+    return weekday.replaceAll('-feira', '');
+  }
+
+  return formatShortDate(dateTime);
+}

@@ -6,6 +6,10 @@ class AccountSummary {
     required this.subtype,
     required this.balance,
     required this.currencyCode,
+    this.creditLimit,
+    this.availableCreditLimit,
+    this.connectionStatus,
+    this.ownerMemberId,
   });
 
   factory AccountSummary.fromJson(Map<String, dynamic> json) {
@@ -16,6 +20,10 @@ class AccountSummary {
       subtype: json['subtype'] as String?,
       balance: (json['balance'] as num?)?.toDouble(),
       currencyCode: json['currency_code'] as String,
+      creditLimit: (json['credit_limit'] as num?)?.toDouble(),
+      availableCreditLimit: (json['available_credit_limit'] as num?)?.toDouble(),
+      connectionStatus: json['connection_status'] as String?,
+      ownerMemberId: json['owner_member_id'] as String?,
     );
   }
 
@@ -25,6 +33,10 @@ class AccountSummary {
   final String? subtype;
   final double? balance;
   final String currencyCode;
+  final double? creditLimit;
+  final double? availableCreditLimit;
+  final String? connectionStatus;
+  final String? ownerMemberId;
 }
 
 class TransactionSummary {
@@ -83,7 +95,12 @@ class MonthlyCashFlow {
 }
 
 class SyncStatus {
-  const SyncStatus({required this.status, required this.updatedAt});
+  const SyncStatus({
+    required this.status,
+    required this.updatedAt,
+    this.syncedConnections = 0,
+    this.totalConnections = 0,
+  });
 
   factory SyncStatus.fromJson(Map<String, dynamic> json) {
     return SyncStatus(
@@ -91,11 +108,15 @@ class SyncStatus {
       updatedAt: json['updated_at'] == null
           ? null
           : DateTime.parse(json['updated_at'] as String),
+      syncedConnections: (json['synced_connections'] as num?)?.toInt() ?? 0,
+      totalConnections: (json['total_connections'] as num?)?.toInt() ?? 0,
     );
   }
 
   final String? status;
   final DateTime? updatedAt;
+  final int syncedConnections;
+  final int totalConnections;
 }
 
 class Dashboard {

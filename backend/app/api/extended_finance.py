@@ -5,12 +5,15 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
-from app.auth.access_scope import AccessScope, get_access_scope, resolve_member_ids
+from app.auth.access_scope import (
+    AccessScope,
+    connection_member_map,
+    get_access_scope,
+    resolve_member_ids,
+)
 from app.database.session import get_db
 from app.models.account import Account
 from app.models.extended_finance import BalanceSnapshot, CreditCardBill, Investment, Loan
-from app.models.household import HouseholdMember
-from app.models.pluggy_connection import PluggyConnection
 from app.models.transaction import Transaction
 from app.schemas.extended_finance import (
     BalancePoint,
@@ -184,35 +187,6 @@ def get_category_breakdown(
     return items
 
 
-def _connection_member_map(
-    db: Session, household_id: uuid.UUID, connection_ids: set[uuid.UUID] | None
-) -> dict[uuid.UUID, uuid.UUID | None]:
-    """Maps each of the household's `pluggy_connection` ids to the
-    `HouseholdMember.id` that created it (`None` if unattributed, or if the
-    creator is no longer a member of this household) — kept as a separate
-    identity-resolution step from the SQL aggregation in
-    `get_spending_by_member`, mirroring how `resolve_member_ids` already
-    separates "who can see what" from "what does the data say".
-
-    The `HouseholdMember.household_id == household_id` predicate in the join
-    is load-bearing, not defensive: without it, an `app_user_id` that
-    belongs to more than one household would fan the join out and
-    double-count that household's own transactions.
-    """
-    query = (
-        db.query(PluggyConnection.id, HouseholdMember.id)
-        .outerjoin(
-            HouseholdMember,
-            (HouseholdMember.household_id == household_id)
-            & (HouseholdMember.app_user_id == PluggyConnection.created_by_app_user_id),
-        )
-        .filter(PluggyConnection.household_id == household_id)
-    )
-    if connection_ids is not None:
-        query = query.filter(PluggyConnection.id.in_(connection_ids))
-    return dict(query.all())
-
-
 @router.get("/spending-by-member", response_model=list[MemberSpendItem])
 def get_spending_by_member(
     household_id: uuid.UUID,
@@ -236,7 +210,7 @@ def get_spending_by_member(
     connection_ids = resolve_member_ids(
         db, household_id, scope.connection_ids, member_ids
     )
-    connection_to_member = _connection_member_map(db, household_id, connection_ids)
+    connection_to_member = connection_member_map(db, household_id, connection_ids)
 
     month_col = func.date_trunc("month", Transaction.transaction_date)
     query = (

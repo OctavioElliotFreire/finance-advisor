@@ -54,6 +54,35 @@ def resolve_member_ids(
     return connection_ids & member_connection_ids
 
 
+def connection_member_map(
+    db: Session, household_id: uuid.UUID, connection_ids: set[uuid.UUID] | None
+) -> dict[uuid.UUID, uuid.UUID | None]:
+    """Maps each of the household's `pluggy_connection` ids to the
+    `HouseholdMember.id` that created it (`None` if unattributed, or if the
+    creator is no longer a member of this household) — shared by any
+    endpoint that needs to attribute a connection (and, transitively, its
+    accounts/transactions) to a member, e.g. `/spending-by-member` and the
+    dashboard's per-account `owner_member_id`.
+
+    The `HouseholdMember.household_id == household_id` predicate in the join
+    is load-bearing, not defensive: without it, an `app_user_id` that
+    belongs to more than one household would fan the join out and
+    double-count that household's own connections.
+    """
+    query = (
+        db.query(PluggyConnection.id, HouseholdMember.id)
+        .outerjoin(
+            HouseholdMember,
+            (HouseholdMember.household_id == household_id)
+            & (HouseholdMember.app_user_id == PluggyConnection.created_by_app_user_id),
+        )
+        .filter(PluggyConnection.household_id == household_id)
+    )
+    if connection_ids is not None:
+        query = query.filter(PluggyConnection.id.in_(connection_ids))
+    return dict(query.all())
+
+
 def get_accessible_connection_ids(
     db: Session, membership: HouseholdMember
 ) -> set[uuid.UUID] | None:

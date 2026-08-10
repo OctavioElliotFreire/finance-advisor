@@ -195,6 +195,139 @@ def test_dashboard_returns_accounts_transactions_cash_flow_and_sync_status(
 
     assert body["sync_status"]["status"] == "completed"
     assert body["sync_status"]["updated_at"] is not None
+    assert body["sync_status"]["synced_connections"] == 1
+    assert body["sync_status"]["total_connections"] == 1
+
+
+def test_dashboard_accounts_expose_credit_fields_and_owner_member(client, make_user):
+    headers = make_user("cardowner@example.com")
+    household = client.post(
+        "/v1/households", json={"name": "Card Family"}, headers=headers
+    ).json()
+
+    db = SessionLocal()
+    owner_user = db.query(AppUser).filter(AppUser.email == "cardowner@example.com").one()
+    owner_member = (
+        db.query(HouseholdMember)
+        .filter(
+            HouseholdMember.household_id == household["id"],
+            HouseholdMember.app_user_id == owner_user.id,
+        )
+        .one()
+    )
+    connection = PluggyConnection(
+        household_id=household["id"],
+        pluggy_item_id=f"item-{uuid.uuid4()}",
+        status="UPDATED",
+        created_by_app_user_id=owner_user.id,
+    )
+    db.add(connection)
+    db.flush()
+    card = Account(
+        household_id=household["id"],
+        pluggy_connection_id=connection.id,
+        pluggy_account_id="acc-card",
+        name="Visa Infinite",
+        type="CREDIT",
+        balance=-580.90,
+        currency_code="BRL",
+        credit_limit=10000.0,
+        available_credit_limit=7500.0,
+    )
+    db.add(card)
+    db.commit()
+    owner_member_id = str(owner_member.id)
+    db.close()
+
+    response = client.get(
+        f"/v1/households/{household['id']}/dashboard", headers=headers
+    )
+
+    assert response.status_code == 200
+    account = response.json()["accounts"][0]
+    assert account["credit_limit"] == 10000.0
+    assert account["available_credit_limit"] == 7500.0
+    assert account["owner_member_id"] == owner_member_id
+    assert account["connection_status"] == "UPDATED"
+
+
+def test_dashboard_accounts_expose_broken_connection_status(client, make_user):
+    headers = make_user("brokenconn@example.com")
+    household = client.post(
+        "/v1/households", json={"name": "Broken Connection Family"}, headers=headers
+    ).json()
+
+    db = SessionLocal()
+    connection = PluggyConnection(
+        household_id=household["id"],
+        pluggy_item_id=f"item-{uuid.uuid4()}",
+        status="LOGIN_ERROR",
+    )
+    db.add(connection)
+    db.flush()
+    account = Account(
+        household_id=household["id"],
+        pluggy_connection_id=connection.id,
+        pluggy_account_id="acc-broken",
+        name="Stale Checking",
+        type="BANK",
+        balance=100.0,
+        currency_code="BRL",
+    )
+    db.add(account)
+    db.commit()
+    db.close()
+
+    response = client.get(
+        f"/v1/households/{household['id']}/dashboard", headers=headers
+    )
+
+    assert response.status_code == 200
+    account_body = response.json()["accounts"][0]
+    assert account_body["connection_status"] == "LOGIN_ERROR"
+    assert account_body["owner_member_id"] is None
+
+
+def test_dashboard_sync_counts_reflect_mixed_connection_status(client, make_user):
+    headers = make_user("mixedsync@example.com")
+    household = client.post(
+        "/v1/households", json={"name": "Mixed Sync Family"}, headers=headers
+    ).json()
+
+    db = SessionLocal()
+    synced_connection = PluggyConnection(
+        household_id=household["id"], pluggy_item_id=f"item-synced-{uuid.uuid4()}", status="UPDATED"
+    )
+    stale_connection = PluggyConnection(
+        household_id=household["id"], pluggy_item_id=f"item-stale-{uuid.uuid4()}", status="OUTDATED"
+    )
+    db.add_all([synced_connection, stale_connection])
+    db.flush()
+    db.add_all(
+        [
+            SyncJob(
+                household_id=household["id"],
+                pluggy_connection_id=synced_connection.id,
+                status="completed",
+            ),
+            SyncJob(
+                household_id=household["id"],
+                pluggy_connection_id=stale_connection.id,
+                status="failed",
+            ),
+        ]
+    )
+    db.commit()
+    db.close()
+
+    response = client.get(
+        f"/v1/households/{household['id']}/dashboard", headers=headers
+    )
+
+    assert response.status_code == 200
+    sync_status = response.json()["sync_status"]
+    assert sync_status["synced_connections"] == 1
+    assert sync_status["total_connections"] == 2
 
 
 def test_dashboard_with_no_data_returns_empty_shape(client, make_user):
@@ -214,7 +347,12 @@ def test_dashboard_with_no_data_returns_empty_shape(client, make_user):
     assert body["total_balance"] == 0.0
     assert body["recent_transactions"] == []
     assert body["monthly_cash_flow"] == []
-    assert body["sync_status"] == {"status": None, "updated_at": None}
+    assert body["sync_status"] == {
+        "status": None,
+        "updated_at": None,
+        "synced_connections": 0,
+        "total_connections": 0,
+    }
 
 
 def test_viewer_can_view_dashboard(client, make_user):

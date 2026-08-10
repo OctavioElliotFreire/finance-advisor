@@ -5,11 +5,16 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
-from app.auth.access_scope import AccessScope, get_access_scope, resolve_member_ids
+from app.auth.access_scope import (
+    AccessScope,
+    connection_member_map,
+    get_access_scope,
+    resolve_member_ids,
+)
 from app.database.session import get_db
 from app.models.account import Account
 from app.models.household import Household
-from app.models.pluggy_connection import SyncJob
+from app.models.pluggy_connection import PluggyConnection, SyncJob
 from app.models.transaction import Transaction
 from app.schemas.dashboard import (
     AccountSummary,
@@ -100,6 +105,23 @@ def get_dashboard(
     accounts = accounts_query.order_by(Account.type, Account.name).all()
     total_balance = sum(float(a.balance) for a in accounts if a.balance is not None)
 
+    connection_status_by_id = {
+        row[0]: row[1]
+        for row in db.query(PluggyConnection.id, PluggyConnection.status).filter(
+            PluggyConnection.household_id == household_id
+        )
+    }
+    connection_to_member = connection_member_map(db, household_id, connection_ids)
+    account_summaries = [
+        AccountSummary.model_validate(a).model_copy(
+            update={
+                "connection_status": connection_status_by_id.get(a.pluggy_connection_id),
+                "owner_member_id": connection_to_member.get(a.pluggy_connection_id),
+            }
+        )
+        for a in accounts
+    ]
+
     # Início's own transaction teaser is a fixed "last 10", not period-scoped
     # — the period/member controls narrow it by member only, matching
     # Início's unchanged hero content (see design.md's Global Scope table:
@@ -165,14 +187,39 @@ def get_dashboard(
     if connection_ids is not None:
         sync_query = sync_query.filter(SyncJob.pluggy_connection_id.in_(connection_ids))
     latest_job = sync_query.order_by(SyncJob.updated_at.desc()).first()
+
+    total_connections_query = db.query(PluggyConnection).filter(
+        PluggyConnection.household_id == household_id
+    )
+    if connection_ids is not None:
+        total_connections_query = total_connections_query.filter(
+            PluggyConnection.id.in_(connection_ids)
+        )
+    total_connections = total_connections_query.count()
+
+    # Latest job per connection, in the same scope — "há Xh" reuses the
+    # single household-wide latest job above, but "N de M" needs each
+    # connection's own most recent job, not just the overall latest.
+    all_jobs_in_scope = sync_query.order_by(
+        SyncJob.pluggy_connection_id, SyncJob.updated_at.desc()
+    ).all()
+    latest_job_by_connection: dict[uuid.UUID, SyncJob] = {}
+    for job in all_jobs_in_scope:
+        latest_job_by_connection.setdefault(job.pluggy_connection_id, job)
+    synced_connections = sum(
+        1 for job in latest_job_by_connection.values() if job.status == "completed"
+    )
+
     sync_status = SyncStatus(
         status=latest_job.status if latest_job else None,
         updated_at=latest_job.updated_at if latest_job else None,
+        synced_connections=synced_connections,
+        total_connections=total_connections,
     )
 
     return DashboardResponse(
         household_name=household.name,
-        accounts=[AccountSummary.model_validate(a) for a in accounts],
+        accounts=account_summaries,
         total_balance=total_balance,
         recent_transactions=recent_transactions,
         monthly_cash_flow=monthly_cash_flow,

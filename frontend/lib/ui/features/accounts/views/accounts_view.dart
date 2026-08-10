@@ -4,15 +4,21 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/household_shell.dart';
 import '../../../../data/models/dashboard.dart';
+import '../../../../data/models/extended_finance.dart';
+import '../../../../data/models/household_member.dart';
 import '../../../../data/repositories/dashboard_repository.dart';
+import '../../../../data/repositories/extended_finance_repository.dart';
 import '../../../../data/scope_controller.dart';
 import '../../../core/formatting/money.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/error_banner.dart';
 import '../../../core/widgets/loading_state.dart';
 import '../../../core/widgets/period_pill.dart';
 import '../../../core/widgets/segmented_control.dart';
+import '../../../core/widgets/status_chip.dart';
 import '../../dashboard/view_models/dashboard_view_model.dart';
+import '../../dashboard/widgets/dashboard_summary_data.dart';
 
 enum _AccountsSegment { balances, statement }
 
@@ -29,10 +35,12 @@ class AccountsView extends StatefulWidget {
   const AccountsView({
     super.key,
     required this.dashboardRepository,
+    required this.financeRepository,
     required this.householdId,
   });
 
   final DashboardRepository dashboardRepository;
+  final ExtendedFinanceRepository financeRepository;
   final String householdId;
 
   @override
@@ -52,6 +60,8 @@ class _AccountsViewState extends State<AccountsView> {
   bool _isLoadingTransactions = false;
   String? _transactionsError;
 
+  List<CreditCardBillSummary> _creditCardBills = const [];
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -69,6 +79,23 @@ class _AccountsViewState extends State<AccountsView> {
     final memberIds = scope.selectedMemberIds.isEmpty ? null : scope.selectedMemberIds;
     _balancesViewModel.load(memberIds: memberIds);
     unawaited(_loadTransactions());
+    unawaited(_loadCreditCardBills(memberIds));
+  }
+
+  /// Fatura data for Saldos' credit-card rows — secondary to the account
+  /// list itself, so a failure here just means cards fall back to showing
+  /// no fatura line, same non-fatal pattern as Início's supplemental fetch.
+  Future<void> _loadCreditCardBills(Set<String>? memberIds) async {
+    try {
+      final bills = await widget.financeRepository.getCreditCardBills(
+        widget.householdId,
+        memberIds: memberIds,
+      );
+      if (!mounted) return;
+      setState(() => _creditCardBills = bills);
+    } catch (_) {
+      // Non-fatal — see doc comment above.
+    }
   }
 
   Future<void> _loadTransactions() async {
@@ -136,7 +163,11 @@ class _AccountsViewState extends State<AccountsView> {
                   if (dashboard == null)
                     const SizedBox.shrink()
                   else
-                    _BalancesList(dashboard: dashboard)
+                    _BalancesList(
+                      dashboard: dashboard,
+                      creditCardBills: _creditCardBills,
+                      members: _scope!.members,
+                    )
                 else ...[
                   Center(child: PeriodPill(controller: _scope!)),
                   const SizedBox(height: 16),
@@ -154,10 +185,28 @@ class _AccountsViewState extends State<AccountsView> {
   }
 }
 
+/// Reuses `StatusChip.connectionStatus`'s own tone mapping
+/// (`frontend/lib/ui/core/widgets/status_chip.dart`) rather than
+/// re-deriving a separate "which statuses are broken" vocabulary — a
+/// connection status counts as broken here exactly when that widget would
+/// render it as a negative-tone chip.
+bool _isConnectionBroken(String? status) =>
+    status != null && StatusChip.connectionStatus(status).tone == StatusTone.negative;
+
+class _AccountGroup {
+  const _AccountGroup({required this.label, required this.color, required this.accounts});
+
+  final String label;
+  final Color color;
+  final List<AccountSummary> accounts;
+}
+
 class _BalancesList extends StatelessWidget {
-  const _BalancesList({required this.dashboard});
+  const _BalancesList({required this.dashboard, required this.creditCardBills, required this.members});
 
   final Dashboard dashboard;
+  final List<CreditCardBillSummary> creditCardBills;
+  final List<HouseholdMember> members;
 
   @override
   Widget build(BuildContext context) {
@@ -169,21 +218,124 @@ class _BalancesList extends StatelessWidget {
         body: 'Conecte a primeira conta para começar.',
       );
     }
+
+    final currentBills = currentBillsByAccount(creditCardBills);
+    final groups = _groupByMember(accounts, members);
+
     return Column(
       children: [
-        for (final account in accounts)
-          Card(
-            child: ListTile(
-              title: Text(account.name ?? 'Conta'),
-              subtitle: Text(account.subtype ?? account.type ?? ''),
-              trailing: Text(
-                account.balance == null ? '—' : formatMoney(account.balance!, account.currencyCode),
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
+        for (final group in groups) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                Container(width: 10, height: 10, color: group.color),
+                const SizedBox(width: 8),
+                Text(group.label, style: Theme.of(context).textTheme.titleSmall),
+              ],
             ),
           ),
+          for (final account in group.accounts)
+            _AccountRow(account: account, currentBill: currentBills[account.id]),
+        ],
       ],
     );
+  }
+
+  List<_AccountGroup> _groupByMember(List<AccountSummary> accounts, List<HouseholdMember> members) {
+    final byMember = <String?, List<AccountSummary>>{};
+    for (final account in accounts) {
+      byMember.putIfAbsent(account.ownerMemberId, () => []).add(account);
+    }
+    final groups = <_AccountGroup>[];
+    for (var i = 0; i < members.length; i++) {
+      final memberAccounts = byMember[members[i].id];
+      if (memberAccounts != null) {
+        groups.add(
+          _AccountGroup(
+            label: members[i].email,
+            color: AppMemberColors.forIndex(i),
+            accounts: memberAccounts,
+          ),
+        );
+      }
+    }
+    final unattributed = byMember[null];
+    if (unattributed != null) {
+      groups.add(_AccountGroup(label: 'Outros', color: AppMemberColors.outros, accounts: unattributed));
+    }
+    return groups;
+  }
+}
+
+class _AccountRow extends StatelessWidget {
+  const _AccountRow({required this.account, required this.currentBill});
+
+  final AccountSummary account;
+  final CreditCardBillSummary? currentBill;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isConnectionBroken(account.connectionStatus)) {
+      return Card(
+        child: ListTile(
+          title: Text(account.name ?? 'Conta'),
+          subtitle: Text(
+            'Sem sincronizar',
+            style: TextStyle(color: AppPalette.inkMuted),
+          ),
+        ),
+      );
+    }
+
+    if (account.type == 'CREDIT') {
+      final available = account.availableCreditLimit;
+      final bill = currentBill;
+      return Card(
+        child: ListTile(
+          title: Text(account.name ?? 'Conta'),
+          subtitle: bill == null
+              ? null
+              : Text(
+                  'Fatura ${formatMoney(bill.totalAmount ?? 0, account.currencyCode)}'
+                  '${bill.closingDate == null ? '' : ' · fecha ${formatShortDate(bill.closingDate!)}'}'
+                  '${bill.dueDate == null ? '' : ' · vence ${formatShortDate(bill.dueDate!)}'}',
+                ),
+          trailing: Text(
+            available == null ? '—' : formatMoney(available, account.currencyCode),
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(color: _utilizationColor(context, account)),
+          ),
+        ),
+      );
+    }
+
+    return Card(
+      child: ListTile(
+        title: Text(account.name ?? 'Conta'),
+        subtitle: Text(account.subtype ?? account.type ?? ''),
+        trailing: Text(
+          account.balance == null ? '—' : formatMoney(account.balance!, account.currencyCode),
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+      ),
+    );
+  }
+
+  /// Utilization thresholds per `design.md`'s §6.2: `< 30%` default ink
+  /// (`null` here, letting the theme's normal text color apply), `30-70%`
+  /// warning, `> 70%` danger (`ColorScheme.error`, reused directly per
+  /// `AppSemanticColors`'s own doc comment rather than a bespoke danger
+  /// token).
+  Color? _utilizationColor(BuildContext context, AccountSummary account) {
+    final limit = account.creditLimit;
+    final available = account.availableCreditLimit;
+    if (limit == null || limit <= 0 || available == null) return null;
+    final utilization = (limit - available) / limit;
+    if (utilization > 0.7) return Theme.of(context).colorScheme.error;
+    if (utilization > 0.3) return context.semanticColors.warning;
+    return null;
   }
 }
 

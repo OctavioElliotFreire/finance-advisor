@@ -128,6 +128,8 @@ GoRouter buildRouter({
                       final householdId = state.pathParameters['householdId']!;
                       return DashboardView(
                         dashboardRepository: dashboardRepository,
+                        financeRepository: financeRepository,
+                        anomalyRepository: anomalyRepository,
                         householdId: householdId,
                         householdName: 'Família',
                         onManageConnections: () => context.push('/households/$householdId/connections'),
@@ -146,6 +148,7 @@ GoRouter buildRouter({
                     path: 'accounts',
                     builder: (context, state) => AccountsView(
                       dashboardRepository: dashboardRepository,
+                      financeRepository: financeRepository,
                       householdId: state.pathParameters['householdId']!,
                     ),
                   ),

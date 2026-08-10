@@ -13,6 +13,10 @@ class AccountSummary(BaseModel):
     subtype: str | None
     balance: float | None
     currency_code: str
+    credit_limit: float | None = None
+    available_credit_limit: float | None = None
+    connection_status: str | None = None
+    owner_member_id: uuid.UUID | None = None
 
 
 class TransactionSummary(BaseModel):
@@ -35,6 +39,8 @@ class MonthlyCashFlow(BaseModel):
 class SyncStatus(BaseModel):
     status: str | None
     updated_at: datetime | None
+    synced_connections: int = 0
+    total_connections: int = 0
 
 
 class DashboardResponse(BaseModel):

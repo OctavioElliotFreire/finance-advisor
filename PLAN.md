@@ -1864,6 +1864,79 @@ against a real target):
   paths couldn't be exercised live — those are covered by the mapper/
   widget unit tests above instead, which is disclosed here rather than
   silently skipped.
+* **Real Início + Contas · Saldos content (2026-08-10)**: full rebuild of
+  both screens per `design.md`'s §6.1/§6.2, closing the last remaining
+  "still literally pre-redesign content" gap from Milestone 12 Phase 1.
+  Backend: `AccountSummary` (`backend/app/schemas/dashboard.py`) gained
+  `credit_limit`/`available_credit_limit` (existing `Account` columns,
+  previously unexposed), `connection_status` (via a new
+  `{connection_id: PluggyConnection.status}` map), and `owner_member_id`
+  (via `connection_member_map()` — moved from `extended_finance.py`'s
+  private `_connection_member_map` into `access_scope.py` alongside
+  `resolve_member_ids` so `dashboard.py` could reuse it too, rather than
+  duplicating the connection→member join); `SyncStatus` gained
+  `synced_connections`/`total_connections` (latest `SyncJob` per
+  connection in scope, `completed` vs. total). Frontend: `DashboardView`
+  (Início) fully rebuilt — hero (`Gastos do mês`/`Entradas`/`Sobrou`,
+  summed off `monthlyCashFlow`), credit block (`Limite disponível` summed
+  across `CREDIT` accounts), a fatura-due warning (soonest upcoming bill
+  across cards, shown only within a 7-day window — `CreditCardBillSummary`
+  has no "paid" flag, so "soonest future due date" stands in for "current
+  bill," a documented simplification), an alerts-count row (reusing the
+  existing `AnomalyRepository`), a "Por membro" spend section (reusing
+  `/spending-by-member`, no deviation-from-average sub-line — that stays
+  backend-gated per `design.md`'s Alerts section, member-level deviation
+  doesn't exist yet), and a sync footer (new `formatRelativeTime()` in
+  `money.dart` — `há 2h`/`ontem`/weekday/date per the Localization
+  section's own examples, nothing like it existed before). Pure
+  calculations extracted into `dashboard_summary_data.dart`
+  (`HeroSummary`, `CreditBlockSummary`, `currentBillsByAccount`,
+  `pickFaturaWarning`, `memberSpendRows`) so they're unit-testable without
+  pumping a widget. Contas · Saldos (`accounts_view.dart`'s
+  `_BalancesList`) rebuilt to group accounts by `ownerMemberId` (join-order
+  + `AppMemberColors`, unattributed accounts under "Outros"), show a
+  credit card's `availableCreditLimit` as the headline figure instead of
+  its balance (confirmed against `design.md`'s explicit note that
+  available credit — not owed amount — is the leading figure specifically
+  on this screen, the inverse of Início's framing) colored by utilization
+  (`<30%` default / `30-70%` warning / `>70%` danger, reusing
+  `ColorScheme.error` directly per `AppSemanticColors`'s own convention),
+  the same fatura line as Início's warning when a current bill exists, and
+  `Sem sincronizar` for a broken connection — reusing
+  `StatusChip.connectionStatus(...).tone == StatusTone.negative` rather
+  than re-deriving which Pluggy statuses count as broken. A real overflow
+  bug (hero's Entradas/Sobrou row) was caught immediately by the first
+  widget test run and fixed before it ever reached manual QA. Also caught
+  before commit (re-reading the approved plan against what was actually
+  built, while writing this changelog entry): the hero's `Realizado ·
+  Comprometido` bar legend from `design.md`'s own table had been silently
+  dropped during implementation — added a `committedTotal()` helper (sum
+  of every card's current fatura, independent of the selected period,
+  reusing `currentBillsByAccount`) and the missing line, with its own
+  mapper tests and a re-run of the manual QA pass to confirm it renders
+  (`R$ 0,00` for this household — no bill currently due — correctly, not
+  a bug). No visual progress bar is drawn, just the two figures as text —
+  a documented simplification, consistent with the category chart
+  already accepting a plain list instead of a custom visualization
+  elsewhere in this codebase. Backend 149/149, `flutter test` 172/172
+  (dashboard_summary_data mapper tests, populated-content widget tests
+  for both screens including exact utilization-color assertions, plus
+  the pre-existing suite), `flutter analyze` clean. **Manual browser QA
+  run 2026-08-10** against the QA Test Household: Início rendered
+  `Gastos do mês R$ 177,80` / `Realizado · Comprometido R$ 0,00` /
+  `Entradas R$ 25,00` / `Sobrou -R$ 152,80`, the credit block, `1
+  cobrança incomum para revisar`, `Por membro` with a real member row,
+  and `3 de 4 contas atualizadas ontem`; Saldos correctly grouped
+  accounts under
+  `manual-test@example.com` and an `Outros` bucket, and showed Mastercard
+  Black's `R$ 300.000,00` available limit as the headline (not its
+  negative balance) — confirming the inverted-framing decision above was
+  correct. No fatura warning appeared on either screen because this
+  household's card has no bill due within the 7-day window — expected,
+  not a bug. Session note: hit the same stale-backend-process gotcha
+  documented in `CLAUDE.md`'s Lessons Learned earlier this session
+  (`pkill` doesn't reliably kill `uvicorn` here) — killed by PID via
+  PowerShell before this pass's QA, per that entry.
 
 ---
 
