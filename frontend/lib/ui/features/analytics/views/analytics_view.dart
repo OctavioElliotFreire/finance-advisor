@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/household_shell.dart';
+import '../../../../data/models/extended_finance.dart';
 import '../../../../data/repositories/dashboard_repository.dart';
 import '../../../../data/repositories/extended_finance_repository.dart';
+import '../../../../data/scope_controller.dart';
 import '../../../core/formatting/money.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/error_banner.dart';
 import '../../../core/widgets/loading_state.dart';
+import '../../../core/widgets/period_pill.dart';
 import '../../../core/widgets/segmented_control.dart';
 import '../../dashboard/view_models/dashboard_view_model.dart';
 import '../../dashboard/widgets/combo_cash_flow_chart.dart';
@@ -17,16 +21,19 @@ import '../widgets/monthly_spend_chart_data.dart';
 enum _AnalyticsSegment { spending, cashFlow, investments }
 
 /// Análises tab — Gastos / Fluxo / Investimentos segmented view, per
-/// `design.md`'s 6.4-6.6. Reuses [DashboardViewModel] (for monthly cash-flow
-/// series) and [FinancesViewModel] (for category breakdown + investments) —
-/// no new backend endpoints this pass. The category breakdown still renders
-/// as the OLD pie-chart widget's data via a plain list for now (a proper
-/// horizontal-bar-list `CategoryBarList` component is a later pass); the
-/// monthly-spend chart is the single-series stand-in noted in its own file
-/// (per-member stacking needs a backend aggregation endpoint that doesn't
-/// exist yet — see the phased implementation plan's Phase 3). Investimentos
-/// renders with plain list tiles, intentionally unstyled per the mockup gap
-/// noted in `design.md` (no mockup frame exists for this tab yet).
+/// `design.md`'s 6.4-6.6 and its Global Scope table: Gastos/Fluxo show the
+/// period pill (fed into both [DashboardViewModel]'s cash-flow query and
+/// [FinancesViewModel]'s category-breakdown query), Investimentos never does
+/// (allocation is a today-snapshot, and there's no investment-value history
+/// to period-filter yet — see `design.md`'s Open Questions). The shell hides
+/// the period row for this whole tab and leaves it to this view to render
+/// locally only for the two segments that use it — see `HouseholdScope`'s
+/// doc comment. The category breakdown still renders as a plain list for
+/// now (a proper horizontal-bar-list `CategoryBarList` component is a later
+/// pass); the monthly-spend chart is the single-series stand-in noted in its
+/// own file (per-member stacking needs a backend aggregation endpoint that
+/// doesn't exist yet). Investimentos renders with plain list tiles,
+/// intentionally unstyled per the mockup gap noted in `design.md`.
 class AnalyticsView extends StatefulWidget {
   const AnalyticsView({
     super.key,
@@ -44,20 +51,47 @@ class AnalyticsView extends StatefulWidget {
 }
 
 class _AnalyticsViewState extends State<AnalyticsView> {
-  late final _dashboardViewModel = DashboardViewModel(
+  late final DashboardViewModel _dashboardViewModel = DashboardViewModel(
     dashboardRepository: widget.dashboardRepository,
     householdId: widget.householdId,
-  )..load();
+  );
 
-  late final _financesViewModel = FinancesViewModel(
+  late final FinancesViewModel _financesViewModel = FinancesViewModel(
     financeRepository: widget.financeRepository,
     householdId: widget.householdId,
-  )..load();
+  );
 
   _AnalyticsSegment _segment = _AnalyticsSegment.spending;
+  ScopeController? _scope;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final scope = HouseholdScope.of(context);
+    if (_scope != scope) {
+      _scope?.removeListener(_reload);
+      _scope = scope;
+      scope.addListener(_reload);
+      _reload();
+    }
+  }
+
+  void _reload() {
+    final scope = _scope!;
+    final memberIds = scope.selectedMemberIds.isEmpty ? null : scope.selectedMemberIds;
+    final range = scope.resolveRange();
+    _dashboardViewModel.load(startDate: range.start, endDate: range.end, memberIds: memberIds);
+    _financesViewModel.load(
+      startDate: range.start,
+      endDate: range.end,
+      memberIds: memberIds,
+      comparePrevious: scope.comparePrevious,
+    );
+  }
 
   @override
   void dispose() {
+    _scope?.removeListener(_reload);
     _dashboardViewModel.dispose();
     _financesViewModel.dispose();
     super.dispose();
@@ -77,8 +111,10 @@ class _AnalyticsViewState extends State<AnalyticsView> {
             return const LoadingState();
           }
 
+          final showsPeriod = _segment != _AnalyticsSegment.investments;
+
           return RefreshIndicator(
-            onRefresh: () => Future.wait([_dashboardViewModel.load(), _financesViewModel.load()]),
+            onRefresh: () async => _reload(),
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
@@ -93,6 +129,10 @@ class _AnalyticsViewState extends State<AnalyticsView> {
                     AppSegment(value: _AnalyticsSegment.investments, label: 'Investimentos'),
                   ],
                 ),
+                if (showsPeriod) ...[
+                  const SizedBox(height: 16),
+                  Center(child: PeriodPill(controller: _scope!)),
+                ],
                 const SizedBox(height: 16),
                 switch (_segment) {
                   _AnalyticsSegment.spending => _SpendingSection(
@@ -133,21 +173,60 @@ class _SpendingSection extends StatelessWidget {
         if (categories.isEmpty)
           const AppEmptyState(icon: Icons.pie_chart_outline, title: 'Nenhum gasto categorizado ainda')
         else
-          for (final item in categories)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                children: [
-                  Expanded(child: Text(item.category ?? 'Sem categoria')),
-                  Text(
-                    formatMoney(item.total, 'BRL'),
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-            ),
+          for (final item in categories) _CategoryRow(item: item),
       ],
     );
+  }
+}
+
+class _CategoryRow extends StatelessWidget {
+  const _CategoryRow({required this.item});
+
+  final CategoryBreakdownItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final delta = _deltaLabel();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(item.category ?? 'Sem categoria'),
+                if (delta != null)
+                  Text(
+                    delta,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Text(
+            formatMoney(item.total, 'BRL'),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// "+18% vs período anterior" — the bounded, numeric-only version of
+  /// `design.md`'s "every figure carries a delta" rule for this pass (see
+  /// the plan's "Deliberately deferred" note on ghosted chart series).
+  String? _deltaLabel() {
+    final previous = item.previousTotal;
+    if (previous == null) return null;
+    if (previous == 0) {
+      return item.total == 0 ? null : 'novo vs período anterior';
+    }
+    final change = ((item.total - previous) / previous) * 100;
+    final sign = change >= 0 ? '+' : '';
+    return '$sign${change.toStringAsFixed(0)}% vs período anterior';
   }
 }
 

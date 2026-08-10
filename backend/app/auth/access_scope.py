@@ -11,6 +11,49 @@ from app.models.household import HouseholdMember
 from app.models.pluggy_connection import PluggyConnection
 
 
+def resolve_member_ids(
+    db: Session,
+    household_id: uuid.UUID,
+    connection_ids: set[uuid.UUID] | None,
+    member_ids: list[uuid.UUID] | None,
+) -> set[uuid.UUID] | None:
+    """Narrows `connection_ids` (the viewer's own visibility scope) to only
+    connections created by one of `member_ids` — the voluntary "show me just
+    these members' data" filter from the Global Scope member chips. Distinct
+    from `get_accessible_connection_ids`, which is about what the viewer is
+    *allowed* to see, not what they currently *want* to see.
+
+    `member_ids` `None` or empty means "all members" — returns `connection_ids`
+    unchanged. Otherwise resolves member_ids -> app_user_ids -> connections
+    `created_by_app_user_id` in that set, intersected with `connection_ids`
+    (an empty intersection is a valid "show nothing" result, not an error).
+    """
+    if not member_ids:
+        return connection_ids
+
+    app_user_ids = {
+        row[0]
+        for row in db.query(HouseholdMember.app_user_id)
+        .filter(
+            HouseholdMember.household_id == household_id,
+            HouseholdMember.id.in_(member_ids),
+        )
+        .all()
+    }
+    member_connection_ids = {
+        row[0]
+        for row in db.query(PluggyConnection.id)
+        .filter(
+            PluggyConnection.household_id == household_id,
+            PluggyConnection.created_by_app_user_id.in_(app_user_ids),
+        )
+        .all()
+    }
+    if connection_ids is None:
+        return member_connection_ids
+    return connection_ids & member_connection_ids
+
+
 def get_accessible_connection_ids(
     db: Session, membership: HouseholdMember
 ) -> set[uuid.UUID] | None:

@@ -308,6 +308,155 @@ def test_family_a_cannot_view_family_b_investments(client, make_user):
     assert response.status_code == 403
 
 
+def test_list_investments_filters_by_member_ids(client, make_user):
+    headers_owner = make_user("invscopeowner@example.com")
+    household = client.post(
+        "/v1/households", json={"name": "Investment Scope Family"}, headers=headers_owner
+    ).json()
+
+    headers_second = make_user("invscopesecond@example.com")
+    client.get("/v1/me", headers=headers_second)
+
+    db = SessionLocal()
+    owner_user = (
+        db.query(AppUser).filter(AppUser.email == "invscopeowner@example.com").one()
+    )
+    second_user = (
+        db.query(AppUser).filter(AppUser.email == "invscopesecond@example.com").one()
+    )
+    second_member = HouseholdMember(
+        household_id=household["id"], app_user_id=second_user.id, role="member"
+    )
+    db.add(second_member)
+    db.flush()
+    second_member_id = second_member.id
+
+    owner_connection = PluggyConnection(
+        household_id=household["id"],
+        pluggy_item_id=f"item-owner-{uuid.uuid4()}",
+        status="UPDATED",
+        created_by_app_user_id=owner_user.id,
+    )
+    second_connection = PluggyConnection(
+        household_id=household["id"],
+        pluggy_item_id=f"item-second-{uuid.uuid4()}",
+        status="UPDATED",
+        created_by_app_user_id=second_user.id,
+    )
+    db.add_all([owner_connection, second_connection])
+    db.flush()
+    db.add_all(
+        [
+            Investment(
+                household_id=household["id"],
+                pluggy_connection_id=owner_connection.id,
+                pluggy_investment_id="inv-owner",
+                name="Owner Fund",
+                type="FIXED_INCOME",
+                balance=100.0,
+                value=100.0,
+                quantity=1,
+                currency_code="BRL",
+                investment_date=date.today(),
+            ),
+            Investment(
+                household_id=household["id"],
+                pluggy_connection_id=second_connection.id,
+                pluggy_investment_id="inv-second",
+                name="Second Fund",
+                type="FIXED_INCOME",
+                balance=200.0,
+                value=200.0,
+                quantity=1,
+                currency_code="BRL",
+                investment_date=date.today(),
+            ),
+        ]
+    )
+    db.commit()
+    db.close()
+
+    response = client.get(
+        f"/v1/households/{household['id']}/investments",
+        params={"member_ids": [str(second_member_id)]},
+        headers=headers_owner,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["name"] == "Second Fund"
+
+
+def test_category_breakdown_with_compare_previous(client, make_user):
+    headers = make_user("comparecats@example.com")
+    household = client.post(
+        "/v1/households", json={"name": "Compare Categories Family"}, headers=headers
+    ).json()
+
+    db = SessionLocal()
+    connection = PluggyConnection(
+        household_id=household["id"],
+        pluggy_item_id=f"item-{uuid.uuid4()}",
+        status="UPDATED",
+    )
+    db.add(connection)
+    db.flush()
+    account = Account(
+        household_id=household["id"],
+        pluggy_connection_id=connection.id,
+        pluggy_account_id="acc-compare",
+        name="Compare Checking",
+        type="BANK",
+        balance=0.0,
+        currency_code="BRL",
+    )
+    db.add(account)
+    db.flush()
+    db.add_all(
+        [
+            Transaction(
+                household_id=household["id"],
+                account_id=account.id,
+                pluggy_transaction_id="txn-current-food",
+                description="Current Food",
+                amount=-150.0,
+                currency_code="BRL",
+                transaction_date="2026-07-15",
+                category="Food",
+            ),
+            Transaction(
+                household_id=household["id"],
+                account_id=account.id,
+                pluggy_transaction_id="txn-previous-food",
+                description="Previous Food",
+                amount=-100.0,
+                currency_code="BRL",
+                transaction_date="2026-06-15",
+                category="Food",
+            ),
+        ]
+    )
+    db.commit()
+    db.close()
+
+    response = client.get(
+        f"/v1/households/{household['id']}/categories",
+        params={
+            "start_date": "2026-07-01",
+            "end_date": "2026-07-31",
+            "compare_previous": True,
+        },
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    food = next(row for row in body if row["category"] == "Food")
+    assert food["total"] == 150.0
+    assert food["previous_total"] == 100.0
+
+
 def test_family_a_cannot_view_family_b_loans(client, make_user):
     headers_a = make_user("loan-isoa@example.com")
     headers_b = make_user("loan-isob@example.com")

@@ -12,8 +12,39 @@ class DashboardRepository {
   final AuthRepository _authRepository;
   final BackendApiService _backendService;
 
-  Future<Dashboard> getDashboard(String householdId) async {
+  Future<Dashboard> getDashboard(
+    String householdId, {
+    DateTime? startDate,
+    DateTime? endDate,
+    Set<String>? memberIds,
+  }) async {
     final token = await _authRepository.getValidAccessToken();
-    return _backendService.getDashboard(token, householdId);
+    return _backendService.getDashboard(
+      token,
+      householdId,
+      startDate: startDate,
+      endDate: endDate,
+      memberIds: memberIds?.toList(),
+    );
+  }
+
+  Future<List<TransactionSummary>> listTransactions(
+    String householdId, {
+    DateTime? startDate,
+    DateTime? endDate,
+    Set<String>? memberIds,
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    final token = await _authRepository.getValidAccessToken();
+    return _backendService.listTransactions(
+      token,
+      householdId,
+      startDate: startDate,
+      endDate: endDate,
+      memberIds: memberIds?.toList(),
+      limit: limit,
+      offset: offset,
+    );
   }
 }

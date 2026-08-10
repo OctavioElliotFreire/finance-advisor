@@ -135,15 +135,21 @@ class BalancePoint {
 }
 
 class CategoryBreakdownItem {
-  const CategoryBreakdownItem({required this.category, required this.total});
+  const CategoryBreakdownItem({
+    required this.category,
+    required this.total,
+    this.previousTotal,
+  });
 
   factory CategoryBreakdownItem.fromJson(Map<String, dynamic> json) {
     return CategoryBreakdownItem(
       category: json['category'] as String?,
       total: (json['total'] as num).toDouble(),
+      previousTotal: (json['previous_total'] as num?)?.toDouble(),
     );
   }
 
   final String? category;
   final double total;
+  final double? previousTotal;
 }

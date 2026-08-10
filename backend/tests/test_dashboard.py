@@ -263,3 +263,160 @@ def test_dashboard_requires_authentication(client):
     fake_id = uuid.uuid4()
     response = client.get(f"/v1/households/{fake_id}/dashboard")
     assert response.status_code in (401, 403)
+
+
+def _seed_two_member_connections(household_id, owner_app_user_id, second_app_user_id):
+    """Two connections in the same household, each created by a different
+    member, each with its own account/transaction — for member_ids filter
+    tests. Returns (owner_connection_id, second_connection_id).
+    """
+    db = SessionLocal()
+    owner_connection = PluggyConnection(
+        household_id=household_id,
+        pluggy_item_id=f"item-owner-{uuid.uuid4()}",
+        status="UPDATED",
+        created_by_app_user_id=owner_app_user_id,
+    )
+    second_connection = PluggyConnection(
+        household_id=household_id,
+        pluggy_item_id=f"item-second-{uuid.uuid4()}",
+        status="UPDATED",
+        created_by_app_user_id=second_app_user_id,
+    )
+    db.add_all([owner_connection, second_connection])
+    db.flush()
+
+    owner_account = Account(
+        household_id=household_id,
+        pluggy_connection_id=owner_connection.id,
+        pluggy_account_id="acc-owner",
+        name="Owner Checking",
+        type="BANK",
+        balance=1000.0,
+        currency_code="BRL",
+    )
+    second_account = Account(
+        household_id=household_id,
+        pluggy_connection_id=second_connection.id,
+        pluggy_account_id="acc-second",
+        name="Second Checking",
+        type="BANK",
+        balance=200.0,
+        currency_code="BRL",
+    )
+    db.add_all([owner_account, second_account])
+    db.flush()
+
+    db.add_all(
+        [
+            Transaction(
+                household_id=household_id,
+                account_id=owner_account.id,
+                pluggy_transaction_id="txn-owner",
+                description="Owner spend",
+                amount=-50.0,
+                currency_code="BRL",
+                transaction_date="2026-06-15",
+                category="Food",
+            ),
+            Transaction(
+                household_id=household_id,
+                account_id=second_account.id,
+                pluggy_transaction_id="txn-second",
+                description="Second spend",
+                amount=-20.0,
+                currency_code="BRL",
+                transaction_date="2026-06-16",
+                category="Food",
+            ),
+        ]
+    )
+    db.commit()
+    connection_ids = (owner_connection.id, second_connection.id)
+    db.close()
+    return connection_ids
+
+
+def test_dashboard_filters_by_member_ids(client, make_user):
+    headers_owner = make_user("scopeowner@example.com")
+    household = client.post(
+        "/v1/households", json={"name": "Scope Family"}, headers=headers_owner
+    ).json()
+
+    headers_second = make_user("scopesecond@example.com")
+    client.get("/v1/me", headers=headers_second)
+
+    db = SessionLocal()
+    owner_user = db.query(AppUser).filter(AppUser.email == "scopeowner@example.com").one()
+    second_user = (
+        db.query(AppUser).filter(AppUser.email == "scopesecond@example.com").one()
+    )
+    second_member = HouseholdMember(
+        household_id=household["id"], app_user_id=second_user.id, role="member"
+    )
+    db.add(second_member)
+    db.commit()
+    second_member_id = second_member.id
+    owner_user_id = owner_user.id
+    second_user_id = second_user.id
+    db.close()
+
+    _seed_two_member_connections(household["id"], owner_user_id, second_user_id)
+
+    response = client.get(
+        f"/v1/households/{household['id']}/dashboard",
+        params={"member_ids": [str(second_member_id)]},
+        headers=headers_owner,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["accounts"]) == 1
+    assert body["accounts"][0]["name"] == "Second Checking"
+    assert body["total_balance"] == 200.0
+    assert len(body["recent_transactions"]) == 1
+    assert body["recent_transactions"][0]["description"] == "Second spend"
+
+
+def test_dashboard_start_end_date_narrows_cash_flow(client, make_user):
+    headers = make_user("daterange@example.com")
+    household = client.post(
+        "/v1/households", json={"name": "Date Range Family"}, headers=headers
+    ).json()
+    _seed_household_data(household["id"])
+
+    response = client.get(
+        f"/v1/households/{household['id']}/dashboard",
+        params={"start_date": "2026-07-01", "end_date": "2026-07-31"},
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    months = {row["month"] for row in body["monthly_cash_flow"]}
+    assert months == {"2026-07"}
+
+
+def test_list_transactions_supports_date_range_and_pagination(client, make_user):
+    headers = make_user("extrato@example.com")
+    household = client.post(
+        "/v1/households", json={"name": "Extrato Family"}, headers=headers
+    ).json()
+    _seed_household_data(household["id"])
+
+    response = client.get(
+        f"/v1/households/{household['id']}/transactions",
+        params={"start_date": "2026-06-01", "end_date": "2026-06-30"},
+        headers=headers,
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 2
+    assert {row["description"] for row in body} == {"Salary", "Rent"}
+
+    paginated = client.get(
+        f"/v1/households/{household['id']}/transactions",
+        params={"limit": 1, "offset": 1},
+        headers=headers,
+    ).json()
+    assert len(paginated) == 1

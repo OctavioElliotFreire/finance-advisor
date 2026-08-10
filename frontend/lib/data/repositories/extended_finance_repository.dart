@@ -12,31 +12,71 @@ class ExtendedFinanceRepository {
   final AuthRepository _authRepository;
   final BackendApiService _backendService;
 
-  Future<List<CreditCardBillSummary>> getCreditCardBills(String householdId) async {
+  Future<List<CreditCardBillSummary>> getCreditCardBills(
+    String householdId, {
+    Set<String>? memberIds,
+  }) async {
     final token = await _authRepository.getValidAccessToken();
-    return _backendService.getCreditCardBills(token, householdId);
+    return _backendService.getCreditCardBills(
+      token,
+      householdId,
+      memberIds: memberIds?.toList(),
+    );
   }
 
-  Future<List<InvestmentSummary>> getInvestments(String householdId) async {
+  Future<List<InvestmentSummary>> getInvestments(
+    String householdId, {
+    Set<String>? memberIds,
+  }) async {
     final token = await _authRepository.getValidAccessToken();
-    return _backendService.getInvestments(token, householdId);
+    return _backendService.getInvestments(
+      token,
+      householdId,
+      memberIds: memberIds?.toList(),
+    );
   }
 
-  Future<List<LoanSummary>> getLoans(String householdId) async {
+  Future<List<LoanSummary>> getLoans(
+    String householdId, {
+    Set<String>? memberIds,
+  }) async {
     final token = await _authRepository.getValidAccessToken();
-    return _backendService.getLoans(token, householdId);
+    return _backendService.getLoans(
+      token,
+      householdId,
+      memberIds: memberIds?.toList(),
+    );
   }
 
-  Future<List<BalancePoint>> getBalanceHistory(String householdId, {int days = 90}) async {
+  Future<List<BalancePoint>> getBalanceHistory(
+    String householdId, {
+    int days = 90,
+    Set<String>? memberIds,
+  }) async {
     final token = await _authRepository.getValidAccessToken();
-    return _backendService.getBalanceHistory(token, householdId, days: days);
+    return _backendService.getBalanceHistory(
+      token,
+      householdId,
+      days: days,
+      memberIds: memberIds?.toList(),
+    );
   }
 
   Future<List<CategoryBreakdownItem>> getCategoryBreakdown(
     String householdId, {
-    int months = 1,
+    DateTime? startDate,
+    DateTime? endDate,
+    Set<String>? memberIds,
+    bool comparePrevious = false,
   }) async {
     final token = await _authRepository.getValidAccessToken();
-    return _backendService.getCategoryBreakdown(token, householdId, months: months);
+    return _backendService.getCategoryBreakdown(
+      token,
+      householdId,
+      startDate: startDate,
+      endDate: endDate,
+      memberIds: memberIds?.toList(),
+      comparePrevious: comparePrevious,
+    );
   }
 }

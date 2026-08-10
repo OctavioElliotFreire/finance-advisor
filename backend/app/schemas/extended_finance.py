@@ -54,3 +54,4 @@ class BalancePoint(BaseModel):
 class CategoryBreakdownItem(BaseModel):
     category: str | None
     total: float
+    previous_total: float | None = None

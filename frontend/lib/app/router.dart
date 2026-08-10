@@ -114,7 +114,11 @@ GoRouter buildRouter({
         },
         routes: [
           StatefulShellRoute.indexedStack(
-            builder: (context, state, navigationShell) => HouseholdShell(navigationShell: navigationShell),
+            builder: (context, state, navigationShell) => HouseholdShell(
+              navigationShell: navigationShell,
+              householdId: state.pathParameters['householdId']!,
+              householdRepository: householdRepository,
+            ),
             branches: [
               StatefulShellBranch(
                 routes: [

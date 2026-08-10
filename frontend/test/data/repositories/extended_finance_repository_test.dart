@@ -97,12 +97,24 @@ void main() {
     expect(result.single.totalBalance, 100.0);
   });
 
-  test('getCategoryBreakdown forwards the token, household id and months', () async {
+  test('getCategoryBreakdown forwards the token, household id and date range', () async {
     const item = CategoryBreakdownItem(category: 'Food', total: 150.0);
-    when(backendService.getCategoryBreakdown('token-1', 'household-1', months: 2))
-        .thenAnswer((_) async => [item]);
+    final start = DateTime(2026, 7, 1);
+    final end = DateTime(2026, 7, 31);
+    when(
+      backendService.getCategoryBreakdown(
+        'token-1',
+        'household-1',
+        startDate: start,
+        endDate: end,
+      ),
+    ).thenAnswer((_) async => [item]);
 
-    final result = await repository.getCategoryBreakdown('household-1', months: 2);
+    final result = await repository.getCategoryBreakdown(
+      'household-1',
+      startDate: start,
+      endDate: end,
+    );
 
     expect(result.single.category, 'Food');
   });

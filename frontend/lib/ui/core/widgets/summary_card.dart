@@ -32,7 +32,13 @@ class SummaryCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(label, style: textTheme.titleMedium),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: textTheme.titleMedium,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
                 ?trailing,
               ],
             ),

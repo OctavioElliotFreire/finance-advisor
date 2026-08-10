@@ -22,13 +22,22 @@ class DashboardViewModel extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  Future<void> load() async {
+  Future<void> load({
+    DateTime? startDate,
+    DateTime? endDate,
+    Set<String>? memberIds,
+  }) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      _dashboard = await _dashboardRepository.getDashboard(_householdId);
+      _dashboard = await _dashboardRepository.getDashboard(
+        _householdId,
+        startDate: startDate,
+        endDate: endDate,
+        memberIds: memberIds,
+      );
     } on ApiException catch (e) {
       _errorMessage = e.message;
     } catch (e) {

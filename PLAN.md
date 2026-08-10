@@ -1775,6 +1775,46 @@ against a real target):
   untouched — out of scope for a frontend string-replacement pass. **Not
   done this pass**: Início/Contas real-spec content, per-member grouping,
   and the global period/member scope controls remain later Phase 2+ work.
+* **Phase 2, part 2 — global period/member scope controls (2026-08-10)**:
+  built `design.md`'s Global Scope section end-to-end. New
+  `ScopeController` (`frontend/lib/data/scope_controller.dart`) holds the
+  six period presets (`Este mês`/`Mês passado`/`Últimos 3 meses`/`Este
+  ano`/`Últimos 12 meses`/custom range) plus member selection; member
+  selection persists per-household via `shared_preferences`, period always
+  resets to `Este mês` on cold launch per spec. `PeriodPill`
+  (`frontend/lib/ui/core/widgets/period_pill.dart`) renders the ‹ pill ›
+  arrow control and a bottom-sheet preset/custom-range/compare-previous
+  picker. `HouseholdShell` now owns one `ScopeController` per household,
+  exposes it to descendants via a `HouseholdScope` `InheritedNotifier`, and
+  renders the period pill + member chips above the active tab per screen
+  (Início: both; Contas·Saldos: members only; Contas·Extrato: both;
+  Análises·Gastos/Fluxo: both; Análises·Investimentos: members only, value
+  line never re-scopes the allocation snapshot; Família: neither) —
+  matching `design.md`'s per-screen effect table exactly. Backend: new
+  `resolve_member_ids()` (`backend/app/auth/access_scope.py`) narrows a
+  viewer's own `connection_ids` down to connections created by the
+  selected members; `start_date`/`end_date`/`member_ids` query params
+  added to the dashboard endpoint and a new paginated
+  `/v1/households/{id}/transactions` endpoint (Contas · Extrato, sharing
+  the same scoping helper as the dashboard's teaser) plus the extended-
+  finance category-breakdown endpoint. `flutter analyze` clean, backend
+  142/142, `flutter test` 142/142 (121 prior + 21 new: `scope_controller_test.dart`,
+  `period_pill_test.dart`, plus dashboard/analytics view tests for
+  scope-driven refetching and per-screen pill visibility). **Manual browser
+  QA run 2026-08-10** against the built shell at `:8901`/backend at `:8010`
+  (`expect` MCP, `manual-test@example.com`/`manual-test-2@example.com` on
+  the existing QA Test Household): stepped the period pill back a month
+  and confirmed the dashboard refetched with the correct `start_date`/
+  `end_date` and the cash-flow chart re-rendered for the new month;
+  toggled the member chips down to a single member and confirmed the
+  request carried the matching `member_ids` and the UI correctly showed
+  that member's real (empty) data; confirmed the period pill's per-screen
+  visibility (shown on Início/Contas·Extrato/Análises·Gastos, hidden on
+  Contas·Saldos/Análises·Investimentos) matches the design spec exactly.
+  No new bugs found — this pass was clean. Session note: this work had
+  been left uncommitted mid-session when the dev machine froze; recovered
+  by confirming both test suites and a fresh manual QA pass still pass
+  against the untouched working tree before considering it done.
 
 ---
 

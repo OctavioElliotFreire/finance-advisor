@@ -481,32 +481,92 @@ class MockBackendApiService extends _i1.Mock implements _i12.BackendApiService {
   @override
   _i11.Future<_i7.Dashboard> getDashboard(
     String? accessToken,
-    String? householdId,
-  ) =>
+    String? householdId, {
+    DateTime? startDate,
+    DateTime? endDate,
+    List<String>? memberIds,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#getDashboard, [accessToken, householdId]),
+            Invocation.method(
+              #getDashboard,
+              [accessToken, householdId],
+              {#startDate: startDate, #endDate: endDate, #memberIds: memberIds},
+            ),
             returnValue: _i11.Future<_i7.Dashboard>.value(
               _FakeDashboard_7(
                 this,
-                Invocation.method(#getDashboard, [accessToken, householdId]),
+                Invocation.method(
+                  #getDashboard,
+                  [accessToken, householdId],
+                  {
+                    #startDate: startDate,
+                    #endDate: endDate,
+                    #memberIds: memberIds,
+                  },
+                ),
               ),
             ),
             returnValueForMissingStub: _i11.Future<_i7.Dashboard>.value(
               _FakeDashboard_7(
                 this,
-                Invocation.method(#getDashboard, [accessToken, householdId]),
+                Invocation.method(
+                  #getDashboard,
+                  [accessToken, householdId],
+                  {
+                    #startDate: startDate,
+                    #endDate: endDate,
+                    #memberIds: memberIds,
+                  },
+                ),
               ),
             ),
           )
           as _i11.Future<_i7.Dashboard>);
 
   @override
+  _i11.Future<List<_i7.TransactionSummary>> listTransactions(
+    String? accessToken,
+    String? householdId, {
+    DateTime? startDate,
+    DateTime? endDate,
+    List<String>? memberIds,
+    int? limit = 50,
+    int? offset = 0,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(
+              #listTransactions,
+              [accessToken, householdId],
+              {
+                #startDate: startDate,
+                #endDate: endDate,
+                #memberIds: memberIds,
+                #limit: limit,
+                #offset: offset,
+              },
+            ),
+            returnValue: _i11.Future<List<_i7.TransactionSummary>>.value(
+              <_i7.TransactionSummary>[],
+            ),
+            returnValueForMissingStub:
+                _i11.Future<List<_i7.TransactionSummary>>.value(
+                  <_i7.TransactionSummary>[],
+                ),
+          )
+          as _i11.Future<List<_i7.TransactionSummary>>);
+
+  @override
   _i11.Future<List<_i16.CreditCardBillSummary>> getCreditCardBills(
     String? accessToken,
-    String? householdId,
-  ) =>
+    String? householdId, {
+    List<String>? memberIds,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#getCreditCardBills, [accessToken, householdId]),
+            Invocation.method(
+              #getCreditCardBills,
+              [accessToken, householdId],
+              {#memberIds: memberIds},
+            ),
             returnValue: _i11.Future<List<_i16.CreditCardBillSummary>>.value(
               <_i16.CreditCardBillSummary>[],
             ),
@@ -520,10 +580,15 @@ class MockBackendApiService extends _i1.Mock implements _i12.BackendApiService {
   @override
   _i11.Future<List<_i16.InvestmentSummary>> getInvestments(
     String? accessToken,
-    String? householdId,
-  ) =>
+    String? householdId, {
+    List<String>? memberIds,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#getInvestments, [accessToken, householdId]),
+            Invocation.method(
+              #getInvestments,
+              [accessToken, householdId],
+              {#memberIds: memberIds},
+            ),
             returnValue: _i11.Future<List<_i16.InvestmentSummary>>.value(
               <_i16.InvestmentSummary>[],
             ),
@@ -537,10 +602,15 @@ class MockBackendApiService extends _i1.Mock implements _i12.BackendApiService {
   @override
   _i11.Future<List<_i16.LoanSummary>> getLoans(
     String? accessToken,
-    String? householdId,
-  ) =>
+    String? householdId, {
+    List<String>? memberIds,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#getLoans, [accessToken, householdId]),
+            Invocation.method(
+              #getLoans,
+              [accessToken, householdId],
+              {#memberIds: memberIds},
+            ),
             returnValue: _i11.Future<List<_i16.LoanSummary>>.value(
               <_i16.LoanSummary>[],
             ),
@@ -554,12 +624,13 @@ class MockBackendApiService extends _i1.Mock implements _i12.BackendApiService {
     String? accessToken,
     String? householdId, {
     int? days = 90,
+    List<String>? memberIds,
   }) =>
       (super.noSuchMethod(
             Invocation.method(
               #getBalanceHistory,
               [accessToken, householdId],
-              {#days: days},
+              {#days: days, #memberIds: memberIds},
             ),
             returnValue: _i11.Future<List<_i16.BalancePoint>>.value(
               <_i16.BalancePoint>[],
@@ -575,13 +646,21 @@ class MockBackendApiService extends _i1.Mock implements _i12.BackendApiService {
   _i11.Future<List<_i16.CategoryBreakdownItem>> getCategoryBreakdown(
     String? accessToken,
     String? householdId, {
-    int? months = 1,
+    DateTime? startDate,
+    DateTime? endDate,
+    List<String>? memberIds,
+    bool? comparePrevious = false,
   }) =>
       (super.noSuchMethod(
             Invocation.method(
               #getCategoryBreakdown,
               [accessToken, householdId],
-              {#months: months},
+              {
+                #startDate: startDate,
+                #endDate: endDate,
+                #memberIds: memberIds,
+                #comparePrevious: comparePrevious,
+              },
             ),
             returnValue: _i11.Future<List<_i16.CategoryBreakdownItem>>.value(
               <_i16.CategoryBreakdownItem>[],

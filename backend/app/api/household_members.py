@@ -166,6 +166,7 @@ def list_members(
         db.query(HouseholdMember, AppUser.email)
         .join(AppUser, AppUser.id == HouseholdMember.app_user_id)
         .filter(HouseholdMember.household_id == household_id)
+        .order_by(HouseholdMember.created_at)
         .all()
     )
     return [

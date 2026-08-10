@@ -30,18 +30,29 @@ class FinancesViewModel extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  Future<void> load() async {
+  Future<void> load({
+    DateTime? startDate,
+    DateTime? endDate,
+    Set<String>? memberIds,
+    bool comparePrevious = false,
+  }) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
       final results = await Future.wait([
-        _financeRepository.getInvestments(_householdId),
-        _financeRepository.getLoans(_householdId),
-        _financeRepository.getCreditCardBills(_householdId),
-        _financeRepository.getBalanceHistory(_householdId),
-        _financeRepository.getCategoryBreakdown(_householdId),
+        _financeRepository.getInvestments(_householdId, memberIds: memberIds),
+        _financeRepository.getLoans(_householdId, memberIds: memberIds),
+        _financeRepository.getCreditCardBills(_householdId, memberIds: memberIds),
+        _financeRepository.getBalanceHistory(_householdId, memberIds: memberIds),
+        _financeRepository.getCategoryBreakdown(
+          _householdId,
+          startDate: startDate,
+          endDate: endDate,
+          memberIds: memberIds,
+          comparePrevious: comparePrevious,
+        ),
       ]);
       _investments = results[0] as List<InvestmentSummary>;
       _loans = results[1] as List<LoanSummary>;

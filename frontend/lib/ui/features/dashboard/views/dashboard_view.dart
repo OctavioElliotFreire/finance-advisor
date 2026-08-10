@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/household_shell.dart';
 import '../../../../data/models/dashboard.dart';
 import '../../../../data/repositories/dashboard_repository.dart';
+import '../../../../data/scope_controller.dart';
 import '../../../core/formatting/money.dart';
 import '../../../core/widgets/error_banner.dart';
 import '../../../core/widgets/loading_state.dart';
@@ -40,13 +42,37 @@ class DashboardView extends StatefulWidget {
 }
 
 class _DashboardViewState extends State<DashboardView> {
-  late final _viewModel = DashboardViewModel(
+  late final DashboardViewModel _viewModel = DashboardViewModel(
     dashboardRepository: widget.dashboardRepository,
     householdId: widget.householdId,
-  )..load();
+  );
+  ScopeController? _scope;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final scope = HouseholdScope.of(context);
+    if (_scope != scope) {
+      _scope?.removeListener(_reload);
+      _scope = scope;
+      scope.addListener(_reload);
+      _reload();
+    }
+  }
+
+  void _reload() {
+    final scope = _scope!;
+    final range = scope.resolveRange();
+    _viewModel.load(
+      startDate: range.start,
+      endDate: range.end,
+      memberIds: scope.selectedMemberIds.isEmpty ? null : scope.selectedMemberIds,
+    );
+  }
 
   @override
   void dispose() {
+    _scope?.removeListener(_reload);
     _viewModel.dispose();
     super.dispose();
   }
@@ -95,7 +121,7 @@ class _DashboardViewState extends State<DashboardView> {
               }
 
               return RefreshIndicator(
-                onRefresh: _viewModel.load,
+                onRefresh: () async => _reload(),
                 child: ListView(
                   padding: const EdgeInsets.all(16),
                   children: [

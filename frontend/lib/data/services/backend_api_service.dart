@@ -30,6 +30,33 @@ class BackendApiService {
     'Content-Type': 'application/json',
   };
 
+  /// Builds a `?a=1&b=2` query string for the Global Scope params
+  /// (start/end date + repeated `member_ids=`) shared across the dashboard,
+  /// transactions, and extended-finance endpoints. Returns `''` when nothing
+  /// is set, so callers can always append it directly to the path.
+  String _scopeQueryString({
+    DateTime? startDate,
+    DateTime? endDate,
+    List<String>? memberIds,
+    Map<String, String>? extra,
+  }) {
+    final params = <String>[];
+    if (startDate != null) params.add('start_date=${_isoDate(startDate)}');
+    if (endDate != null) params.add('end_date=${_isoDate(endDate)}');
+    for (final id in memberIds ?? const <String>[]) {
+      params.add('member_ids=$id');
+    }
+    extra?.forEach((key, value) => params.add('$key=$value'));
+    return params.isEmpty ? '' : '?${params.join('&')}';
+  }
+
+  String _isoDate(DateTime date) {
+    final y = date.year.toString().padLeft(4, '0');
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
+  }
+
   Map<String, dynamic> _decodeOrThrow(http.Response response) {
     if (response.statusCode >= 300) {
       String message = 'Request failed';
@@ -225,20 +252,59 @@ class BackendApiService {
     return PluggyConnection.fromJson(_decodeOrThrow(response));
   }
 
-  Future<Dashboard> getDashboard(String accessToken, String householdId) async {
+  Future<Dashboard> getDashboard(
+    String accessToken,
+    String householdId, {
+    DateTime? startDate,
+    DateTime? endDate,
+    List<String>? memberIds,
+  }) async {
+    final query = _scopeQueryString(
+      startDate: startDate,
+      endDate: endDate,
+      memberIds: memberIds,
+    );
     final response = await _client.get(
-      _url('/v1/households/$householdId/dashboard'),
+      _url('/v1/households/$householdId/dashboard$query'),
       headers: _authHeaders(accessToken),
     );
     return Dashboard.fromJson(_decodeOrThrow(response));
   }
 
+  Future<List<TransactionSummary>> listTransactions(
+    String accessToken,
+    String householdId, {
+    DateTime? startDate,
+    DateTime? endDate,
+    List<String>? memberIds,
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    final query = _scopeQueryString(
+      startDate: startDate,
+      endDate: endDate,
+      memberIds: memberIds,
+      extra: {'limit': '$limit', 'offset': '$offset'},
+    );
+    final response = await _client.get(
+      _url('/v1/households/$householdId/transactions$query'),
+      headers: _authHeaders(accessToken),
+    );
+    if (response.statusCode >= 300) {
+      _decodeOrThrow(response);
+    }
+    final list = jsonDecode(response.body) as List<dynamic>;
+    return list.cast<Map<String, dynamic>>().map(TransactionSummary.fromJson).toList();
+  }
+
   Future<List<CreditCardBillSummary>> getCreditCardBills(
     String accessToken,
-    String householdId,
-  ) async {
+    String householdId, {
+    List<String>? memberIds,
+  }) async {
+    final query = _scopeQueryString(memberIds: memberIds);
     final response = await _client.get(
-      _url('/v1/households/$householdId/credit-card-bills'),
+      _url('/v1/households/$householdId/credit-card-bills$query'),
       headers: _authHeaders(accessToken),
     );
     if (response.statusCode >= 300) {
@@ -250,10 +316,12 @@ class BackendApiService {
 
   Future<List<InvestmentSummary>> getInvestments(
     String accessToken,
-    String householdId,
-  ) async {
+    String householdId, {
+    List<String>? memberIds,
+  }) async {
+    final query = _scopeQueryString(memberIds: memberIds);
     final response = await _client.get(
-      _url('/v1/households/$householdId/investments'),
+      _url('/v1/households/$householdId/investments$query'),
       headers: _authHeaders(accessToken),
     );
     if (response.statusCode >= 300) {
@@ -263,9 +331,14 @@ class BackendApiService {
     return list.cast<Map<String, dynamic>>().map(InvestmentSummary.fromJson).toList();
   }
 
-  Future<List<LoanSummary>> getLoans(String accessToken, String householdId) async {
+  Future<List<LoanSummary>> getLoans(
+    String accessToken,
+    String householdId, {
+    List<String>? memberIds,
+  }) async {
+    final query = _scopeQueryString(memberIds: memberIds);
     final response = await _client.get(
-      _url('/v1/households/$householdId/loans'),
+      _url('/v1/households/$householdId/loans$query'),
       headers: _authHeaders(accessToken),
     );
     if (response.statusCode >= 300) {
@@ -279,9 +352,14 @@ class BackendApiService {
     String accessToken,
     String householdId, {
     int days = 90,
+    List<String>? memberIds,
   }) async {
+    final query = _scopeQueryString(
+      memberIds: memberIds,
+      extra: {'days': '$days'},
+    );
     final response = await _client.get(
-      _url('/v1/households/$householdId/balance-history?days=$days'),
+      _url('/v1/households/$householdId/balance-history$query'),
       headers: _authHeaders(accessToken),
     );
     if (response.statusCode >= 300) {
@@ -294,10 +372,19 @@ class BackendApiService {
   Future<List<CategoryBreakdownItem>> getCategoryBreakdown(
     String accessToken,
     String householdId, {
-    int months = 1,
+    DateTime? startDate,
+    DateTime? endDate,
+    List<String>? memberIds,
+    bool comparePrevious = false,
   }) async {
+    final query = _scopeQueryString(
+      startDate: startDate,
+      endDate: endDate,
+      memberIds: memberIds,
+      extra: comparePrevious ? {'compare_previous': 'true'} : null,
+    );
     final response = await _client.get(
-      _url('/v1/households/$householdId/categories?months=$months'),
+      _url('/v1/households/$householdId/categories$query'),
       headers: _authHeaders(accessToken),
     );
     if (response.statusCode >= 300) {

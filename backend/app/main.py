@@ -11,7 +11,7 @@ from app.api.anomalies import router as anomalies_router
 from app.api.assistant import router as assistant_router
 from app.api.audit import router as audit_router
 from app.api.connections import router as connections_router
-from app.api.dashboard import router as dashboard_router
+from app.api.dashboard import router as dashboard_router, transactions_router
 from app.api.export import router as export_router
 from app.api.extended_finance import router as extended_finance_router
 from app.api.household_members import pending_invites_router, router as household_members_router
@@ -56,6 +56,7 @@ app.include_router(pending_invites_router)
 app.include_router(invites_router)
 app.include_router(connections_router)
 app.include_router(dashboard_router)
+app.include_router(transactions_router)
 app.include_router(extended_finance_router)
 app.include_router(anomalies_router)
 app.include_router(assistant_router)
