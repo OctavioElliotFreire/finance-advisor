@@ -19,6 +19,7 @@ class FinancesViewModel extends ChangeNotifier {
   List<CreditCardBillSummary> _bills = const [];
   List<BalancePoint> _balanceHistory = const [];
   List<CategoryBreakdownItem> _categories = const [];
+  List<MemberMonthlySpend> _spendingByMember = const [];
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -27,6 +28,7 @@ class FinancesViewModel extends ChangeNotifier {
   List<CreditCardBillSummary> get bills => _bills;
   List<BalancePoint> get balanceHistory => _balanceHistory;
   List<CategoryBreakdownItem> get categories => _categories;
+  List<MemberMonthlySpend> get spendingByMember => _spendingByMember;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
@@ -53,12 +55,25 @@ class FinancesViewModel extends ChangeNotifier {
           memberIds: memberIds,
           comparePrevious: comparePrevious,
         ),
+        // Only meaningful over a concrete period — the old no-args caller
+        // (`finances_view.dart`) never sets one, so skip the call entirely
+        // rather than have the backend silently default it.
+        if (startDate != null && endDate != null)
+          _financeRepository.getSpendingByMember(
+            _householdId,
+            startDate: startDate,
+            endDate: endDate,
+            memberIds: memberIds,
+          ),
       ]);
       _investments = results[0] as List<InvestmentSummary>;
       _loans = results[1] as List<LoanSummary>;
       _bills = results[2] as List<CreditCardBillSummary>;
       _balanceHistory = results[3] as List<BalancePoint>;
       _categories = results[4] as List<CategoryBreakdownItem>;
+      _spendingByMember = results.length > 5
+          ? results[5] as List<MemberMonthlySpend>
+          : const [];
     } on ApiException catch (e) {
       _errorMessage = e.message;
     } catch (e) {

@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_spacing.dart';
 import '../data/repositories/household_repository.dart';
-import '../data/models/household_member.dart';
 import '../data/scope_controller.dart';
 import '../ui/core/widgets/member_filter_chips.dart';
 import '../ui/core/widgets/period_pill.dart';
@@ -66,8 +65,6 @@ class _HouseholdShellState extends State<HouseholdShell> {
     householdId: widget.householdId,
   )..load();
 
-  List<HouseholdMember> _members = const [];
-
   @override
   void initState() {
     super.initState();
@@ -77,7 +74,7 @@ class _HouseholdShellState extends State<HouseholdShell> {
   Future<void> _loadMembers() async {
     try {
       final members = await widget.householdRepository.listMembers(widget.householdId);
-      if (mounted) setState(() => _members = members);
+      if (mounted) _scopeController.setMembers(members);
     } catch (_) {
       // Member chips just degrade to an empty row — not worth a full error
       // banner for a secondary scoping control.
@@ -121,13 +118,15 @@ class _HouseholdShellState extends State<HouseholdShell> {
                           alignment: Alignment.centerLeft,
                           child: MemberFilterChips(
                             members: [
-                              for (var i = 0; i < _members.length; i++)
+                              for (var i = 0; i < _scopeController.members.length; i++)
                                 MemberFilterOption(
-                                  id: _members[i].id,
-                                  label: _members[i].email,
+                                  id: _scopeController.members[i].id,
+                                  label: _scopeController.members[i].email,
                                   color: AppMemberColors.forIndex(i),
                                   selected: _scopeController.selectedMemberIds.isEmpty ||
-                                      _scopeController.selectedMemberIds.contains(_members[i].id),
+                                      _scopeController.selectedMemberIds.contains(
+                                        _scopeController.members[i].id,
+                                      ),
                                 ),
                             ],
                             onToggle: _scopeController.toggleMember,

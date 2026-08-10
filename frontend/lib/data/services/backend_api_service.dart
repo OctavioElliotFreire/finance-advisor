@@ -394,6 +394,29 @@ class BackendApiService {
     return list.cast<Map<String, dynamic>>().map(CategoryBreakdownItem.fromJson).toList();
   }
 
+  Future<List<MemberMonthlySpend>> getSpendingByMember(
+    String accessToken,
+    String householdId, {
+    DateTime? startDate,
+    DateTime? endDate,
+    List<String>? memberIds,
+  }) async {
+    final query = _scopeQueryString(
+      startDate: startDate,
+      endDate: endDate,
+      memberIds: memberIds,
+    );
+    final response = await _client.get(
+      _url('/v1/households/$householdId/spending-by-member$query'),
+      headers: _authHeaders(accessToken),
+    );
+    if (response.statusCode >= 300) {
+      _decodeOrThrow(response);
+    }
+    final list = jsonDecode(response.body) as List<dynamic>;
+    return list.cast<Map<String, dynamic>>().map(MemberMonthlySpend.fromJson).toList();
+  }
+
   Future<List<AnomalySummary>> getAnomalies(
     String accessToken,
     String householdId, {

@@ -2,18 +2,16 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../core/formatting/money.dart';
+import '../../../core/widgets/chart_palette.dart';
 import 'monthly_spend_chart_data.dart';
 
-/// Interim single-series stand-in for the Análises → Gastos monthly chart.
-///
-/// The mockup (`web-mockups.html:184-193` mobile, `:470-484` web) shows a
-/// 3-segment per-member stacked bar per month, but that needs a backend
-/// per-member monthly aggregation endpoint that doesn't exist yet (see
-/// `design.md`'s Open Questions — the per-member breakdown is also still
-/// unconfirmed as the intended meaning of those segments). Until that
-/// endpoint lands, this renders the same `MonthlyCashFlow`-derived monthly
-/// totals as a plain single-series `fl_chart` `BarChart`, ink-colored,
-/// with the same axis/label conventions as `cash_flow_chart.dart`.
+/// Análises → Gastos monthly chart, per `design.md`'s "Monthly spend by
+/// member" spec and its density rulebook — mode is decided entirely by
+/// [MonthlySpendChartData.fromMemberSpend] (unstacked household bar when
+/// every member is in scope, a real per-member stacked bar for an explicit
+/// 2-4-member selection, or a plain ranked list — refusing to stack — for
+/// 5+). This widget just renders whichever mode it's handed.
 class MonthlySpendChart extends StatelessWidget {
   const MonthlySpendChart({super.key, required this.data});
 
@@ -21,23 +19,51 @@ class MonthlySpendChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final points = data.points;
-    if (points.isEmpty) {
+    if (data.isEmpty) {
       return const SizedBox(
         height: 160,
         child: Center(child: Text('Nenhum dado de gastos ainda.')),
       );
     }
 
-    final maxValue = points.fold<double>(
-      0,
-      (max, p) => p.total > max ? p.total : max,
+    if (data.mode == MonthlySpendChartMode.rankedList) {
+      return _RankedSpendList(data: data);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _MonthlySpendBarChart(data: data),
+        if (data.mode == MonthlySpendChartMode.stacked && data.legend.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 12,
+            runSpacing: 4,
+            children: [
+              for (final entry in data.legend) LegendSwatch(color: entry.color, label: entry.label),
+            ],
+          ),
+        ],
+      ],
     );
+  }
+}
+
+class _MonthlySpendBarChart extends StatelessWidget {
+  const _MonthlySpendBarChart({required this.data});
+
+  final MonthlySpendChartData data;
+
+  @override
+  Widget build(BuildContext context) {
+    final points = data.points;
+    final maxValue = points.fold<double>(0, (max, p) => p.total > max ? p.total : max);
     final maxY = maxValue <= 0 ? 1.0 : maxValue * 1.2;
     final yInterval = maxY / 4;
+    final stacked = data.mode == MonthlySpendChartMode.stacked;
 
     return SizedBox(
-      height: 160,
+      height: monthlySpendChartPlotHeightPx + 40,
       child: BarChart(
         BarChartData(
           maxY: maxY,
@@ -45,12 +71,8 @@ class MonthlySpendChart extends StatelessWidget {
           gridData: const FlGridData(show: false),
           borderData: FlBorderData(show: false),
           titlesData: FlTitlesData(
-            topTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
-            ),
-            rightTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
-            ),
+            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
             leftTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
@@ -68,10 +90,7 @@ class MonthlySpendChart extends StatelessWidget {
                   }
                   return Padding(
                     padding: const EdgeInsets.only(top: 8),
-                    child: Text(
-                      points[index].monthLabel,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
+                    child: Text(points[index].monthLabel, style: Theme.of(context).textTheme.bodySmall),
                   );
                 },
               ),
@@ -82,16 +101,57 @@ class MonthlySpendChart extends StatelessWidget {
               BarChartGroupData(
                 x: i,
                 barRods: [
-                  BarChartRodData(
-                    toY: points[i].total,
-                    color: AppPalette.ink,
-                    width: 18,
-                  ),
+                  stacked ? _stackedRod(points[i]) : BarChartRodData(toY: points[i].total, color: AppPalette.ink, width: 18),
                 ],
               ),
           ],
         ),
       ),
+    );
+  }
+
+  BarChartRodData _stackedRod(MonthlySpendChartPoint point) {
+    var cumulative = 0.0;
+    final stackItems = <BarChartRodStackItem>[];
+    for (final segment in point.segments) {
+      final from = cumulative;
+      cumulative += segment.value;
+      stackItems.add(BarChartRodStackItem(from, cumulative, segment.color));
+    }
+    return BarChartRodData(toY: cumulative, rodStackItems: stackItems, width: 18);
+  }
+}
+
+/// The 5+-member fallback: no chart at all, per the density rulebook's
+/// "refuse to stack — show totals plus a ranked list instead."
+class _RankedSpendList extends StatelessWidget {
+  const _RankedSpendList({required this.data});
+
+  final MonthlySpendChartData data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(
+            'Muitas pessoas selecionadas para um gráfico por pessoa — mostrando o total de cada uma.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ),
+        for (final entry in data.rankedTotals)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                Expanded(child: LegendSwatch(color: entry.color, label: entry.label)),
+                Text(formatMoney(entry.value, 'BRL'), style: Theme.of(context).textTheme.bodySmall),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }

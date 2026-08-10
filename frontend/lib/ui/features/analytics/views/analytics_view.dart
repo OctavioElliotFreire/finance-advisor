@@ -136,8 +136,8 @@ class _AnalyticsViewState extends State<AnalyticsView> {
                 const SizedBox(height: 16),
                 switch (_segment) {
                   _AnalyticsSegment.spending => _SpendingSection(
-                    dashboardViewModel: _dashboardViewModel,
                     financesViewModel: _financesViewModel,
+                    scope: _scope!,
                   ),
                   _AnalyticsSegment.cashFlow => _CashFlowSection(dashboardViewModel: _dashboardViewModel),
                   _AnalyticsSegment.investments => _InvestmentsSection(financesViewModel: _financesViewModel),
@@ -152,15 +152,18 @@ class _AnalyticsViewState extends State<AnalyticsView> {
 }
 
 class _SpendingSection extends StatelessWidget {
-  const _SpendingSection({required this.dashboardViewModel, required this.financesViewModel});
+  const _SpendingSection({required this.financesViewModel, required this.scope});
 
-  final DashboardViewModel dashboardViewModel;
   final FinancesViewModel financesViewModel;
+  final ScopeController scope;
 
   @override
   Widget build(BuildContext context) {
-    final monthlyCashFlow = dashboardViewModel.dashboard?.monthlyCashFlow ?? const [];
-    final chartData = MonthlySpendChartData.fromMonthlyCashFlow(monthlyCashFlow);
+    final chartData = MonthlySpendChartData.fromMemberSpend(
+      rows: financesViewModel.spendingByMember,
+      members: scope.members,
+      selectedMemberIds: scope.selectedMemberIds,
+    );
     final categories = financesViewModel.categories;
 
     return Column(

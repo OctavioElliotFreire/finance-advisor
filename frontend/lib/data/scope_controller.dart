@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'models/household_member.dart';
+
 /// The six period presets from `design.md`'s Global Scope section (§4),
 /// plus `custom` for an explicit user-picked range.
 enum PeriodPreset { thisMonth, lastMonth, last3Months, thisYear, last12Months, custom }
@@ -28,6 +30,7 @@ class ScopeController extends ChangeNotifier {
   bool _comparePrevious = false;
   Set<String> _selectedMemberIds = {};
   bool _isLoaded = false;
+  List<HouseholdMember> _members = const [];
 
   PeriodPreset get preset => _preset;
   bool get comparePrevious => _comparePrevious;
@@ -35,6 +38,20 @@ class ScopeController extends ChangeNotifier {
   /// Empty means "all members" — no filter applied.
   Set<String> get selectedMemberIds => _selectedMemberIds;
   bool get isLoaded => _isLoaded;
+
+  /// The household's roster, `created_at`-ascending (the backend's own
+  /// `list_members()` order) — the single source of truth for join-order
+  /// indexing into [AppMemberColors.forIndex], shared by the member-chip
+  /// row and any per-member chart so the same person gets the same color
+  /// everywhere. Set once by [HouseholdShell] after it loads the roster;
+  /// intentionally not fetched here — `ScopeController` doesn't own a
+  /// `HouseholdRepository` reference, just holds whatever it's given.
+  List<HouseholdMember> get members => _members;
+
+  void setMembers(List<HouseholdMember> members) {
+    _members = members;
+    notifyListeners();
+  }
 
   String get _prefsKey => 'scope_members_$householdId';
 

@@ -1815,6 +1815,55 @@ against a real target):
   been left uncommitted mid-session when the dev machine froze; recovered
   by confirming both test suites and a fresh manual QA pass still pass
   against the untouched working tree before considering it done.
+* **Monthly spend by member (2026-08-10)**: real per-member stacked bar
+  for Análises · Gastos, replacing the single-series stand-in flagged in
+  the Phase 1 entry above. New backend endpoint
+  `GET /v1/households/{id}/spending-by-member`
+  (`backend/app/api/extended_finance.py`) resolves each transaction's
+  owning member via `PluggyConnection.created_by_app_user_id` (a small
+  connection→member lookup kept separate from the SQL aggregation, mirroring
+  `resolve_member_ids`'s own separation of concerns) and returns flat
+  `(month, member_id, total)` rows — no folding server-side, same
+  convention as `/categories`. `ScopeController` (not a new widget) now
+  also owns the household's member roster (`members`/`setMembers()`),
+  fed by `HouseholdShell`, so `AnalyticsView` gets it for free through the
+  `HouseholdScope` it already reads. All of `design.md`'s density rulebook
+  now lives in `monthly_spend_chart_data.dart`: "all selected" (empty or
+  every box checked) always wins even over a 5+-member household →
+  unstacked; an explicit 2-4-member subset → stacked, with Outros
+  bucketing of unattributed/unknown-member rows, a global 3%-of-range fold,
+  a legend cap at 3 named series when Outros is non-empty, and an *exact*
+  4px-minimum-segment fold computed against a plot-height constant shared
+  with the widget (not a layout-dependent approximation) — folded value is
+  always added into that month's Outros, never dropped, and the legend
+  total is computed from the same post-fold per-month values the bars
+  actually draw, not a pre-fold estimate (caught and fixed a real
+  legend/bar mismatch bug while unit-testing this). An explicit 5+-member
+  subset refuses to stack and renders a plain ranked list instead. Backend
+  142/142 → 146/146 (4 new: month/member grouping, `member_ids` filter, a
+  named cross-household-fan-out regression guard, isolation). Frontend
+  `flutter analyze` clean, `flutter test` 154/154 (12 new mapper tests
+  covering every branch/threshold, 4 new widget tests per mode — two of
+  the mapper tests initially failed because the test fixtures accidentally
+  selected 100% of a household's roster while asserting the subset-only
+  branches; the assertions themselves were correct and caught real,
+  pre-existing-in-the-test-not-the-code bugs). **Manual browser QA run
+  2026-08-10**: rebuilt web, and while restarting the local backend
+  found `pkill -f "uvicorn app.main"` silently fails on this Windows/
+  git-bash setup — the process survives and a second `uvicorn` instance
+  simply fails to bind the port, so a `curl` success right after can still
+  be hitting the *stale* pre-change process (this cost real debugging time
+  chasing a phantom 404); confirmed via
+  `Get-Process -Id (Get-NetTCPConnection -LocalPort <port> -State Listen).OwningProcess`
+  and killed by PID with `Stop-Process -Force` instead. Once the real
+  process was serving the new route: verified against the QA Test
+  Household (2 real members) that the unstacked path renders correctly
+  for both "all selected" and "single member selected", with the network
+  request's `member_ids` param matching the actual selection and a 200
+  response. This household only has 2 members, so the stacked/ranked-list
+  paths couldn't be exercised live — those are covered by the mapper/
+  widget unit tests above instead, which is disclosed here rather than
+  silently skipped.
 
 ---
 

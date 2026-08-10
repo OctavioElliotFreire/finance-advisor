@@ -113,6 +113,15 @@ class _FakeBackendService extends BackendApiService {
       ),
     ];
   }
+
+  @override
+  Future<List<MemberMonthlySpend>> getSpendingByMember(
+    String accessToken,
+    String householdId, {
+    DateTime? startDate,
+    DateTime? endDate,
+    List<String>? memberIds,
+  }) async => const [];
 }
 
 void main() {

@@ -9,6 +9,8 @@ from app.auth.access_scope import AccessScope, get_access_scope, resolve_member_
 from app.database.session import get_db
 from app.models.account import Account
 from app.models.extended_finance import BalanceSnapshot, CreditCardBill, Investment, Loan
+from app.models.household import HouseholdMember
+from app.models.pluggy_connection import PluggyConnection
 from app.models.transaction import Transaction
 from app.schemas.extended_finance import (
     BalancePoint,
@@ -16,6 +18,7 @@ from app.schemas.extended_finance import (
     CreditCardBillSummary,
     InvestmentSummary,
     LoanSummary,
+    MemberSpendItem,
 )
 
 router = APIRouter(prefix="/v1/households/{household_id}", tags=["extended-finance"])
@@ -178,4 +181,95 @@ def get_category_breakdown(
         for category, total in totals.items()
     ]
     items.sort(key=lambda item: item.total, reverse=True)
+    return items
+
+
+def _connection_member_map(
+    db: Session, household_id: uuid.UUID, connection_ids: set[uuid.UUID] | None
+) -> dict[uuid.UUID, uuid.UUID | None]:
+    """Maps each of the household's `pluggy_connection` ids to the
+    `HouseholdMember.id` that created it (`None` if unattributed, or if the
+    creator is no longer a member of this household) — kept as a separate
+    identity-resolution step from the SQL aggregation in
+    `get_spending_by_member`, mirroring how `resolve_member_ids` already
+    separates "who can see what" from "what does the data say".
+
+    The `HouseholdMember.household_id == household_id` predicate in the join
+    is load-bearing, not defensive: without it, an `app_user_id` that
+    belongs to more than one household would fan the join out and
+    double-count that household's own transactions.
+    """
+    query = (
+        db.query(PluggyConnection.id, HouseholdMember.id)
+        .outerjoin(
+            HouseholdMember,
+            (HouseholdMember.household_id == household_id)
+            & (HouseholdMember.app_user_id == PluggyConnection.created_by_app_user_id),
+        )
+        .filter(PluggyConnection.household_id == household_id)
+    )
+    if connection_ids is not None:
+        query = query.filter(PluggyConnection.id.in_(connection_ids))
+    return dict(query.all())
+
+
+@router.get("/spending-by-member", response_model=list[MemberSpendItem])
+def get_spending_by_member(
+    household_id: uuid.UUID,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    member_ids: list[uuid.UUID] | None = Query(None),
+    scope: AccessScope = Depends(get_access_scope),
+    db: Session = Depends(get_db),
+):
+    """Powers Análises · Gastos's per-member stacked bar (`design.md`'s
+    Global Scope / density rulebook). Returns flat `(month, member_id,
+    total)` rows with no folding — the 3%/4px "Outros" folding and the
+    unstacked/stacked/ranked-list mode choice are frontend concerns, same
+    convention as `/categories` returning raw category totals.
+    """
+    if end_date is None:
+        end_date = date.today()
+    if start_date is None:
+        start_date = end_date.replace(day=1)
+
+    connection_ids = resolve_member_ids(
+        db, household_id, scope.connection_ids, member_ids
+    )
+    connection_to_member = _connection_member_map(db, household_id, connection_ids)
+
+    month_col = func.date_trunc("month", Transaction.transaction_date)
+    query = (
+        db.query(
+            month_col.label("month"),
+            Account.pluggy_connection_id.label("connection_id"),
+            func.sum(case((Transaction.amount < 0, -Transaction.amount), else_=0)).label(
+                "total"
+            ),
+        )
+        .join(Account, Transaction.account_id == Account.id)
+        .filter(
+            Transaction.household_id == household_id,
+            Transaction.transaction_date >= start_date,
+            Transaction.transaction_date <= end_date,
+        )
+    )
+    if connection_ids is not None:
+        query = query.filter(Account.pluggy_connection_id.in_(connection_ids))
+    rows = query.group_by(month_col, Account.pluggy_connection_id).all()
+
+    # Two connections can map to the same member (or both to `None`), and a
+    # connection can appear with no rows if it had no transactions in range
+    # — fold by (month, member_id) rather than assuming one row per connection.
+    totals: dict[tuple[str, uuid.UUID | None], float] = {}
+    for row in rows:
+        member_id = connection_to_member.get(row.connection_id)
+        key = (row.month.strftime("%Y-%m"), member_id)
+        totals[key] = totals.get(key, 0.0) + float(row.total or 0)
+
+    items = [
+        MemberSpendItem(month=month, member_id=member_id, total=total)
+        for (month, member_id), total in totals.items()
+    ]
+    items.sort(key=lambda item: (item.month, item.member_id is None, str(item.member_id)))
     return items

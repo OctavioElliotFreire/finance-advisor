@@ -79,4 +79,20 @@ class ExtendedFinanceRepository {
       comparePrevious: comparePrevious,
     );
   }
+
+  Future<List<MemberMonthlySpend>> getSpendingByMember(
+    String householdId, {
+    DateTime? startDate,
+    DateTime? endDate,
+    Set<String>? memberIds,
+  }) async {
+    final token = await _authRepository.getValidAccessToken();
+    return _backendService.getSpendingByMember(
+      token,
+      householdId,
+      startDate: startDate,
+      endDate: endDate,
+      memberIds: memberIds?.toList(),
+    );
+  }
 }

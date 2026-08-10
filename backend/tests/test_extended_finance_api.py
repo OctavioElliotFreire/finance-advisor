@@ -457,6 +457,288 @@ def test_category_breakdown_with_compare_previous(client, make_user):
     assert food["previous_total"] == 100.0
 
 
+def _seed_member_spend_data(household_id, owner_app_user_id, second_app_user_id):
+    """Three connections in one household: one owned by each of two
+    members, one deliberately unattributed (`created_by_app_user_id=None`)
+    — for `/spending-by-member`'s member-grouping and Outros-bucket tests.
+    """
+    db = SessionLocal()
+    owner_connection = PluggyConnection(
+        household_id=household_id,
+        pluggy_item_id=f"item-owner-{uuid.uuid4()}",
+        status="UPDATED",
+        created_by_app_user_id=owner_app_user_id,
+    )
+    second_connection = PluggyConnection(
+        household_id=household_id,
+        pluggy_item_id=f"item-second-{uuid.uuid4()}",
+        status="UPDATED",
+        created_by_app_user_id=second_app_user_id,
+    )
+    unattributed_connection = PluggyConnection(
+        household_id=household_id,
+        pluggy_item_id=f"item-unattributed-{uuid.uuid4()}",
+        status="UPDATED",
+    )
+    db.add_all([owner_connection, second_connection, unattributed_connection])
+    db.flush()
+
+    owner_account = Account(
+        household_id=household_id,
+        pluggy_connection_id=owner_connection.id,
+        pluggy_account_id="acc-owner",
+        name="Owner Checking",
+        type="BANK",
+        balance=0.0,
+        currency_code="BRL",
+    )
+    second_account = Account(
+        household_id=household_id,
+        pluggy_connection_id=second_connection.id,
+        pluggy_account_id="acc-second",
+        name="Second Checking",
+        type="BANK",
+        balance=0.0,
+        currency_code="BRL",
+    )
+    unattributed_account = Account(
+        household_id=household_id,
+        pluggy_connection_id=unattributed_connection.id,
+        pluggy_account_id="acc-unattributed",
+        name="Unattributed Checking",
+        type="BANK",
+        balance=0.0,
+        currency_code="BRL",
+    )
+    db.add_all([owner_account, second_account, unattributed_account])
+    db.flush()
+
+    db.add_all(
+        [
+            Transaction(
+                household_id=household_id,
+                account_id=owner_account.id,
+                pluggy_transaction_id="txn-owner-spend",
+                description="Owner spend",
+                amount=-50.0,
+                currency_code="BRL",
+                transaction_date="2026-07-10",
+                category="Food",
+            ),
+            Transaction(
+                household_id=household_id,
+                account_id=second_account.id,
+                pluggy_transaction_id="txn-second-spend",
+                description="Second spend",
+                amount=-20.0,
+                currency_code="BRL",
+                transaction_date="2026-07-11",
+                category="Food",
+            ),
+            Transaction(
+                household_id=household_id,
+                account_id=unattributed_account.id,
+                pluggy_transaction_id="txn-unattributed-spend",
+                description="Unattributed spend",
+                amount=-10.0,
+                currency_code="BRL",
+                transaction_date="2026-07-12",
+                category="Food",
+            ),
+        ]
+    )
+    db.commit()
+    db.close()
+
+
+def test_spending_by_member_groups_by_month_and_member(client, make_user):
+    headers_owner = make_user("spendowner@example.com")
+    household = client.post(
+        "/v1/households", json={"name": "Spend Family"}, headers=headers_owner
+    ).json()
+
+    headers_second = make_user("spendsecond@example.com")
+    client.get("/v1/me", headers=headers_second)
+
+    db = SessionLocal()
+    owner_user = db.query(AppUser).filter(AppUser.email == "spendowner@example.com").one()
+    second_user = (
+        db.query(AppUser).filter(AppUser.email == "spendsecond@example.com").one()
+    )
+    second_member = HouseholdMember(
+        household_id=household["id"], app_user_id=second_user.id, role="member"
+    )
+    db.add(second_member)
+    db.commit()
+    owner_member_id = str(
+        db.query(HouseholdMember)
+        .filter(
+            HouseholdMember.household_id == household["id"],
+            HouseholdMember.app_user_id == owner_user.id,
+        )
+        .one()
+        .id
+    )
+    second_member_id = str(second_member.id)
+    owner_user_id = owner_user.id
+    second_user_id = second_user.id
+    db.close()
+
+    _seed_member_spend_data(household["id"], owner_user_id, second_user_id)
+
+    response = client.get(
+        f"/v1/households/{household['id']}/spending-by-member",
+        params={"start_date": "2026-07-01", "end_date": "2026-07-31"},
+        headers=headers_owner,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    totals_by_member = {row["member_id"]: row["total"] for row in body}
+    assert totals_by_member[owner_member_id] == 50.0
+    assert totals_by_member[second_member_id] == 20.0
+    assert totals_by_member[None] == 10.0
+    assert all(row["month"] == "2026-07" for row in body)
+
+
+def test_spending_by_member_filters_by_member_ids(client, make_user):
+    headers_owner = make_user("spendscopeowner@example.com")
+    household = client.post(
+        "/v1/households", json={"name": "Spend Scope Family"}, headers=headers_owner
+    ).json()
+
+    headers_second = make_user("spendscopesecond@example.com")
+    client.get("/v1/me", headers=headers_second)
+
+    db = SessionLocal()
+    owner_user = (
+        db.query(AppUser).filter(AppUser.email == "spendscopeowner@example.com").one()
+    )
+    second_user = (
+        db.query(AppUser).filter(AppUser.email == "spendscopesecond@example.com").one()
+    )
+    second_member = HouseholdMember(
+        household_id=household["id"], app_user_id=second_user.id, role="member"
+    )
+    db.add(second_member)
+    db.commit()
+    second_member_id = second_member.id
+    owner_user_id = owner_user.id
+    second_user_id = second_user.id
+    db.close()
+
+    _seed_member_spend_data(household["id"], owner_user_id, second_user_id)
+
+    response = client.get(
+        f"/v1/households/{household['id']}/spending-by-member",
+        params={
+            "start_date": "2026-07-01",
+            "end_date": "2026-07-31",
+            "member_ids": [str(second_member_id)],
+        },
+        headers=headers_owner,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["member_id"] == str(second_member_id)
+    assert body[0]["total"] == 20.0
+
+
+def test_spending_by_member_does_not_fan_out_across_households(client, make_user):
+    """A guard against the join in `_connection_member_map` matching a
+    `HouseholdMember` row from a *different* household that happens to
+    share the same `app_user_id` — which would double-count this
+    household's own transaction if the join weren't scoped by
+    `household_id`.
+    """
+    headers_owner = make_user("fanoutowner@example.com")
+    household_a = client.post(
+        "/v1/households", json={"name": "Fanout Family A"}, headers=headers_owner
+    ).json()
+    household_b = client.post(
+        "/v1/households", json={"name": "Fanout Family B"}, headers=headers_owner
+    ).json()
+
+    db = SessionLocal()
+    owner_user = (
+        db.query(AppUser).filter(AppUser.email == "fanoutowner@example.com").one()
+    )
+    # The owner is already a HouseholdMember row in both A and B (one per
+    # household, created by the household-creation flow) — exactly the
+    # shared-app_user_id-across-households shape this test guards against.
+    connection = PluggyConnection(
+        household_id=household_a["id"],
+        pluggy_item_id=f"item-fanout-{uuid.uuid4()}",
+        status="UPDATED",
+        created_by_app_user_id=owner_user.id,
+    )
+    db.add(connection)
+    db.flush()
+    account = Account(
+        household_id=household_a["id"],
+        pluggy_connection_id=connection.id,
+        pluggy_account_id="acc-fanout",
+        name="Fanout Checking",
+        type="BANK",
+        balance=0.0,
+        currency_code="BRL",
+    )
+    db.add(account)
+    db.flush()
+    db.add(
+        Transaction(
+            household_id=household_a["id"],
+            account_id=account.id,
+            pluggy_transaction_id="txn-fanout",
+            description="Fanout spend",
+            amount=-75.0,
+            currency_code="BRL",
+            transaction_date="2026-07-10",
+            category="Food",
+        )
+    )
+    db.commit()
+    owner_member_id = str(
+        db.query(HouseholdMember)
+        .filter(
+            HouseholdMember.household_id == household_a["id"],
+            HouseholdMember.app_user_id == owner_user.id,
+        )
+        .one()
+        .id
+    )
+    db.close()
+
+    response = client.get(
+        f"/v1/households/{household_a['id']}/spending-by-member",
+        params={"start_date": "2026-07-01", "end_date": "2026-07-31"},
+        headers=headers_owner,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["member_id"] == owner_member_id
+    assert body[0]["total"] == 75.0
+
+
+def test_family_a_cannot_view_family_b_spending_by_member(client, make_user):
+    headers_a = make_user("spend-isoa@example.com")
+    headers_b = make_user("spend-isob@example.com")
+    household_a = client.post(
+        "/v1/households", json={"name": "Spend Iso Family A"}, headers=headers_a
+    ).json()
+    _seed_extended_finance_data(household_a["id"])
+
+    response = client.get(
+        f"/v1/households/{household_a['id']}/spending-by-member", headers=headers_b
+    )
+
+    assert response.status_code == 403
+
+
 def test_family_a_cannot_view_family_b_loans(client, make_user):
     headers_a = make_user("loan-isoa@example.com")
     headers_b = make_user("loan-isob@example.com")

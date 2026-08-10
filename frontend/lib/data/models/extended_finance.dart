@@ -153,3 +153,27 @@ class CategoryBreakdownItem {
   final double total;
   final double? previousTotal;
 }
+
+/// One `(month, member)` row from `/spending-by-member` — `memberId` is
+/// `null` for transactions whose connection has no attributable creator
+/// (see `backend/app/api/extended_finance.py`'s `_connection_member_map`),
+/// which the chart mapper folds into "Outros".
+class MemberMonthlySpend {
+  const MemberMonthlySpend({
+    required this.month,
+    required this.memberId,
+    required this.total,
+  });
+
+  factory MemberMonthlySpend.fromJson(Map<String, dynamic> json) {
+    return MemberMonthlySpend(
+      month: json['month'] as String,
+      memberId: json['member_id'] as String?,
+      total: (json['total'] as num).toDouble(),
+    );
+  }
+
+  final String month;
+  final String? memberId;
+  final double total;
+}

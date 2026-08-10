@@ -55,3 +55,9 @@ class CategoryBreakdownItem(BaseModel):
     category: str | None
     total: float
     previous_total: float | None = None
+
+
+class MemberSpendItem(BaseModel):
+    month: str
+    member_id: uuid.UUID | None
+    total: float
