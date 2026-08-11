@@ -375,6 +375,7 @@ class _PopulatedBackendService extends BackendApiService {
       AnomalySummary(
         id: 'a1',
         transactionId: null,
+        householdMemberId: null,
         rule: 'duplicate_transaction',
         severity: 'medium',
         score: null,
@@ -387,6 +388,7 @@ class _PopulatedBackendService extends BackendApiService {
       AnomalySummary(
         id: 'a2',
         transactionId: null,
+        householdMemberId: null,
         rule: 'duplicate_transaction',
         severity: 'medium',
         score: null,

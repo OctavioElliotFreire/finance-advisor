@@ -6,7 +6,8 @@ import pytest
 from app.database.session import SessionLocal
 from app.models.account import Account
 from app.models.anomaly import AnomalyFlag
-from app.models.household import Household
+from app.models.app_user import AppUser
+from app.models.household import Household, HouseholdMember
 from app.models.pluggy_connection import PluggyConnection
 from app.models.transaction import Transaction
 from app.services import anomaly_rules
@@ -104,6 +105,81 @@ def household_with_two_banks(db):
         PluggyConnection.household_id == household.id
     ).delete(synchronize_session=False)
     db.query(Household).filter(Household.id == household.id).delete(
+        synchronize_session=False
+    )
+    db.commit()
+
+
+@pytest.fixture
+def household_with_two_members(db):
+    household = Household(name="Two Member Family")
+    db.add(household)
+    db.flush()
+
+    members = []
+    accounts = []
+    app_user_ids = []
+    for label in ("Member A", "Member B"):
+        app_user = AppUser(
+            auth_provider="supabase",
+            auth_provider_user_id=f"user-{uuid.uuid4()}",
+            email=f"{label.lower().replace(' ', '')}@example.com",
+        )
+        db.add(app_user)
+        db.flush()
+        app_user_ids.append(app_user.id)
+
+        household_member = HouseholdMember(
+            household_id=household.id, app_user_id=app_user.id, role="member"
+        )
+        db.add(household_member)
+        db.flush()
+
+        connection = PluggyConnection(
+            household_id=household.id,
+            pluggy_item_id=f"item-{uuid.uuid4()}",
+            status="pending",
+            created_by_app_user_id=app_user.id,
+        )
+        db.add(connection)
+        db.flush()
+        account = Account(
+            household_id=household.id,
+            pluggy_connection_id=connection.id,
+            pluggy_account_id=f"acc-{uuid.uuid4()}",
+            name=label,
+            type="BANK",
+            balance=1000.0,
+            currency_code="BRL",
+        )
+        db.add(account)
+        db.flush()
+
+        members.append(household_member)
+        accounts.append(account)
+    db.commit()
+
+    yield household, members[0], accounts[0], members[1], accounts[1]
+
+    db.query(AnomalyFlag).filter(AnomalyFlag.household_id == household.id).delete(
+        synchronize_session=False
+    )
+    db.query(Transaction).filter(Transaction.household_id == household.id).delete(
+        synchronize_session=False
+    )
+    db.query(Account).filter(Account.household_id == household.id).delete(
+        synchronize_session=False
+    )
+    db.query(PluggyConnection).filter(
+        PluggyConnection.household_id == household.id
+    ).delete(synchronize_session=False)
+    db.query(HouseholdMember).filter(
+        HouseholdMember.household_id == household.id
+    ).delete(synchronize_session=False)
+    db.query(Household).filter(Household.id == household.id).delete(
+        synchronize_session=False
+    )
+    db.query(AppUser).filter(AppUser.id.in_(app_user_ids)).delete(
         synchronize_session=False
     )
     db.commit()
@@ -291,6 +367,46 @@ def test_category_deviation_not_flagged_below_floor(db, household_and_account):
     db.commit()
 
     candidates = anomaly_rules.detect_category_deviations(db, household.id, as_of=TODAY)
+
+    assert candidates == []
+
+
+def test_member_deviation_detected(db, household_with_two_members):
+    household, member_a, account_a, member_b, account_b = household_with_two_members
+    # Member A: prior window low, current window high -> flagged.
+    _add_txn(db, household, account_a, amount=-100.0, day_offset=45, description="Prior spend")
+    _add_txn(db, household, account_a, amount=-400.0, day_offset=5, description="Current spend")
+    # Member B: stays flat -> not flagged.
+    _add_txn(db, household, account_b, amount=-150.0, day_offset=45, description="Prior spend B")
+    _add_txn(db, household, account_b, amount=-150.0, day_offset=5, description="Current spend B")
+    db.commit()
+
+    candidates = anomaly_rules.detect_member_deviations(db, household.id, as_of=TODAY)
+
+    assert len(candidates) == 1
+    assert candidates[0]["household_member_id"] == member_a.id
+    assert candidates[0]["transaction_id"] is None
+    assert candidates[0]["rule"] == "member_deviation"
+
+
+def test_member_deviation_not_flagged_below_floor(db, household_with_two_members):
+    household, member_a, account_a, _, _ = household_with_two_members
+    _add_txn(db, household, account_a, amount=-10.0, day_offset=45, description="Coffee")
+    _add_txn(db, household, account_a, amount=-40.0, day_offset=5, description="Coffee")
+    db.commit()
+
+    candidates = anomaly_rules.detect_member_deviations(db, household.id, as_of=TODAY)
+
+    assert candidates == []
+
+
+def test_member_deviation_ignores_unattributed_connection(db, household_and_account):
+    household, account = household_and_account
+    _add_txn(db, household, account, amount=-100.0, day_offset=45, description="Prior spend")
+    _add_txn(db, household, account, amount=-400.0, day_offset=5, description="Current spend")
+    db.commit()
+
+    candidates = anomaly_rules.detect_member_deviations(db, household.id, as_of=TODAY)
 
     assert candidates == []
 

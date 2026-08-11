@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.auth.access_scope import AccessScope, get_access_scope
@@ -35,7 +36,7 @@ def _get_flag_or_404(
     db: Session,
     household_id: uuid.UUID,
     anomaly_id: uuid.UUID,
-    connection_ids: set[uuid.UUID] | None,
+    scope: AccessScope,
 ) -> AnomalyFlag:
     flag = (
         db.query(AnomalyFlag)
@@ -45,9 +46,14 @@ def _get_flag_or_404(
     if flag is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Anomaly not found")
 
-    if connection_ids is not None:
-        # Category-deviation flags have no transaction_id and can't be
-        # attributed to a connection — hidden from restricted members.
+    if scope.connection_ids is not None:
+        # A member-deviation flag is always visible to the member it's
+        # about, regardless of their connection grants — that's the whole
+        # point of the flag. Otherwise fall back to the transaction's
+        # connection (category-deviation flags have neither and stay
+        # hidden from restricted members, unchanged from before).
+        if flag.household_member_id == scope.membership.id:
+            return flag
         account = (
             db.query(Account)
             .join(Transaction, Transaction.account_id == Account.id)
@@ -56,7 +62,7 @@ def _get_flag_or_404(
             if flag.transaction_id
             else None
         )
-        if account is None or account.pluggy_connection_id not in connection_ids:
+        if account is None or account.pluggy_connection_id not in scope.connection_ids:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Anomaly not found")
 
     return flag
@@ -73,12 +79,20 @@ def list_anomalies(
     if status_filter is not None:
         query = query.filter(AnomalyFlag.status == status_filter)
     if scope.connection_ids is not None:
-        # Inner joins naturally drop transaction_id IS NULL rows too (the
-        # category-deviation rule), which restricted members shouldn't see.
+        # Outer joins so transaction_id IS NULL rows (category-deviation,
+        # member-deviation) survive the join instead of being dropped — a
+        # member-deviation flag about this member is visible even with no
+        # transaction/connection to match; a category-deviation flag (no
+        # member either) still isn't, unchanged from before.
         query = (
-            query.join(Transaction, AnomalyFlag.transaction_id == Transaction.id)
-            .join(Account, Transaction.account_id == Account.id)
-            .filter(Account.pluggy_connection_id.in_(scope.connection_ids))
+            query.outerjoin(Transaction, AnomalyFlag.transaction_id == Transaction.id)
+            .outerjoin(Account, Transaction.account_id == Account.id)
+            .filter(
+                or_(
+                    AnomalyFlag.household_member_id == scope.membership.id,
+                    Account.pluggy_connection_id.in_(scope.connection_ids),
+                )
+            )
         )
     flags = query.order_by(AnomalyFlag.created_at.desc()).all()
     return [AnomalySummary.model_validate(f) for f in flags]
@@ -93,7 +107,7 @@ def explain_anomaly(
     db: Session = Depends(get_db),
     provider: LLMProvider = Depends(get_llm_provider),
 ):
-    flag = _get_flag_or_404(db, household_id, anomaly_id, scope.connection_ids)
+    flag = _get_flag_or_404(db, household_id, anomaly_id, scope)
 
     check_and_record_rate_limit(
         db,
@@ -145,7 +159,7 @@ def update_anomaly_status(
     scope: AccessScope = Depends(get_access_scope),
     db: Session = Depends(get_db),
 ):
-    flag = _get_flag_or_404(db, household_id, anomaly_id, scope.connection_ids)
+    flag = _get_flag_or_404(db, household_id, anomaly_id, scope)
     flag.status = body.status
     db.commit()
     db.refresh(flag)

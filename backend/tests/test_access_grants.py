@@ -338,6 +338,24 @@ def _seed_two_connections(household_id):
     return ids
 
 
+def _seed_member_deviation_flag(household_id, member_id):
+    db = SessionLocal()
+    db.add(
+        AnomalyFlag(
+            household_id=household_id,
+            transaction_id=None,
+            household_member_id=member_id,
+            rule="member_deviation",
+            dedupe_key=f"{member_id}:member-deviation-test",
+            severity="high",
+            summary="This member's spending is unusually high",
+            status="open",
+        )
+    )
+    db.commit()
+    db.close()
+
+
 def _invite_and_get_member_id(client, headers_owner, headers_member, household_id, email):
     client.get("/v1/me", headers=headers_member)
     response = client.post(
@@ -434,6 +452,38 @@ def test_restricted_member_sees_only_granted_connection(client, make_user):
         f"/v1/households/{household['id']}/connections", headers=headers_member
     ).json()
     assert len(connections) == 1
+
+
+def test_restricted_member_sees_their_own_member_deviation_flag(client, make_user):
+    headers_owner = make_user("access-owner3@example.com")
+    headers_member = make_user("access-member3@example.com")
+    household = client.post(
+        "/v1/households", json={"name": "Access Family 3"}, headers=headers_owner
+    ).json()
+    ids = _seed_two_connections(household["id"])
+    member_id = _invite_and_get_member_id(
+        client, headers_owner, headers_member, household["id"], "access-member3@example.com"
+    )
+    _seed_member_deviation_flag(household["id"], member_id)
+
+    # Grant only conn_b — Anomaly A (conn_a) and the category-wide flag
+    # (no connection at all) should stay invisible, same as the existing
+    # restricted-member test, but the member-deviation flag attributed to
+    # this member must still show up despite having no transaction either.
+    client.put(
+        f"/v1/households/{household['id']}/members/{member_id}/access",
+        json={"connection_ids": [str(ids["conn_b"])]},
+        headers=headers_owner,
+    )
+
+    anomalies = client.get(
+        f"/v1/households/{household['id']}/anomalies", headers=headers_member
+    ).json()
+
+    rules = {a["rule"] for a in anomalies}
+    assert rules == {"large_transaction", "member_deviation"}
+    member_flag = next(a for a in anomalies if a["rule"] == "member_deviation")
+    assert member_flag["household_member_id"] == member_id
 
 
 def test_member_granted_every_connection_is_unrestricted(client, make_user):

@@ -24,6 +24,9 @@ class AnomalyFlag(Base):
     transaction_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("transactions.id"), nullable=True
     )
+    household_member_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("household_members.id"), nullable=True
+    )
     rule: Mapped[str] = mapped_column(String, nullable=False)
     dedupe_key: Mapped[str] = mapped_column(String, nullable=False)
     severity: Mapped[str] = mapped_column(String, nullable=False)

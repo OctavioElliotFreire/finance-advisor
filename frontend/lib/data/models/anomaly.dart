@@ -2,6 +2,7 @@ class AnomalySummary {
   const AnomalySummary({
     required this.id,
     required this.transactionId,
+    required this.householdMemberId,
     required this.rule,
     required this.severity,
     required this.score,
@@ -16,6 +17,7 @@ class AnomalySummary {
     return AnomalySummary(
       id: json['id'] as String,
       transactionId: json['transaction_id'] as String?,
+      householdMemberId: json['household_member_id'] as String?,
       rule: json['rule'] as String,
       severity: json['severity'] as String,
       score: (json['score'] as num?)?.toDouble(),
@@ -31,6 +33,7 @@ class AnomalySummary {
 
   final String id;
   final String? transactionId;
+  final String? householdMemberId;
   final String rule;
   final String severity;
   final double? score;
@@ -48,6 +51,7 @@ class AnomalySummary {
     return AnomalySummary(
       id: id,
       transactionId: transactionId,
+      householdMemberId: householdMemberId,
       rule: rule,
       severity: severity,
       score: score,

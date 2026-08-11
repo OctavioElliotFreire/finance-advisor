@@ -10,6 +10,7 @@ class AnomalySummary(BaseModel):
 
     id: uuid.UUID
     transaction_id: uuid.UUID | None
+    household_member_id: uuid.UUID | None
     rule: str
     severity: str
     score: float | None

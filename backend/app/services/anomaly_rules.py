@@ -6,8 +6,11 @@ from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
+from app.auth.access_scope import connection_member_map
 from app.models.account import Account
 from app.models.anomaly import AnomalyFlag
+from app.models.app_user import AppUser
+from app.models.household import HouseholdMember
 from app.models.transaction import Transaction
 
 LARGE_TXN_MIN_SAMPLE = 5
@@ -28,6 +31,11 @@ CATEGORY_DEVIATION_WINDOW_DAYS = 30
 CATEGORY_DEVIATION_FLOOR = 200.0
 CATEGORY_DEVIATION_HIGH_RATIO = 2.5
 CATEGORY_DEVIATION_MEDIUM_RATIO = 1.5
+
+MEMBER_DEVIATION_WINDOW_DAYS = 30
+MEMBER_DEVIATION_FLOOR = 200.0
+MEMBER_DEVIATION_HIGH_RATIO = 2.5
+MEMBER_DEVIATION_MEDIUM_RATIO = 1.5
 
 
 def _severity(value: float, high: float, medium: float) -> str:
@@ -286,12 +294,96 @@ def detect_category_deviations(
     return candidates
 
 
+def detect_member_deviations(
+    db: Session, household_id: uuid.UUID, as_of: date | None = None
+) -> list[dict]:
+    today = as_of or date.today()
+    window_start = today - timedelta(days=MEMBER_DEVIATION_WINDOW_DAYS)
+    prior_start = window_start - timedelta(days=MEMBER_DEVIATION_WINDOW_DAYS)
+
+    def _totals_by_connection(start: date, end: date) -> dict[uuid.UUID, float]:
+        rows = (
+            db.query(Account.pluggy_connection_id, func.sum(-Transaction.amount))
+            .join(Transaction, Transaction.account_id == Account.id)
+            .filter(
+                Transaction.household_id == household_id,
+                Transaction.amount < 0,
+                Transaction.transaction_date >= start,
+                Transaction.transaction_date <= end,
+            )
+            .group_by(Account.pluggy_connection_id)
+            .all()
+        )
+        return {connection_id: float(total or 0) for connection_id, total in rows}
+
+    current_by_connection = _totals_by_connection(window_start, today)
+    prior_by_connection = _totals_by_connection(
+        prior_start, window_start - timedelta(days=1)
+    )
+
+    connection_to_member = connection_member_map(db, household_id, None)
+
+    def _fold_by_member(by_connection: dict[uuid.UUID, float]) -> dict[uuid.UUID, float]:
+        totals: dict[uuid.UUID, float] = {}
+        for connection_id, total in by_connection.items():
+            member_id = connection_to_member.get(connection_id)
+            if member_id is None:
+                continue
+            totals[member_id] = totals.get(member_id, 0.0) + total
+        return totals
+
+    current_by_member = _fold_by_member(current_by_connection)
+    prior_by_member = _fold_by_member(prior_by_connection)
+
+    member_emails = {
+        member_id: email
+        for member_id, email in db.query(HouseholdMember.id, AppUser.email)
+        .join(AppUser, AppUser.id == HouseholdMember.app_user_id)
+        .filter(HouseholdMember.household_id == household_id)
+        .all()
+    }
+
+    candidates = []
+    for member_id, current_total in current_by_member.items():
+        prior_total = prior_by_member.get(member_id, 0.0)
+        if current_total < MEMBER_DEVIATION_FLOOR or prior_total <= 0:
+            continue
+        ratio = current_total / prior_total
+        if ratio >= MEMBER_DEVIATION_MEDIUM_RATIO:
+            email = member_emails.get(member_id, "This member")
+            candidates.append(
+                {
+                    "transaction_id": None,
+                    "household_member_id": member_id,
+                    "rule": "member_deviation",
+                    "dedupe_key": f"{member_id}:{today.isoformat()}",
+                    "severity": _severity(
+                        ratio, MEMBER_DEVIATION_HIGH_RATIO, MEMBER_DEVIATION_MEDIUM_RATIO
+                    ),
+                    "score": round(ratio, 4),
+                    "summary": (
+                        f"{email}'s spending over the last {MEMBER_DEVIATION_WINDOW_DAYS} days "
+                        f"(R$ {current_total:.2f}) is {ratio:.1f}x their prior period "
+                        f"(R$ {prior_total:.2f})"
+                    ),
+                    "raw_context": {
+                        "current_total": current_total,
+                        "prior_total": prior_total,
+                        "window_start": window_start.isoformat(),
+                        "prior_start": prior_start.isoformat(),
+                    },
+                }
+            )
+    return candidates
+
+
 RULES = (
     detect_large_transactions,
     detect_duplicate_transactions,
     detect_new_merchants,
     detect_recurring_payment_changes,
     detect_category_deviations,
+    detect_member_deviations,
 )
 
 
@@ -313,6 +405,7 @@ def run_anomaly_detection(db: Session, household_id: uuid.UUID) -> int:
             "id": uuid.uuid4(),
             "household_id": household_id,
             "transaction_id": c["transaction_id"],
+            "household_member_id": c.get("household_member_id"),
             "rule": c["rule"],
             "dedupe_key": c["dedupe_key"],
             "severity": c["severity"],

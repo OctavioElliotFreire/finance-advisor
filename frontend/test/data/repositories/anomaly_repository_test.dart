@@ -21,6 +21,7 @@ void main() {
   final anomaly = AnomalySummary(
     id: 'anomaly-1',
     transactionId: 'txn-1',
+    householdMemberId: null,
     rule: 'large_transaction',
     severity: 'high',
     score: 5.2,

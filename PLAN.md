@@ -2189,6 +2189,74 @@ against a real target):
   appearance, confirming the `tertiary`-vs-`onSurfaceVariant` correction
   actually fixed the regression it was meant to fix.
 
+- **Member-level deviation anomaly rule (2026-08-11)**: closed the gap
+  `design.md`'s Alerts table (line 260) named explicitly — "Deviation
+  from own average" existed only at category level
+  (`detect_category_deviations`); the member-level half (Início's
+  `"40% acima da média dela"` copy) was separate, backend-gated work.
+  New `detect_member_deviations` rule in
+  `backend/app/services/anomaly_rules.py`: same 30-day current-vs-prior
+  window/ratio logic as the category rule, grouped by household member
+  via the existing `connection_member_map()` helper (`access_scope.py`)
+  instead of by transaction category — mirrors `/spending-by-member`'s
+  connection→member fold pattern for members who own more than one
+  connection. Connections with no `created_by_app_user_id` are skipped
+  entirely (no member to attribute the flag to). Summary text uses the
+  member's email (the app has no separate display-name field anywhere,
+  consistent with Família/member-chips), in the same English style as
+  the existing rule summaries (backend rule summaries were never part of
+  the pt-BR pass — a separate, pre-existing gap, not something this
+  task expanded or fixed).
+
+  Real schema change, not a `raw_context` shortcut: added a nullable
+  `household_member_id` FK column to `anomaly_flags` (migration
+  `d9ddc85ba170`, round-tripped upgrade→downgrade→upgrade clean) and to
+  `AnomalySummary`/the Flutter `AnomalySummary` model, because a
+  member-level flag that a restricted member can't see about
+  *themselves* would defeat the point. That required a small, targeted
+  fix to `backend/app/api/anomalies.py`'s existing visibility logic
+  (`_get_flag_or_404`, `list_anomalies`): both now OR in
+  "`household_member_id` matches the requester's own membership" instead
+  of only checking the flagged transaction's connection grant.
+  Category-deviation flags (no member to attribute) are unaffected and
+  stay invisible to restricted members exactly as before — confirmed
+  against `test_access_grants.py`'s pre-existing
+  `test_restricted_member_sees_only_granted_connection` assertion
+  (`len(anomalies) == 1`), which still passes unchanged.
+
+  Explicitly scoped out: no frontend UI for the new rule this pass — the
+  `/households/{id}/anomalies` screen (`anomalies_view.dart`) is still
+  the old pre-redesign `Card`/`OutlinedButton` UI, never touched by this
+  session's mockup-driven redesign, and `design.md`'s "member badge"
+  card-anatomy spec (line 265) doesn't exist for any rule today. Adding
+  a one-off badge to legacy UI (or redesigning the whole screen, a much
+  bigger unrelated task) was rejected in favor of frontend schema parity
+  only (`householdMemberId` added to the Flutter model) — the visual
+  badge is deferred to whenever that screen gets its own design-system
+  pass.
+
+  New tests: `test_anomaly_rules.py` gained a `household_with_two_members`
+  fixture (two `AppUser`/`HouseholdMember`/`PluggyConnection` sets) and
+  three tests (`test_member_deviation_detected`,
+  `test_member_deviation_not_flagged_below_floor`,
+  `test_member_deviation_ignores_unattributed_connection` — the last
+  reusing the existing single-account fixture, since its connection is
+  already unattributed). `test_access_grants.py` gained
+  `test_restricted_member_sees_their_own_member_deviation_flag`, proving
+  the new OR-based visibility logic end-to-end via the real API
+  (`TestClient`), granting a restricted member only one connection and
+  confirming they still see a `member_deviation` flag attributed to
+  themselves alongside their granted connection's flag, while the
+  category-wide and other-connection flags stay hidden. Backend
+  `pytest tests/ -q`: 154/154 (4 new). `flutter analyze`/`flutter test`:
+  192/192 clean (only 3 existing `AnomalySummary(...)` test call sites
+  needed the new required `householdMemberId: null` param). **Manual
+  smoke 2026-08-11**: ran `run_anomaly_detection` directly against the
+  real QA Test Household's seeded Postgres data — completed without
+  throwing, idempotent (0 new inserts on a second run), no
+  `member_deviation` flag fired for that fixture's actual data shape
+  (expected — its transactions don't span two full 30-day windows yet).
+
 ---
 
 ## First Vertical Slice (verified 2026-07-28)
