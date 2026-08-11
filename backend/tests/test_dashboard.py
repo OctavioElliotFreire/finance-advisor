@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from app.database.session import SessionLocal
 from app.main import app
 from app.models.account import Account
+from app.models.anomaly import AnomalyFlag
 from app.models.app_user import AppUser
 from app.models.household import Household, HouseholdMember
 from app.models.pluggy_connection import PluggyConnection, SyncJob
@@ -64,6 +65,9 @@ def make_user():
             .all()
         ]
         if household_ids:
+            db.query(AnomalyFlag).filter(
+                AnomalyFlag.household_id.in_(household_ids)
+            ).delete(synchronize_session=False)
             db.query(Transaction).filter(
                 Transaction.household_id.in_(household_ids)
             ).delete(synchronize_session=False)
@@ -558,3 +562,112 @@ def test_list_transactions_supports_date_range_and_pagination(client, make_user)
         headers=headers,
     ).json()
     assert len(paginated) == 1
+
+
+def test_transactions_expose_account_id_and_flag_status(client, make_user):
+    headers = make_user("flagged@example.com")
+    household = client.post(
+        "/v1/households", json={"name": "Flagged Family"}, headers=headers
+    ).json()
+
+    db = SessionLocal()
+    connection = PluggyConnection(
+        household_id=household["id"],
+        pluggy_item_id=f"item-{uuid.uuid4()}",
+        status="UPDATED",
+    )
+    db.add(connection)
+    db.flush()
+    account = Account(
+        household_id=household["id"],
+        pluggy_connection_id=connection.id,
+        pluggy_account_id="acc-flags",
+        name="Conta Corrente",
+        type="BANK",
+        balance=0.0,
+        currency_code="BRL",
+        number="0001-1234567",
+    )
+    db.add(account)
+    db.flush()
+    account_id = account.id
+
+    open_txn = Transaction(
+        household_id=household["id"],
+        account_id=account.id,
+        pluggy_transaction_id="txn-open-flag",
+        description="Possible duplicate",
+        amount=-100.0,
+        currency_code="BRL",
+        transaction_date="2026-08-01",
+        category="Food",
+    )
+    dismissed_txn = Transaction(
+        household_id=household["id"],
+        account_id=account.id,
+        pluggy_transaction_id="txn-dismissed-flag",
+        description="Reviewed already",
+        amount=-50.0,
+        currency_code="BRL",
+        transaction_date="2026-08-02",
+        category="Food",
+    )
+    unflagged_txn = Transaction(
+        household_id=household["id"],
+        account_id=account.id,
+        pluggy_transaction_id="txn-no-flag",
+        description="Ordinary purchase",
+        amount=-25.0,
+        currency_code="BRL",
+        transaction_date="2026-08-03",
+        category="Food",
+    )
+    db.add_all([open_txn, dismissed_txn, unflagged_txn])
+    db.flush()
+    db.add_all(
+        [
+            AnomalyFlag(
+                household_id=household["id"],
+                transaction_id=open_txn.id,
+                rule="duplicate_transaction",
+                dedupe_key="dupe-open",
+                severity="medium",
+                summary="Possível cobrança duplicada",
+                status="open",
+            ),
+            AnomalyFlag(
+                household_id=household["id"],
+                transaction_id=dismissed_txn.id,
+                rule="duplicate_transaction",
+                dedupe_key="dupe-dismissed",
+                severity="medium",
+                summary="Possível cobrança duplicada",
+                status="dismissed",
+            ),
+        ]
+    )
+    db.commit()
+    db.close()
+
+    response = client.get(
+        f"/v1/households/{household['id']}/transactions",
+        params={"start_date": "2026-08-01", "end_date": "2026-08-03"},
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 3
+    flagged_by_description = {row["description"]: row["is_flagged"] for row in body}
+    assert flagged_by_description["Possible duplicate"] is True
+    assert flagged_by_description["Reviewed already"] is False
+    assert flagged_by_description["Ordinary purchase"] is False
+    assert all(row["account_id"] == str(account_id) for row in body)
+
+    dashboard_response = client.get(
+        f"/v1/households/{household['id']}/dashboard", headers=headers
+    )
+    account_body = next(
+        a for a in dashboard_response.json()["accounts"] if a["id"] == str(account_id)
+    )
+    assert account_body["number"] == "0001-1234567"

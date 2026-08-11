@@ -59,6 +59,7 @@ class _AccountsViewState extends State<AccountsView> {
   List<TransactionSummary> _transactions = const [];
   bool _isLoadingTransactions = false;
   String? _transactionsError;
+  String? _statementFilter;
 
   List<CreditCardBillSummary> _creditCardBills = const [];
 
@@ -129,6 +130,18 @@ class _AccountsViewState extends State<AccountsView> {
     super.dispose();
   }
 
+  /// Client-side only — Extrato fetches a single unpaginated page for the
+  /// selected period already (no "load more" UI exists today), so filter
+  /// pills narrow that same batch rather than triggering a new fetch.
+  List<TransactionSummary> _applyStatementFilter(List<TransactionSummary> transactions, String? filter) {
+    return switch (filter) {
+      'flagged' => transactions.where((t) => t.isFlagged).toList(),
+      'in' => transactions.where((t) => t.amount > 0).toList(),
+      'out' => transactions.where((t) => t.amount < 0).toList(),
+      _ => transactions,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -171,10 +184,19 @@ class _AccountsViewState extends State<AccountsView> {
                 else ...[
                   Center(child: PeriodPill(controller: _scope!)),
                   const SizedBox(height: 16),
+                  _StatementFilterRow(
+                    selected: _statementFilter,
+                    onSelected: (value) => setState(() => _statementFilter = value),
+                  ),
+                  const SizedBox(height: 8),
                   if (_isLoadingTransactions && _transactions.isEmpty)
                     const LoadingState()
                   else
-                    _StatementList(transactions: _transactions),
+                    _StatementList(
+                      transactions: _applyStatementFilter(_transactions, _statementFilter),
+                      accounts: dashboard?.accounts ?? const [],
+                      members: _scope!.members,
+                    ),
                 ],
               ],
             ),
@@ -339,30 +361,140 @@ class _AccountRow extends StatelessWidget {
   }
 }
 
+// Filter pills per design.md's §6.3 — `Parcelados` is deliberately omitted:
+// no parcela data exists on Transaction yet (same backend gap noted
+// elsewhere in this codebase), so there's nothing for that chip to filter.
+const _statementFilters = <String?, String>{
+  null: 'Todos',
+  'flagged': 'Sinalizados',
+  'in': 'Entradas',
+  'out': 'Saídas',
+};
+
+class _StatementFilterRow extends StatelessWidget {
+  const _StatementFilterRow({required this.selected, required this.onSelected});
+
+  final String? selected;
+  final ValueChanged<String?> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      children: [
+        for (final entry in _statementFilters.entries)
+          ChoiceChip(
+            label: Text(entry.value),
+            selected: selected == entry.key,
+            onSelected: (_) => onSelected(entry.key),
+          ),
+      ],
+    );
+  }
+}
+
+class _StatementGroup {
+  const _StatementGroup({
+    required this.label,
+    required this.color,
+    required this.number,
+    required this.transactions,
+  });
+
+  final String label;
+  final Color color;
+  final String? number;
+  final List<TransactionSummary> transactions;
+}
+
+/// Groups transactions by account for Extrato's section headers — ordered
+/// by the accounts list's own existing order (`Account.type, Account.name`,
+/// same as Saldos) for consistency between the two Contas segments.
+/// Substitutes the account's own name for the spec's "institution" (no
+/// institution data is persisted anywhere yet — a documented gap, same
+/// class as the parcela one above) — and degrades to a generic "Conta"
+/// bucket for any transaction whose account isn't in `accounts` yet
+/// (e.g. that fetch hasn't completed), rather than crashing.
+List<_StatementGroup> _groupByAccount(
+  List<TransactionSummary> transactions,
+  List<AccountSummary> accounts,
+  List<HouseholdMember> members,
+) {
+  final memberIndex = {for (var i = 0; i < members.length; i++) members[i].id: i};
+  final byAccount = <String, List<TransactionSummary>>{};
+  for (final txn in transactions) {
+    byAccount.putIfAbsent(txn.accountId, () => []).add(txn);
+  }
+
+  final groups = <_StatementGroup>[];
+  for (final account in accounts) {
+    final txns = byAccount.remove(account.id);
+    if (txns == null) continue;
+    final memberIdx = account.ownerMemberId == null ? null : memberIndex[account.ownerMemberId];
+    groups.add(
+      _StatementGroup(
+        label: account.name ?? 'Conta',
+        color: memberIdx == null ? AppMemberColors.outros : AppMemberColors.forIndex(memberIdx),
+        number: account.number,
+        transactions: txns,
+      ),
+    );
+  }
+  for (final leftover in byAccount.values) {
+    groups.add(_StatementGroup(label: 'Conta', color: AppMemberColors.outros, number: null, transactions: leftover));
+  }
+  return groups;
+}
+
 class _StatementList extends StatelessWidget {
-  const _StatementList({required this.transactions});
+  const _StatementList({required this.transactions, required this.accounts, required this.members});
 
   final List<TransactionSummary> transactions;
+  final List<AccountSummary> accounts;
+  final List<HouseholdMember> members;
 
   @override
   Widget build(BuildContext context) {
     if (transactions.isEmpty) {
       return const AppEmptyState(icon: Icons.receipt_long_outlined, title: 'Nenhuma movimentação ainda');
     }
+
+    final groups = _groupByAccount(transactions, accounts, members);
+
     return Column(
       children: [
-        for (final txn in transactions)
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(txn.description ?? 'Movimentação'),
-            subtitle: Text(
-              '${txn.accountName ?? ''} · ${formatShortDate(txn.transactionDate)}',
-            ),
-            trailing: Text(
-              formatMoney(txn.amount, txn.currencyCode),
-              style: Theme.of(context).textTheme.titleSmall,
+        for (final group in groups) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                Container(width: 10, height: 10, color: group.color),
+                const SizedBox(width: 8),
+                Text(group.label, style: Theme.of(context).textTheme.titleSmall),
+                const SizedBox(width: 8),
+                Text(
+                  formatMaskedAccountNumber(group.number),
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
             ),
           ),
+          for (final txn in group.transactions)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: txn.isFlagged ? const Icon(Icons.flag, size: 18) : null,
+              title: Text(txn.description ?? 'Movimentação'),
+              subtitle: Text(
+                txn.category == null
+                    ? formatDayMonth(txn.transactionDate)
+                    : '${formatDayMonth(txn.transactionDate)} · ${txn.category}',
+              ),
+              trailing: Text(
+                formatMoney(txn.amount, txn.currencyCode),
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+            ),
+        ],
       ],
     );
   }

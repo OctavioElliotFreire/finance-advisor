@@ -40,4 +40,25 @@ void main() {
       expect(formatMonth('2026-08'), 'ago./26');
     });
   });
+
+  group('formatDayMonth', () {
+    test('formats as "day de month", no period, no year', () {
+      expect(formatDayMonth(DateTime(2026, 8, 6)), '6 de ago');
+    });
+  });
+
+  group('formatMaskedAccountNumber', () {
+    test('masks all but the last 4 characters', () {
+      expect(formatMaskedAccountNumber('0001-1234567'), '•••• 4567');
+    });
+
+    test('a number of 4 or fewer characters is shown in full after the mask', () {
+      expect(formatMaskedAccountNumber('42'), '•••• 42');
+    });
+
+    test('null or empty falls back to a bare mask', () {
+      expect(formatMaskedAccountNumber(null), '••••');
+      expect(formatMaskedAccountNumber(''), '••••');
+    });
+  });
 }

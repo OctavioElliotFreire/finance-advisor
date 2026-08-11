@@ -1986,6 +1986,66 @@ against a real target):
   correctly alongside — no double-pill duplication); confirmed Família's
   top bar correctly shows neither a period pill nor a member-chip strip,
   matching its `_showsPeriodAtShell`/`_showsMembers` entries.
+* **Contas · Extrato polish (2026-08-10)**: `design.md`'s §6.3 partially
+  implemented — scoped down deliberately after research turned up real,
+  confirmed backend gaps for the rest of it. Buildable-now piece shipped:
+  filter pills (`Todos`/`Sinalizados`/`Entradas`/`Saídas` — `Parcelados`
+  omitted, no parcela data exists), the category line the backend already
+  returned but the UI dropped, a flag icon, and account-grouped section
+  headers (member dot + masked number, substituting account name for the
+  unavailable "institution"). Filtering is client-side against the
+  already-fetched period batch — Extrato has no "load more" UI today, so
+  no new query params were needed, not even for `Sinalizados` (the new
+  `is_flagged` field just rides along on each row already fetched).
+  Backend: `TransactionSummary` (`backend/app/schemas/dashboard.py`)
+  gained `account_id` (the join already had `Account`, just wasn't
+  selecting its id) and `is_flagged` (one cheap extra
+  `AnomalyFlag.transaction_id IN (...)` query per page, `status ==
+  'open'` only — no migration needed either place, `transaction_id` was
+  already a nullable FK); `AccountSummary` gained `number` (column already
+  existed, auto-mapped). New frontend formatters `formatDayMonth` (→ `"6
+  de ago"`, the third date format `design.md`'s Localization section
+  names but nothing produced yet) and `formatMaskedAccountNumber` (→
+  `"•••• 1234"`, no exact format specified anywhere so this follows the
+  common bank-app convention) in `money.dart`. `_StatementList`
+  (`accounts_view.dart`) rebuilt to group by `accountId` (cross-referencing
+  `dashboard.accounts`, already fetched regardless of Contas segment,
+  reusing the same join-order member-color pattern `_BalancesList` already
+  established) — section headers scroll normally, not pinned/sticky (this
+  codebase has no sliver/pinned-header precedent anywhere, and adding one
+  wasn't judged worth it for this pass).
+
+  **Confirmed out of scope, not attempted** (verified by direct code
+  search during planning, not assumed): the parcela counter/filter needs
+  new `Transaction` columns + Pluggy ingestion, same class of gap already
+  scoped out once this session; the row-tap detail sheet (recategorize/
+  split/flag) needs entirely new backend surface — zero transaction-
+  mutation endpoints exist today (confirmed via a full grep of
+  `backend/app/api/`), "split" has no supporting data model at all, and
+  `design.md` itself (line 377) explicitly lists the sheet's exact layout
+  as not yet designed; CSV/PDF export needs new backend surface too
+  (`export.py` is only a full-household JSON dump, no CSV/PDF dependency
+  exists anywhere). Institution name in the subheader is the same class
+  of gap as parcelas — nothing persists it anywhere (`PluggyConnection`
+  never captures Pluggy's institution metadata) — so the subheader shows
+  the account's own name instead, a documented substitution.
+
+  Backend 150/150 (1 new), `flutter test` 181/181 (5 new: 3
+  `formatMaskedAccountNumber`/1 `formatDayMonth` mapper tests, 1 populated
+  Extrato widget test covering grouping/category/flag-icon/all three
+  filters), `flutter analyze` clean. Session note: a full `flutter test`
+  run hung indefinitely partway through with 0% CPU on the underlying
+  `dart` process — killed by PID and re-ran clean immediately after (all
+  181 passed), so treated as a one-off environment fluke rather than a
+  real bug, but worth a mention in case it recurs. **Manual browser QA
+  run 2026-08-10** against the QA Test Household: confirmed real filter
+  pills, account-grouped section headers with real member dots and a real
+  masked number (`Mastercard Black` → `•••• 9437`), and real category+date
+  rendering (`5 de ago · Income`); toggled `Sinalizados` and got a correct,
+  clean empty state (this household's one real flagged anomaly falls
+  outside the current month's window — expected, not a bug); toggled
+  `Entradas` and confirmed it correctly narrowed to the one real income
+  transaction under its own account group.
 
 ---
 

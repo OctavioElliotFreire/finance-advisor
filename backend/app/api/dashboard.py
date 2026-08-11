@@ -13,6 +13,7 @@ from app.auth.access_scope import (
 )
 from app.database.session import get_db
 from app.models.account import Account
+from app.models.anomaly import AnomalyFlag
 from app.models.household import Household
 from app.models.pluggy_connection import PluggyConnection, SyncJob
 from app.models.transaction import Transaction
@@ -69,15 +70,33 @@ def _list_transactions(
         .offset(offset)
         .all()
     )
+
+    # Small, cheap follow-up query for "is this transaction currently
+    # flagged" — Contas · Extrato's flag icon. Only `open` flags count as
+    # currently flagged; a dismissed/confirmed flag no longer needs the
+    # user's attention on the statement row.
+    txn_ids = [txn.id for txn, _ in rows]
+    flagged_ids: set[uuid.UUID] = set()
+    if txn_ids:
+        flagged_ids = {
+            row[0]
+            for row in db.query(AnomalyFlag.transaction_id).filter(
+                AnomalyFlag.transaction_id.in_(txn_ids),
+                AnomalyFlag.status == "open",
+            )
+        }
+
     return [
         TransactionSummary(
             id=txn.id,
+            account_id=txn.account_id,
             account_name=account_name,
             description=txn.description,
             amount=float(txn.amount),
             currency_code=txn.currency_code,
             transaction_date=txn.transaction_date,
             category=txn.category,
+            is_flagged=txn.id in flagged_ids,
         )
         for txn, account_name in rows
     ]

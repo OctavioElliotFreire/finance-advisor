@@ -69,6 +69,7 @@ class _FakeBackendService extends BackendApiService {
           currencyCode: 'BRL',
           ownerMemberId: 'member-a',
           connectionStatus: 'UPDATED',
+          number: '0001-9876543',
         ),
         AccountSummary(
           id: 'card-low-util',
@@ -140,7 +141,31 @@ class _FakeBackendService extends BackendApiService {
     List<String>? memberIds,
     int limit = 50,
     int offset = 0,
-  }) async => const [];
+  }) async {
+    return [
+      TransactionSummary(
+        id: 'txn-income',
+        accountId: 'checking-a',
+        accountName: 'Conta Corrente A',
+        description: 'Salário',
+        amount: 5000,
+        currencyCode: 'BRL',
+        transactionDate: DateTime(2026, 8, 5),
+        category: 'Renda',
+      ),
+      TransactionSummary(
+        id: 'txn-flagged',
+        accountId: 'card-low-util',
+        accountName: 'Cartão Baixo Uso',
+        description: 'Compra suspeita',
+        amount: -300,
+        currencyCode: 'BRL',
+        transactionDate: DateTime(2026, 8, 6),
+        category: 'Compras',
+        isFlagged: true,
+      ),
+    ];
+  }
 }
 
 void main() {
@@ -234,5 +259,90 @@ void main() {
     expect(highUtilText.style?.color, dangerColor);
     expect(lowUtilText.style?.color, isNot(dangerColor));
     expect(lowUtilText.style?.color, isNot(warningColor));
+  });
+
+  testWidgets('Extrato groups by account, shows category/flag icon, and filter pills narrow the list', (
+    tester,
+  ) async {
+    final backendService = _FakeBackendService();
+    final authRepository = AuthRepository(
+      authService: _FakeAuthService(),
+      backendService: backendService,
+      storage: _FakeStorage(),
+    );
+    await authRepository.login('owner@example.com', 'hunter22');
+    final dashboardRepository = DashboardRepository(
+      authRepository: authRepository,
+      backendService: backendService,
+    );
+    final financeRepository = ExtendedFinanceRepository(
+      authRepository: authRepository,
+      backendService: backendService,
+    );
+
+    final scope = ScopeController(householdId: 'household-1');
+    scope.setMembers([
+      HouseholdMember(
+        id: 'member-a',
+        appUserId: 'au-a',
+        email: 'a@example.com',
+        role: 'owner',
+        createdAt: DateTime(2026, 1, 1),
+      ),
+      HouseholdMember(
+        id: 'member-b',
+        appUserId: 'au-b',
+        email: 'b@example.com',
+        role: 'member',
+        createdAt: DateTime(2026, 1, 2),
+      ),
+    ]);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HouseholdScope(
+          controller: scope,
+          child: AccountsView(
+            dashboardRepository: dashboardRepository,
+            financeRepository: financeRepository,
+            householdId: 'household-1',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Extrato is the default segment — no tap needed.
+    expect(find.text('Extrato'), findsOneWidget);
+
+    // Section headers, one per account, with masked number.
+    expect(find.text('Conta Corrente A'), findsOneWidget);
+    expect(find.text('Cartão Baixo Uso'), findsOneWidget);
+    expect(find.text(formatMaskedAccountNumber('0001-9876543')), findsOneWidget);
+
+    // Category renders on the row now.
+    expect(find.textContaining('Renda'), findsOneWidget);
+    expect(find.textContaining('Compras'), findsOneWidget);
+
+    // Flag icon only on the flagged row.
+    expect(find.byIcon(Icons.flag), findsOneWidget);
+
+    // Sinalizados narrows to just the flagged transaction.
+    await tester.tap(find.text('Sinalizados'));
+    await tester.pumpAndSettle();
+    expect(find.text('Compra suspeita'), findsOneWidget);
+    expect(find.text('Salário'), findsNothing);
+
+    // Entradas narrows to just the income transaction.
+    await tester.tap(find.text('Entradas'));
+    await tester.pumpAndSettle();
+    expect(find.text('Salário'), findsOneWidget);
+    expect(find.text('Compra suspeita'), findsNothing);
+
+    // Todos shows both again.
+    await tester.tap(find.text('Todos'));
+    await tester.pumpAndSettle();
+    expect(find.text('Salário'), findsOneWidget);
+    expect(find.text('Compra suspeita'), findsOneWidget);
   });
 }

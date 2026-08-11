@@ -17,16 +17,19 @@ class AccountSummary(BaseModel):
     available_credit_limit: float | None = None
     connection_status: str | None = None
     owner_member_id: uuid.UUID | None = None
+    number: str | None = None
 
 
 class TransactionSummary(BaseModel):
     id: uuid.UUID
+    account_id: uuid.UUID
     account_name: str | None
     description: str | None
     amount: float
     currency_code: str
     transaction_date: date
     category: str | None
+    is_flagged: bool = False
 
 
 class MonthlyCashFlow(BaseModel):

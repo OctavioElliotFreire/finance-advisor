@@ -29,6 +29,30 @@ String formatShortDate(DateTime date) {
   return DateFormat.yMd('pt_BR').format(date);
 }
 
+/// The third date format `design.md`'s Localization section names —
+/// `6 de ago` — for transaction-row subtitles (no year, since the period
+/// pill above already scopes the range). Strips the trailing period intl's
+/// pt-BR abbreviated month names carry (`ago.`) since the spec's own
+/// example has none.
+String formatDayMonth(DateTime date) {
+  final month = DateFormat('MMM', 'pt_BR').format(date).replaceAll('.', '');
+  return '${date.day} de $month';
+}
+
+/// Masks all but the last 4 characters of an account number for Contas ·
+/// Extrato's sticky subheader — `design.md`'s §6.2 mockup shows a masked
+/// number without specifying an exact format, so this follows the common
+/// bank-app convention (`•••• 1234`). Non-digit separators (`-`, spaces)
+/// are stripped first so a raw Pluggy-style number like `0001-1234567`
+/// masks to its last 4 characters, not the separator's position.
+String formatMaskedAccountNumber(String? number) {
+  if (number == null || number.isEmpty) return '••••';
+  final cleaned = number.replaceAll(RegExp(r'[^0-9A-Za-z]'), '');
+  if (cleaned.isEmpty) return '••••';
+  final visible = cleaned.length <= 4 ? cleaned : cleaned.substring(cleaned.length - 4);
+  return '•••• $visible';
+}
+
 /// Relative time for lists/footers per `design.md`'s Localization section:
 /// `há 2h`, `ontem`, `terça`. `now` is injectable for tests; defaults to
 /// `DateTime.now()`.

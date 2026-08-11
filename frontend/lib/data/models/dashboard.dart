@@ -10,6 +10,7 @@ class AccountSummary {
     this.availableCreditLimit,
     this.connectionStatus,
     this.ownerMemberId,
+    this.number,
   });
 
   factory AccountSummary.fromJson(Map<String, dynamic> json) {
@@ -24,6 +25,7 @@ class AccountSummary {
       availableCreditLimit: (json['available_credit_limit'] as num?)?.toDouble(),
       connectionStatus: json['connection_status'] as String?,
       ownerMemberId: json['owner_member_id'] as String?,
+      number: json['number'] as String?,
     );
   }
 
@@ -37,38 +39,45 @@ class AccountSummary {
   final double? availableCreditLimit;
   final String? connectionStatus;
   final String? ownerMemberId;
+  final String? number;
 }
 
 class TransactionSummary {
   const TransactionSummary({
     required this.id,
+    required this.accountId,
     required this.accountName,
     required this.description,
     required this.amount,
     required this.currencyCode,
     required this.transactionDate,
     required this.category,
+    this.isFlagged = false,
   });
 
   factory TransactionSummary.fromJson(Map<String, dynamic> json) {
     return TransactionSummary(
       id: json['id'] as String,
+      accountId: json['account_id'] as String,
       accountName: json['account_name'] as String?,
       description: json['description'] as String?,
       amount: (json['amount'] as num).toDouble(),
       currencyCode: json['currency_code'] as String,
       transactionDate: DateTime.parse(json['transaction_date'] as String),
       category: json['category'] as String?,
+      isFlagged: json['is_flagged'] as bool? ?? false,
     );
   }
 
   final String id;
+  final String accountId;
   final String? accountName;
   final String? description;
   final double amount;
   final String currencyCode;
   final DateTime transactionDate;
   final String? category;
+  final bool isFlagged;
 }
 
 class MonthlyCashFlow {
