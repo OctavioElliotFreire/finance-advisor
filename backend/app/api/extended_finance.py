@@ -15,6 +15,7 @@ from app.database.session import get_db
 from app.models.account import Account
 from app.models.extended_finance import BalanceSnapshot, CreditCardBill, Investment, Loan
 from app.models.transaction import Transaction
+from app.models.transaction_split import TransactionSplit
 from app.schemas.extended_finance import (
     BalancePoint,
     CategoryBreakdownItem,
@@ -126,7 +127,21 @@ def _category_totals(
     start_date: date,
     end_date: date,
 ) -> dict[str | None, float]:
-    query = db.query(
+    """Category-level spend, split-aware: a split transaction's spend
+    attributes to each split's own category instead of the parent's single
+    (now-stale) category. Splitting never changes the total (splits sum
+    back to the parent), so unsplit transactions and splits are two
+    disjoint slices of the same total — summed here rather than joined in
+    one query, since a transaction is either counted via its own category
+    or via its splits, never both.
+    """
+    has_split_subquery = (
+        db.query(TransactionSplit.transaction_id)
+        .filter(TransactionSplit.transaction_id == Transaction.id)
+        .exists()
+    )
+
+    unsplit_query = db.query(
         Transaction.category.label("category"),
         func.sum(case((Transaction.amount < 0, -Transaction.amount), else_=0)).label(
             "total"
@@ -136,13 +151,41 @@ def _category_totals(
         Transaction.is_transfer.is_(False),
         Transaction.transaction_date >= start_date,
         Transaction.transaction_date <= end_date,
+        ~has_split_subquery,
     )
     if connection_ids is not None:
-        query = query.join(Account, Transaction.account_id == Account.id).filter(
-            Account.pluggy_connection_id.in_(connection_ids)
+        unsplit_query = unsplit_query.join(
+            Account, Transaction.account_id == Account.id
+        ).filter(Account.pluggy_connection_id.in_(connection_ids))
+    unsplit_rows = unsplit_query.group_by(Transaction.category).all()
+
+    split_query = (
+        db.query(
+            TransactionSplit.category.label("category"),
+            func.sum(
+                case((TransactionSplit.amount < 0, -TransactionSplit.amount), else_=0)
+            ).label("total"),
         )
-    rows = query.group_by(Transaction.category).all()
-    return {row.category: float(row.total or 0) for row in rows}
+        .join(Transaction, TransactionSplit.transaction_id == Transaction.id)
+        .filter(
+            Transaction.household_id == household_id,
+            Transaction.is_transfer.is_(False),
+            Transaction.transaction_date >= start_date,
+            Transaction.transaction_date <= end_date,
+        )
+    )
+    if connection_ids is not None:
+        split_query = split_query.join(
+            Account, Transaction.account_id == Account.id
+        ).filter(Account.pluggy_connection_id.in_(connection_ids))
+    split_rows = split_query.group_by(TransactionSplit.category).all()
+
+    totals: dict[str | None, float] = {}
+    for row in unsplit_rows:
+        totals[row.category] = totals.get(row.category, 0.0) + float(row.total or 0)
+    for row in split_rows:
+        totals[row.category] = totals.get(row.category, 0.0) + float(row.total or 0)
+    return totals
 
 
 @router.get("/categories", response_model=list[CategoryBreakdownItem])

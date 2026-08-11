@@ -15,6 +15,7 @@ from app.models.household_invite import HouseholdInvite
 from app.models.pluggy_connection import PluggyConnection, SyncJob
 from app.models.rate_limit_hit import RateLimitHit
 from app.models.transaction import Transaction
+from app.models.transaction_split import TransactionSplit
 
 __all__ = [
     "Account",
@@ -34,4 +35,5 @@ __all__ = [
     "RateLimitHit",
     "SyncJob",
     "Transaction",
+    "TransactionSplit",
 ]

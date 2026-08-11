@@ -88,10 +88,7 @@ class BackendApiService {
       _decodeOrThrow(response);
     }
     final list = jsonDecode(response.body) as List<dynamic>;
-    return list
-        .cast<Map<String, dynamic>>()
-        .map(Household.fromJson)
-        .toList();
+    return list.cast<Map<String, dynamic>>().map(Household.fromJson).toList();
   }
 
   Future<Household> createHousehold(String accessToken, String name) async {
@@ -131,7 +128,10 @@ class BackendApiService {
       _decodeOrThrow(response);
     }
     final list = jsonDecode(response.body) as List<dynamic>;
-    return list.cast<Map<String, dynamic>>().map(HouseholdMember.fromJson).toList();
+    return list
+        .cast<Map<String, dynamic>>()
+        .map(HouseholdMember.fromJson)
+        .toList();
   }
 
   Future<InviteResult> inviteMember(
@@ -160,7 +160,10 @@ class BackendApiService {
       _decodeOrThrow(response);
     }
     final list = jsonDecode(response.body) as List<dynamic>;
-    return list.cast<Map<String, dynamic>>().map(InviteSummary.fromJson).toList();
+    return list
+        .cast<Map<String, dynamic>>()
+        .map(InviteSummary.fromJson)
+        .toList();
   }
 
   Future<InvitePreview> getInvitePreview(String inviteId) async {
@@ -171,7 +174,10 @@ class BackendApiService {
     return InvitePreview.fromJson(_decodeOrThrow(response));
   }
 
-  Future<AcceptInviteResult> acceptInvite(String accessToken, String inviteId) async {
+  Future<AcceptInviteResult> acceptInvite(
+    String accessToken,
+    String inviteId,
+  ) async {
     final response = await _client.post(
       _url('/v1/invites/$inviteId/accept'),
       headers: _authHeaders(accessToken),
@@ -192,7 +198,10 @@ class BackendApiService {
       _decodeOrThrow(response);
     }
     final list = jsonDecode(response.body) as List<dynamic>;
-    return list.cast<Map<String, dynamic>>().map(ConnectionAccessEntry.fromJson).toList();
+    return list
+        .cast<Map<String, dynamic>>()
+        .map(ConnectionAccessEntry.fromJson)
+        .toList();
   }
 
   Future<List<ConnectionAccessEntry>> updateMemberAccess(
@@ -210,10 +219,16 @@ class BackendApiService {
       _decodeOrThrow(response);
     }
     final list = jsonDecode(response.body) as List<dynamic>;
-    return list.cast<Map<String, dynamic>>().map(ConnectionAccessEntry.fromJson).toList();
+    return list
+        .cast<Map<String, dynamic>>()
+        .map(ConnectionAccessEntry.fromJson)
+        .toList();
   }
 
-  Future<String> createConnectToken(String accessToken, String householdId) async {
+  Future<String> createConnectToken(
+    String accessToken,
+    String householdId,
+  ) async {
     final response = await _client.post(
       _url('/v1/households/$householdId/connections/token'),
       headers: _authHeaders(accessToken),
@@ -294,7 +309,50 @@ class BackendApiService {
       _decodeOrThrow(response);
     }
     final list = jsonDecode(response.body) as List<dynamic>;
-    return list.cast<Map<String, dynamic>>().map(TransactionSummary.fromJson).toList();
+    return list
+        .cast<Map<String, dynamic>>()
+        .map(TransactionSummary.fromJson)
+        .toList();
+  }
+
+  Future<TransactionSummary> updateTransactionCategory(
+    String accessToken,
+    String householdId,
+    String transactionId,
+    String? category,
+  ) async {
+    final response = await _client.patch(
+      _url('/v1/households/$householdId/transactions/$transactionId'),
+      headers: _authHeaders(accessToken),
+      body: jsonEncode({'category': category}),
+    );
+    return TransactionSummary.fromJson(_decodeOrThrow(response));
+  }
+
+  Future<TransactionSummary> updateTransactionSplits(
+    String accessToken,
+    String householdId,
+    String transactionId,
+    List<TransactionSplitItem> splits,
+  ) async {
+    final response = await _client.put(
+      _url('/v1/households/$householdId/transactions/$transactionId/splits'),
+      headers: _authHeaders(accessToken),
+      body: jsonEncode({'splits': splits.map((s) => s.toJson()).toList()}),
+    );
+    return TransactionSummary.fromJson(_decodeOrThrow(response));
+  }
+
+  Future<AnomalySummary> flagTransaction(
+    String accessToken,
+    String householdId,
+    String transactionId,
+  ) async {
+    final response = await _client.post(
+      _url('/v1/households/$householdId/transactions/$transactionId/flag'),
+      headers: _authHeaders(accessToken),
+    );
+    return AnomalySummary.fromJson(_decodeOrThrow(response));
   }
 
   Future<List<CreditCardBillSummary>> getCreditCardBills(
@@ -311,7 +369,10 @@ class BackendApiService {
       _decodeOrThrow(response);
     }
     final list = jsonDecode(response.body) as List<dynamic>;
-    return list.cast<Map<String, dynamic>>().map(CreditCardBillSummary.fromJson).toList();
+    return list
+        .cast<Map<String, dynamic>>()
+        .map(CreditCardBillSummary.fromJson)
+        .toList();
   }
 
   Future<List<InvestmentSummary>> getInvestments(
@@ -328,7 +389,10 @@ class BackendApiService {
       _decodeOrThrow(response);
     }
     final list = jsonDecode(response.body) as List<dynamic>;
-    return list.cast<Map<String, dynamic>>().map(InvestmentSummary.fromJson).toList();
+    return list
+        .cast<Map<String, dynamic>>()
+        .map(InvestmentSummary.fromJson)
+        .toList();
   }
 
   Future<List<LoanSummary>> getLoans(
@@ -366,7 +430,10 @@ class BackendApiService {
       _decodeOrThrow(response);
     }
     final list = jsonDecode(response.body) as List<dynamic>;
-    return list.cast<Map<String, dynamic>>().map(BalancePoint.fromJson).toList();
+    return list
+        .cast<Map<String, dynamic>>()
+        .map(BalancePoint.fromJson)
+        .toList();
   }
 
   Future<List<CategoryBreakdownItem>> getCategoryBreakdown(
@@ -391,7 +458,10 @@ class BackendApiService {
       _decodeOrThrow(response);
     }
     final list = jsonDecode(response.body) as List<dynamic>;
-    return list.cast<Map<String, dynamic>>().map(CategoryBreakdownItem.fromJson).toList();
+    return list
+        .cast<Map<String, dynamic>>()
+        .map(CategoryBreakdownItem.fromJson)
+        .toList();
   }
 
   Future<List<MemberMonthlySpend>> getSpendingByMember(
@@ -414,7 +484,10 @@ class BackendApiService {
       _decodeOrThrow(response);
     }
     final list = jsonDecode(response.body) as List<dynamic>;
-    return list.cast<Map<String, dynamic>>().map(MemberMonthlySpend.fromJson).toList();
+    return list
+        .cast<Map<String, dynamic>>()
+        .map(MemberMonthlySpend.fromJson)
+        .toList();
   }
 
   Future<List<AnomalySummary>> getAnomalies(
@@ -425,12 +498,18 @@ class BackendApiService {
     final path = statusFilter == null
         ? '/v1/households/$householdId/anomalies'
         : '/v1/households/$householdId/anomalies?status_filter=$statusFilter';
-    final response = await _client.get(_url(path), headers: _authHeaders(accessToken));
+    final response = await _client.get(
+      _url(path),
+      headers: _authHeaders(accessToken),
+    );
     if (response.statusCode >= 300) {
       _decodeOrThrow(response);
     }
     final list = jsonDecode(response.body) as List<dynamic>;
-    return list.cast<Map<String, dynamic>>().map(AnomalySummary.fromJson).toList();
+    return list
+        .cast<Map<String, dynamic>>()
+        .map(AnomalySummary.fromJson)
+        .toList();
   }
 
   Future<AnomalySummary> explainAnomaly(
@@ -471,7 +550,10 @@ class BackendApiService {
       _decodeOrThrow(response);
     }
     final list = jsonDecode(response.body) as List<dynamic>;
-    return list.cast<Map<String, dynamic>>().map(AssistantMessage.fromJson).toList();
+    return list
+        .cast<Map<String, dynamic>>()
+        .map(AssistantMessage.fromJson)
+        .toList();
   }
 
   Future<AssistantMessage> askAssistant(

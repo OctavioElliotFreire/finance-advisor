@@ -176,6 +176,20 @@ class _FakeBackendService extends BackendApiService {
         category: null,
         isTransfer: true,
       ),
+      TransactionSummary(
+        id: 'txn-split',
+        accountId: 'checking-a',
+        accountName: 'Conta Corrente A',
+        description: 'Supermercado',
+        amount: -400,
+        currencyCode: 'BRL',
+        transactionDate: DateTime(2026, 8, 3),
+        category: 'Lazer',
+        splits: const [
+          TransactionSplitItem(category: 'Mercado', amount: -300),
+          TransactionSplitItem(category: 'Farmácia', amount: -100),
+        ],
+      ),
     ];
   }
 }
@@ -441,5 +455,117 @@ void main() {
     // Internal transfer stays visible on web, tagged and muted.
     expect(find.text('Transferência interna'), findsOneWidget);
     expect(find.text('Interna'), findsOneWidget);
+
+    // A split transaction shows a "Dividida" tag instead of its (now
+    // stale) single category.
+    expect(find.text('Dividida'), findsOneWidget);
+  });
+
+  testWidgets('tapping a row on wide opens the detail panel while the list stays visible', (
+    tester,
+  ) async {
+    await setViewportWidth(tester, kWideBreakpoint + 200);
+
+    final backendService = _FakeBackendService();
+    final authRepository = AuthRepository(
+      authService: _FakeAuthService(),
+      backendService: backendService,
+      storage: _FakeStorage(),
+    );
+    await authRepository.login('owner@example.com', 'hunter22');
+    final dashboardRepository = DashboardRepository(
+      authRepository: authRepository,
+      backendService: backendService,
+    );
+    final financeRepository = ExtendedFinanceRepository(
+      authRepository: authRepository,
+      backendService: backendService,
+    );
+
+    final scope = ScopeController(householdId: 'household-1');
+    scope.setMembers([
+      HouseholdMember(
+        id: 'member-a',
+        appUserId: 'au-a',
+        email: 'a@example.com',
+        role: 'owner',
+        createdAt: DateTime(2026, 1, 1),
+      ),
+    ]);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HouseholdScope(
+          controller: scope,
+          child: AccountsView(
+            dashboardRepository: dashboardRepository,
+            financeRepository: financeRepository,
+            householdId: 'household-1',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Salário'));
+    await tester.pumpAndSettle();
+
+    // The list (six-column header) is still visible behind the panel —
+    // design.md's "list stays visible behind it" requirement. "Categoria"
+    // now legitimately appears twice: the table's own column header, plus
+    // the panel's category section title.
+    expect(find.text('Descrição'), findsOneWidget);
+    expect(find.text('Categoria'), findsNWidgets(2));
+    // Panel content, including a close affordance.
+    expect(find.text('Alterar categoria'), findsOneWidget);
+    expect(find.byIcon(Icons.close), findsOneWidget);
+  });
+
+  testWidgets('tapping a row on narrow opens the bottom sheet', (tester) async {
+    final backendService = _FakeBackendService();
+    final authRepository = AuthRepository(
+      authService: _FakeAuthService(),
+      backendService: backendService,
+      storage: _FakeStorage(),
+    );
+    await authRepository.login('owner@example.com', 'hunter22');
+    final dashboardRepository = DashboardRepository(
+      authRepository: authRepository,
+      backendService: backendService,
+    );
+    final financeRepository = ExtendedFinanceRepository(
+      authRepository: authRepository,
+      backendService: backendService,
+    );
+
+    final scope = ScopeController(householdId: 'household-1');
+    scope.setMembers([
+      HouseholdMember(
+        id: 'member-a',
+        appUserId: 'au-a',
+        email: 'a@example.com',
+        role: 'owner',
+        createdAt: DateTime(2026, 1, 1),
+      ),
+    ]);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HouseholdScope(
+          controller: scope,
+          child: AccountsView(
+            dashboardRepository: dashboardRepository,
+            financeRepository: financeRepository,
+            householdId: 'household-1',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Salário'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Alterar categoria'), findsOneWidget);
   });
 }

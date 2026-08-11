@@ -22,6 +22,19 @@ import '../../../core/widgets/segmented_control.dart';
 import '../../../core/widgets/status_chip.dart';
 import '../../dashboard/view_models/dashboard_view_model.dart';
 import '../../dashboard/widgets/dashboard_summary_data.dart';
+import '../widgets/transaction_detail_panel.dart';
+
+const _defaultCategoryVocabulary = <String>[
+  'Mercado',
+  'Transporte',
+  'Restaurantes',
+  'Contas de casa',
+  'Compras',
+  'Saúde',
+  'Educação',
+  'Lazer',
+  'Outros',
+];
 
 enum _AccountsSegment { balances, statement }
 
@@ -63,6 +76,7 @@ class _AccountsViewState extends State<AccountsView> {
   bool _isLoadingTransactions = false;
   String? _transactionsError;
   String? _statementFilter;
+  String? _selectedTransactionId;
 
   List<CreditCardBillSummary> _creditCardBills = const [];
 
@@ -80,7 +94,9 @@ class _AccountsViewState extends State<AccountsView> {
 
   void _reload() {
     final scope = _scope!;
-    final memberIds = scope.selectedMemberIds.isEmpty ? null : scope.selectedMemberIds;
+    final memberIds = scope.selectedMemberIds.isEmpty
+        ? null
+        : scope.selectedMemberIds;
     _balancesViewModel.load(memberIds: memberIds);
     unawaited(_loadTransactions());
     unawaited(_loadCreditCardBills(memberIds));
@@ -111,7 +127,9 @@ class _AccountsViewState extends State<AccountsView> {
         widget.householdId,
         startDate: range.start,
         endDate: range.end,
-        memberIds: scope.selectedMemberIds.isEmpty ? null : scope.selectedMemberIds,
+        memberIds: scope.selectedMemberIds.isEmpty
+            ? null
+            : scope.selectedMemberIds,
       );
       if (!mounted) return;
       setState(() {
@@ -120,7 +138,10 @@ class _AccountsViewState extends State<AccountsView> {
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() => _transactionsError = 'Não foi possível carregar as movimentações.');
+      setState(
+        () =>
+            _transactionsError = 'Não foi possível carregar as movimentações.',
+      );
     } finally {
       if (mounted) setState(() => _isLoadingTransactions = false);
     }
@@ -136,13 +157,62 @@ class _AccountsViewState extends State<AccountsView> {
   /// Client-side only — Extrato fetches a single unpaginated page for the
   /// selected period already (no "load more" UI exists today), so filter
   /// pills narrow that same batch rather than triggering a new fetch.
-  List<TransactionSummary> _applyStatementFilter(List<TransactionSummary> transactions, String? filter) {
+  List<TransactionSummary> _applyStatementFilter(
+    List<TransactionSummary> transactions,
+    String? filter,
+  ) {
     return switch (filter) {
       'flagged' => transactions.where((t) => t.isFlagged).toList(),
       'in' => transactions.where((t) => t.amount > 0).toList(),
       'out' => transactions.where((t) => t.amount < 0).toList(),
       _ => transactions,
     };
+  }
+
+  /// No category vocabulary exists anywhere in the backend (Pluggy's
+  /// `category` field is unconstrained free text) — the picker's list is
+  /// `design.md`'s named Análises categories merged with whatever real
+  /// values are already present in the currently-loaded batch, so it's
+  /// useful even for a household whose data doesn't match the defaults.
+  List<String> get _knownCategories {
+    final observed = _transactions.map((t) => t.category).whereType<String>();
+    return {..._defaultCategoryVocabulary, ...observed}.toList();
+  }
+
+  void _onTransactionUpdated(TransactionSummary updated) {
+    setState(() {
+      _transactions = [
+        for (final txn in _transactions)
+          if (txn.id == updated.id) updated else txn,
+      ];
+    });
+  }
+
+  void _openTransactionDetail(
+    BuildContext context,
+    TransactionSummary txn,
+    List<AccountSummary> accounts,
+  ) {
+    final (memberColor, memberLabel) = _memberForTransaction(
+      txn,
+      {for (final a in accounts) a.id: a},
+      {
+        for (var i = 0; i < _scope!.members.length; i++)
+          _scope!.members[i].id: i,
+      },
+      _scope!.members,
+    );
+    showTransactionDetailSheet(
+      context,
+      transaction: txn,
+      accountName: _findAccountById(accounts, txn.accountId)?.name,
+      memberColor: memberColor,
+      memberLabel: memberLabel,
+      knownCategories: _knownCategories,
+      dashboardRepository: widget.dashboardRepository,
+      householdId: widget.householdId,
+      onUpdated: _onTransactionUpdated,
+    );
   }
 
   @override
@@ -163,14 +233,22 @@ class _AccountsViewState extends State<AccountsView> {
             child: AppGridPage(
               children: [
                 ErrorBanner(
-                  message: isBalances ? _balancesViewModel.errorMessage : _transactionsError,
+                  message: isBalances
+                      ? _balancesViewModel.errorMessage
+                      : _transactionsError,
                 ),
                 AppSegmentedControl<_AccountsSegment>(
                   selected: _segment,
                   onChanged: (value) => setState(() => _segment = value),
                   segments: const [
-                    AppSegment(value: _AccountsSegment.balances, label: 'Saldos'),
-                    AppSegment(value: _AccountsSegment.statement, label: 'Extrato'),
+                    AppSegment(
+                      value: _AccountsSegment.balances,
+                      label: 'Saldos',
+                    ),
+                    AppSegment(
+                      value: _AccountsSegment.statement,
+                      label: 'Extrato',
+                    ),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -188,7 +266,8 @@ class _AccountsViewState extends State<AccountsView> {
                   const SizedBox(height: 16),
                   _StatementFilterRow(
                     selected: _statementFilter,
-                    onSelected: (value) => setState(() => _statementFilter = value),
+                    onSelected: (value) =>
+                        setState(() => _statementFilter = value),
                   ),
                   const SizedBox(height: 8),
                   if (_isLoadingTransactions && _transactions.isEmpty)
@@ -196,23 +275,87 @@ class _AccountsViewState extends State<AccountsView> {
                   else
                     LayoutBuilder(
                       builder: (context, constraints) {
-                        final filtered = _applyStatementFilter(_transactions, _statementFilter);
+                        final filtered = _applyStatementFilter(
+                          _transactions,
+                          _statementFilter,
+                        );
+                        final accounts =
+                            dashboard?.accounts ?? const <AccountSummary>[];
                         final isWide = constraints.maxWidth >= kWideBreakpoint;
-                        return isWide
-                            ? _StatementTable(
-                                transactions: filtered,
-                                accounts: dashboard?.accounts ?? const [],
-                                members: _scope!.members,
-                              )
-                            : _StatementList(
-                                // Internal transfers stay visible-but-muted on
-                                // web (design.md's Table conventions), but are
-                                // dropped entirely on mobile — no room to show
-                                // them meaningfully in the narrow list.
-                                transactions: filtered.where((t) => !t.isTransfer).toList(),
-                                accounts: dashboard?.accounts ?? const [],
-                                members: _scope!.members,
-                              );
+
+                        if (!isWide) {
+                          return _StatementList(
+                            // Internal transfers stay visible-but-muted on
+                            // web (design.md's Table conventions), but are
+                            // dropped entirely on mobile — no room to show
+                            // them meaningfully in the narrow list.
+                            transactions: filtered
+                                .where((t) => !t.isTransfer)
+                                .toList(),
+                            accounts: accounts,
+                            members: _scope!.members,
+                            onTransactionTap: (txn) =>
+                                _openTransactionDetail(context, txn, accounts),
+                          );
+                        }
+
+                        final table = _StatementTable(
+                          transactions: filtered,
+                          accounts: accounts,
+                          members: _scope!.members,
+                          onTransactionTap: (txn) =>
+                              setState(() => _selectedTransactionId = txn.id),
+                        );
+
+                        final selected = _findById(
+                          filtered,
+                          _selectedTransactionId,
+                        );
+                        if (selected == null) return table;
+
+                        final (
+                          memberColor,
+                          memberLabel,
+                        ) = _memberForTransaction(
+                          selected,
+                          {for (final a in accounts) a.id: a},
+                          {
+                            for (var i = 0; i < _scope!.members.length; i++)
+                              _scope!.members[i].id: i,
+                          },
+                          _scope!.members,
+                        );
+
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: table),
+                            const SizedBox(width: 16),
+                            SizedBox(
+                              width: 360,
+                              child: Card(
+                                child: TransactionDetailPanel(
+                                  key: ValueKey(selected.id),
+                                  transaction: selected,
+                                  accountName: _findAccountById(
+                                    accounts,
+                                    selected.accountId,
+                                  )?.name,
+                                  memberColor: memberColor,
+                                  memberLabel: memberLabel,
+                                  knownCategories: _knownCategories,
+                                  dashboardRepository:
+                                      widget.dashboardRepository,
+                                  householdId: widget.householdId,
+                                  onUpdated: _onTransactionUpdated,
+                                  onClose: () => setState(
+                                    () => _selectedTransactionId = null,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
                       },
                     ),
                 ],
@@ -231,10 +374,15 @@ class _AccountsViewState extends State<AccountsView> {
 /// connection status counts as broken here exactly when that widget would
 /// render it as a negative-tone chip.
 bool _isConnectionBroken(String? status) =>
-    status != null && StatusChip.connectionStatus(status).tone == StatusTone.negative;
+    status != null &&
+    StatusChip.connectionStatus(status).tone == StatusTone.negative;
 
 class _AccountGroup {
-  const _AccountGroup({required this.label, required this.color, required this.accounts});
+  const _AccountGroup({
+    required this.label,
+    required this.color,
+    required this.accounts,
+  });
 
   final String label;
   final Color color;
@@ -242,7 +390,11 @@ class _AccountGroup {
 }
 
 class _BalancesList extends StatelessWidget {
-  const _BalancesList({required this.dashboard, required this.creditCardBills, required this.members});
+  const _BalancesList({
+    required this.dashboard,
+    required this.creditCardBills,
+    required this.members,
+  });
 
   final Dashboard dashboard;
   final List<CreditCardBillSummary> creditCardBills;
@@ -271,18 +423,27 @@ class _BalancesList extends StatelessWidget {
               children: [
                 MemberDot(color: group.color),
                 const SizedBox(width: 8),
-                Text(group.label, style: Theme.of(context).textTheme.titleSmall),
+                Text(
+                  group.label,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
               ],
             ),
           ),
           for (final account in group.accounts)
-            _AccountRow(account: account, currentBill: currentBills[account.id]),
+            _AccountRow(
+              account: account,
+              currentBill: currentBills[account.id],
+            ),
         ],
       ],
     );
   }
 
-  List<_AccountGroup> _groupByMember(List<AccountSummary> accounts, List<HouseholdMember> members) {
+  List<_AccountGroup> _groupByMember(
+    List<AccountSummary> accounts,
+    List<HouseholdMember> members,
+  ) {
     final byMember = <String?, List<AccountSummary>>{};
     for (final account in accounts) {
       byMember.putIfAbsent(account.ownerMemberId, () => []).add(account);
@@ -302,7 +463,13 @@ class _BalancesList extends StatelessWidget {
     }
     final unattributed = byMember[null];
     if (unattributed != null) {
-      groups.add(_AccountGroup(label: 'Outros', color: AppMemberColors.outros, accounts: unattributed));
+      groups.add(
+        _AccountGroup(
+          label: 'Outros',
+          color: AppMemberColors.outros,
+          accounts: unattributed,
+        ),
+      );
     }
     return groups;
   }
@@ -342,10 +509,12 @@ class _AccountRow extends StatelessWidget {
                   '${bill.dueDate == null ? '' : ' · vence ${formatShortDate(bill.dueDate!)}'}',
                 ),
           trailing: Text(
-            available == null ? '—' : formatMoney(available, account.currencyCode),
-            style: Theme.of(
-              context,
-            ).textTheme.titleSmall?.copyWith(color: _utilizationColor(context, account)),
+            available == null
+                ? '—'
+                : formatMoney(available, account.currencyCode),
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              color: _utilizationColor(context, account),
+            ),
           ),
         ),
       );
@@ -356,7 +525,9 @@ class _AccountRow extends StatelessWidget {
         title: Text(account.name ?? 'Conta'),
         subtitle: Text(account.subtype ?? account.type ?? ''),
         trailing: Text(
-          account.balance == null ? '—' : formatMoney(account.balance!, account.currencyCode),
+          account.balance == null
+              ? '—'
+              : formatMoney(account.balance!, account.currencyCode),
           style: Theme.of(context).textTheme.titleSmall,
         ),
       ),
@@ -438,7 +609,9 @@ List<_StatementGroup> _groupByAccount(
   List<AccountSummary> accounts,
   List<HouseholdMember> members,
 ) {
-  final memberIndex = {for (var i = 0; i < members.length; i++) members[i].id: i};
+  final memberIndex = {
+    for (var i = 0; i < members.length; i++) members[i].id: i,
+  };
   final byAccount = <String, List<TransactionSummary>>{};
   for (final txn in transactions) {
     byAccount.putIfAbsent(txn.accountId, () => []).add(txn);
@@ -448,33 +621,53 @@ List<_StatementGroup> _groupByAccount(
   for (final account in accounts) {
     final txns = byAccount.remove(account.id);
     if (txns == null) continue;
-    final memberIdx = account.ownerMemberId == null ? null : memberIndex[account.ownerMemberId];
+    final memberIdx = account.ownerMemberId == null
+        ? null
+        : memberIndex[account.ownerMemberId];
     groups.add(
       _StatementGroup(
         label: account.name ?? 'Conta',
-        color: memberIdx == null ? AppMemberColors.outros : AppMemberColors.forIndex(memberIdx),
+        color: memberIdx == null
+            ? AppMemberColors.outros
+            : AppMemberColors.forIndex(memberIdx),
         number: account.number,
         transactions: txns,
       ),
     );
   }
   for (final leftover in byAccount.values) {
-    groups.add(_StatementGroup(label: 'Conta', color: AppMemberColors.outros, number: null, transactions: leftover));
+    groups.add(
+      _StatementGroup(
+        label: 'Conta',
+        color: AppMemberColors.outros,
+        number: null,
+        transactions: leftover,
+      ),
+    );
   }
   return groups;
 }
 
 class _StatementList extends StatelessWidget {
-  const _StatementList({required this.transactions, required this.accounts, required this.members});
+  const _StatementList({
+    required this.transactions,
+    required this.accounts,
+    required this.members,
+    this.onTransactionTap,
+  });
 
   final List<TransactionSummary> transactions;
   final List<AccountSummary> accounts;
   final List<HouseholdMember> members;
+  final ValueChanged<TransactionSummary>? onTransactionTap;
 
   @override
   Widget build(BuildContext context) {
     if (transactions.isEmpty) {
-      return const AppEmptyState(icon: Icons.receipt_long_outlined, title: 'Nenhuma movimentação ainda');
+      return const AppEmptyState(
+        icon: Icons.receipt_long_outlined,
+        title: 'Nenhuma movimentação ainda',
+      );
     }
 
     final groups = _groupByAccount(transactions, accounts, members);
@@ -488,7 +681,10 @@ class _StatementList extends StatelessWidget {
               children: [
                 MemberDot(color: group.color),
                 const SizedBox(width: 8),
-                Text(group.label, style: Theme.of(context).textTheme.titleSmall),
+                Text(
+                  group.label,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   formatMaskedAccountNumber(group.number),
@@ -500,6 +696,9 @@ class _StatementList extends StatelessWidget {
           for (final txn in group.transactions)
             ListTile(
               contentPadding: EdgeInsets.zero,
+              onTap: onTransactionTap == null
+                  ? null
+                  : () => onTransactionTap!(txn),
               leading: txn.isFlagged ? const Icon(Icons.flag, size: 18) : null,
               title: Text(txn.description ?? 'Movimentação'),
               subtitle: Text(
@@ -507,15 +706,40 @@ class _StatementList extends StatelessWidget {
                     ? formatDayMonth(txn.transactionDate)
                     : '${formatDayMonth(txn.transactionDate)} · ${txn.category}',
               ),
-              trailing: Text(
-                formatMoney(txn.amount, txn.currencyCode),
-                style: Theme.of(context).textTheme.titleSmall,
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    formatMoney(txn.amount, txn.currencyCode),
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  if (onTransactionTap != null)
+                    const Icon(Icons.chevron_right, size: 20),
+                ],
               ),
             ),
         ],
       ],
     );
   }
+}
+
+TransactionSummary? _findById(
+  List<TransactionSummary> transactions,
+  String? id,
+) {
+  if (id == null) return null;
+  for (final txn in transactions) {
+    if (txn.id == id) return txn;
+  }
+  return null;
+}
+
+AccountSummary? _findAccountById(List<AccountSummary> accounts, String id) {
+  for (final account in accounts) {
+    if (account.id == id) return account;
+  }
+  return null;
 }
 
 /// Resolves a transaction's owning member — same `accountId -> ownerMemberId
@@ -546,6 +770,7 @@ class _StatementColumns {
   static const double conta = 150;
   static const double categoria = 140;
   static const double valor = 110;
+  static const double chevron = 24;
 }
 
 class _StatementTableHeader extends StatelessWidget {
@@ -553,22 +778,35 @@ class _StatementTableHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = Theme.of(
-      context,
-    ).textTheme.labelMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant);
+    final style = Theme.of(context).textTheme.labelMedium?.copyWith(
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+    );
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          SizedBox(width: _StatementColumns.data, child: Text('Data', style: style)),
+          SizedBox(
+            width: _StatementColumns.data,
+            child: Text('Data', style: style),
+          ),
           Expanded(child: Text('Descrição', style: style)),
-          SizedBox(width: _StatementColumns.membro, child: Text('Membro', style: style)),
-          SizedBox(width: _StatementColumns.conta, child: Text('Conta', style: style)),
-          SizedBox(width: _StatementColumns.categoria, child: Text('Categoria', style: style)),
+          SizedBox(
+            width: _StatementColumns.membro,
+            child: Text('Membro', style: style),
+          ),
+          SizedBox(
+            width: _StatementColumns.conta,
+            child: Text('Conta', style: style),
+          ),
+          SizedBox(
+            width: _StatementColumns.categoria,
+            child: Text('Categoria', style: style),
+          ),
           SizedBox(
             width: _StatementColumns.valor,
             child: Text('Valor', style: style, textAlign: TextAlign.right),
           ),
+          const SizedBox(width: _StatementColumns.chevron),
         ],
       ),
     );
@@ -583,11 +821,13 @@ class _StatementTableRow extends StatefulWidget {
     required this.transaction,
     required this.member,
     required this.accountName,
+    this.onTap,
   });
 
   final TransactionSummary transaction;
   final (Color, String) member;
   final String? accountName;
+  final VoidCallback? onTap;
 
   @override
   State<_StatementTableRow> createState() => _StatementTableRowState();
@@ -603,84 +843,103 @@ class _StatementTableRowState extends State<_StatementTableRow> {
     final colorScheme = Theme.of(context).colorScheme;
     final muted = txn.isTransfer;
     final textColor = muted ? colorScheme.tertiary : null;
-    final textStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(color: textColor);
+    final textStyle = Theme.of(
+      context,
+    ).textTheme.bodyMedium?.copyWith(color: textColor);
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovering = true),
       onExit: (_) => setState(() => _hovering = false),
-      child: Container(
-        color: _hovering ? colorScheme.surfaceContainerHighest : null,
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            SizedBox(
-              width: _StatementColumns.data,
-              child: Text(formatDayMonth(txn.transactionDate), style: textStyle),
-            ),
-            Expanded(
-              child: Row(
-                children: [
-                  if (txn.isFlagged) ...[
-                    Icon(Icons.flag, size: 16, color: textColor),
-                    const SizedBox(width: 4),
-                  ],
-                  Flexible(
-                    child: Text(
-                      txn.description ?? 'Movimentação',
-                      style: textStyle,
-                      overflow: TextOverflow.ellipsis,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          color: _hovering ? colorScheme.surfaceContainerHighest : null,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: _StatementColumns.data,
+                child: Text(
+                  formatDayMonth(txn.transactionDate),
+                  style: textStyle,
+                ),
+              ),
+              Expanded(
+                child: Row(
+                  children: [
+                    if (txn.isFlagged) ...[
+                      Icon(Icons.flag, size: 16, color: textColor),
+                      const SizedBox(width: 4),
+                    ],
+                    Flexible(
+                      child: Text(
+                        txn.description ?? 'Movimentação',
+                        style: textStyle,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
-                  if (muted) ...[
+                    if (muted) ...[
+                      const SizedBox(width: 6),
+                      Text(
+                        'Interna',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: colorScheme.tertiary,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              SizedBox(
+                width: _StatementColumns.membro,
+                child: Row(
+                  children: [
+                    MemberDot(color: memberColor),
                     const SizedBox(width: 6),
-                    Text(
-                      'Interna',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.labelSmall?.copyWith(color: colorScheme.tertiary),
+                    Flexible(
+                      child: Text(
+                        memberLabel,
+                        style: textStyle,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
-                ],
+                ),
               ),
-            ),
-            SizedBox(
-              width: _StatementColumns.membro,
-              child: Row(
-                children: [
-                  MemberDot(color: memberColor),
-                  const SizedBox(width: 6),
-                  Flexible(
-                    child: Text(
-                      memberLabel,
-                      style: textStyle,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
+              SizedBox(
+                width: _StatementColumns.conta,
+                child: Text(
+                  widget.accountName ?? 'Conta',
+                  style: textStyle,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
-            SizedBox(
-              width: _StatementColumns.conta,
-              child: Text(
-                widget.accountName ?? 'Conta',
-                style: textStyle,
-                overflow: TextOverflow.ellipsis,
+              SizedBox(
+                width: _StatementColumns.categoria,
+                child: txn.splits.isNotEmpty
+                    ? const CategoryPill(label: 'Dividida')
+                    : txn.category == null
+                    ? const SizedBox.shrink()
+                    : CategoryPill(label: txn.category!),
               ),
-            ),
-            SizedBox(
-              width: _StatementColumns.categoria,
-              child: txn.category == null ? const SizedBox.shrink() : CategoryPill(label: txn.category!),
-            ),
-            SizedBox(
-              width: _StatementColumns.valor,
-              child: Text(
-                formatMoney(txn.amount, txn.currencyCode),
-                style: textStyle,
-                textAlign: TextAlign.right,
+              SizedBox(
+                width: _StatementColumns.valor,
+                child: Text(
+                  formatMoney(txn.amount, txn.currencyCode),
+                  style: textStyle,
+                  textAlign: TextAlign.right,
+                ),
               ),
-            ),
-          ],
+              SizedBox(
+                width: _StatementColumns.chevron,
+                child: widget.onTap == null
+                    ? null
+                    : Icon(Icons.chevron_right, size: 18, color: textColor),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -693,20 +952,31 @@ class _StatementTableRowState extends State<_StatementTableRow> {
 /// (`ink-muted` row + `Interna` tag) here, unlike mobile where they're
 /// dropped entirely (see the narrow-width filter in `build()`).
 class _StatementTable extends StatelessWidget {
-  const _StatementTable({required this.transactions, required this.accounts, required this.members});
+  const _StatementTable({
+    required this.transactions,
+    required this.accounts,
+    required this.members,
+    this.onTransactionTap,
+  });
 
   final List<TransactionSummary> transactions;
   final List<AccountSummary> accounts;
   final List<HouseholdMember> members;
+  final ValueChanged<TransactionSummary>? onTransactionTap;
 
   @override
   Widget build(BuildContext context) {
     if (transactions.isEmpty) {
-      return const AppEmptyState(icon: Icons.receipt_long_outlined, title: 'Nenhuma movimentação ainda');
+      return const AppEmptyState(
+        icon: Icons.receipt_long_outlined,
+        title: 'Nenhuma movimentação ainda',
+      );
     }
 
     final accountsById = {for (final a in accounts) a.id: a};
-    final memberIndex = {for (var i = 0; i < members.length; i++) members[i].id: i};
+    final memberIndex = {
+      for (var i = 0; i < members.length; i++) members[i].id: i,
+    };
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -716,8 +986,16 @@ class _StatementTable extends StatelessWidget {
         for (final txn in transactions)
           _StatementTableRow(
             transaction: txn,
-            member: _memberForTransaction(txn, accountsById, memberIndex, members),
+            member: _memberForTransaction(
+              txn,
+              accountsById,
+              memberIndex,
+              members,
+            ),
             accountName: accountsById[txn.accountId]?.name,
+            onTap: onTransactionTap == null
+                ? null
+                : () => onTransactionTap!(txn),
           ),
       ],
     );

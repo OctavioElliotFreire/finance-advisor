@@ -20,6 +20,22 @@ class AccountSummary(BaseModel):
     number: str | None = None
 
 
+class TransactionSplitItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    category: str
+    amount: float
+    description: str | None = None
+
+
+class TransactionSplitsUpdate(BaseModel):
+    splits: list[TransactionSplitItem]
+
+
+class TransactionCategoryUpdate(BaseModel):
+    category: str | None
+
+
 class TransactionSummary(BaseModel):
     id: uuid.UUID
     account_id: uuid.UUID
@@ -31,6 +47,8 @@ class TransactionSummary(BaseModel):
     category: str | None
     is_flagged: bool = False
     is_transfer: bool = False
+    flag_id: uuid.UUID | None = None
+    splits: list[TransactionSplitItem] = []
 
 
 class MonthlyCashFlow(BaseModel):

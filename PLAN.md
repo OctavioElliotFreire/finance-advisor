@@ -2342,6 +2342,115 @@ against a real target):
   real seeded data to visually confirm the muted/`Interna` treatment,
   noted as a manual-QA coverage gap rather than fabricated.
 
+- **Transaction drill-down panel (2026-08-11)**: closed the last item on
+  the whole design-system punch list. `design.md`'s entire spec for this
+  was one sentence ("Row tap opens a detail sheet (mobile) / right-side
+  panel (web): full merchant name, raw bank descriptor, recategorize,
+  split, flag") — most of this pass was making real product decisions,
+  not implementing a spec, since multiple prior sessions had confirmed
+  zero precedent existed anywhere (no tappable rows, no side-panel
+  infrastructure, no transaction-mutation endpoints at all).
+
+  Two decisions confirmed with the user before planning: **split ships
+  as a real feature**, not deferred — a transaction can be broken into
+  multiple line items, each with its own category/amount, summing back
+  to the parent's amount; **flag reuses the existing `AnomalyFlag`
+  system** (`rule="manual"`) rather than inventing a second flag
+  concept — same row icon, same status workflow, same anomalies list.
+
+  Backend: new `TransactionSplit` model/table (migration `2ae2c7e3c1e7`,
+  round-tripped clean), `TransactionSummary` gained `flag_id` (the
+  currently-open `AnomalyFlag.id`, any rule — generalizes "unflag" to
+  automatic flags too) and `splits`. Three new endpoints on the existing
+  `transactions_router`: `PATCH /transactions/{id}` (recategorize, models
+  `PATCH /anomalies/{id}`'s shape), `PUT /transactions/{id}/splits`
+  (full-replace semantics like `PUT /members/{id}/access`, validates
+  splits sum to the parent's amount with matching sign, 400 on
+  mismatch), `POST /transactions/{id}/flag` (idempotent manual-flag
+  create/reopen). `extended_finance.py`'s `_category_totals` became
+  split-aware — a split transaction's spend attributes to each split's
+  own category instead of the parent's now-stale one, via two disjoint
+  aggregate queries (unsplit transactions + all splits) summed together,
+  not a single query, since a transaction is counted one way or the
+  other, never both.
+
+  **Real bug caught and fixed during implementation, not just at
+  review**: the first cut of the flag endpoint relied purely on
+  `AnomalyFlag`'s `(household_id, rule, dedupe_key)` unique constraint
+  with `ON CONFLICT DO NOTHING`, mirroring `run_anomaly_detection`'s own
+  pattern — but that constraint can't distinguish "never flagged" from
+  "flagged, then dismissed," so a dismissed manual flag could never be
+  re-opened, breaking the flag/unflag/reflag toggle a manual action
+  needs (unlike an automatic rule's intentionally-permanent-once-
+  dismissed dedupe). Rewrote as an explicit query-then-branch instead:
+  reopen if a dismissed row exists, no-op if already open, insert only
+  if none exists — caught by writing the test for exactly this sequence
+  before considering the endpoint done.
+
+  Frontend: new `TransactionDetailPanel` (shared content widget, first
+  side-panel infrastructure in the app) rendered two ways — a persistent
+  right-side panel on web (`Row` of `Expanded(table)` +
+  `SizedBox(width: 360, panel)`, list stays visible per `design.md:417`'s
+  "never a modal" rule) via `_selectedTransactionId` state in
+  `AccountsView`, or a `showModalBottomSheet` on mobile (mechanics
+  copied from `period_pill.dart`'s sheet, the only other precedent in
+  the app). Both `_StatementList` and `_StatementTable` rows gained
+  `onTap` + a trailing chevron (`design.md:219`'s "chevron present
+  whenever the row drills to a detail sheet/panel"). Category picker is
+  client-side only — no backend vocabulary endpoint — merging
+  `design.md:348`'s named Análises categories with whatever real
+  `category` values are already in the loaded transaction batch, plus a
+  free-text field, since Pluggy categories were never a closed set.
+
+  **Confirmed, reasoned scope decisions, not silent gaps**: no separate
+  "raw bank descriptor" field — `normalize.py` only ever captures
+  `description` from Pluggy, the rest lives in an unparsed `raw_json`
+  blob, so the panel shows `description` once rather than fabricating a
+  second field with no real data behind it; no enforced category
+  vocabulary/enum anywhere (matches the pre-existing free-text
+  `Transaction.category` reality); the spec's exact wireframe was never
+  designed by the source handoff doc either (`design.md:436`
+  acknowledges this), so the panel's layout here is this session's own
+  reasonable interpretation, not a literal implementation of a spec that
+  didn't exist.
+
+  New tests: `backend/tests/test_transaction_detail.py` (9 tests —
+  recategorize happy path + cross-household 403 + restricted-member 404,
+  splits create/sum-mismatch-400/sign-mismatch-400/clear, category
+  breakdown reflects split categories not the stale parent, flag
+  create-idempotent + flag-then-dismiss-then-reflag). Hit and fixed the
+  documented FK-teardown-leak bug (`CLAUDE.md`'s Lessons Learned) along
+  the way — the new test file's teardown didn't delete `audit_events`
+  before `app_users` (the new endpoints are the first in this test file
+  to call `record_audit_event`), leaked 7 households on the first run;
+  recovered by querying and deleting the leaked rows in FK-safe order
+  before re-running. Backend `pytest tests/ -q`: 170/170 (9 new).
+  Frontend: new `transaction_detail_panel_test.dart` (3 tests —
+  recategorize picker calls through, split editor blocks Save until the
+  remainder is zero then calls through, flag button toggles both ways);
+  `accounts_view_test.dart` gained a "Dividida" tag assertion plus two
+  new tests (wide tap opens the panel with the list still visible,
+  narrow tap opens the sheet) — caught and fixed two test-authoring
+  mistakes of my own before they became false failures: a new
+  split-transaction fixture accidentally collided with an existing
+  transaction's category text (fixed by picking a distinct category),
+  and a "Categoria" text assertion should have expected 2 matches (table
+  header + panel section title both legitimately render it), not 1.
+  `flutter test`: 199/199, `flutter analyze` clean.
+
+  **Manual smoke 2026-08-11**: exercised recategorize, split
+  create/clear, and flag create/dismiss directly against a real
+  transaction in the QA Test Household's seeded Postgres data — no
+  exceptions, correct persistence, state fully restored afterward.
+  **Manual browser QA**: rebuilt web, restarted backend by PID. Wide
+  viewport: tapped a row, panel opened with the list visible behind it;
+  recategorized live (six-column table updated instantly); added a
+  split (remainder validation correctly blocked Save until it hit zero,
+  "Dividida" tag appeared on the row on save); flagged (row's flag icon
+  appeared instantly, button toggled to "Remover sinalização"); cleaned
+  up all three actions afterward. Narrow viewport: confirmed the same
+  row opens a bottom sheet with identical content and actions.
+
 ---
 
 ## First Vertical Slice (verified 2026-07-28)

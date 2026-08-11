@@ -22,7 +22,8 @@ class AccountSummary {
       balance: (json['balance'] as num?)?.toDouble(),
       currencyCode: json['currency_code'] as String,
       creditLimit: (json['credit_limit'] as num?)?.toDouble(),
-      availableCreditLimit: (json['available_credit_limit'] as num?)?.toDouble(),
+      availableCreditLimit: (json['available_credit_limit'] as num?)
+          ?.toDouble(),
       connectionStatus: json['connection_status'] as String?,
       ownerMemberId: json['owner_member_id'] as String?,
       number: json['number'] as String?,
@@ -42,6 +43,32 @@ class AccountSummary {
   final String? number;
 }
 
+class TransactionSplitItem {
+  const TransactionSplitItem({
+    required this.category,
+    required this.amount,
+    this.description,
+  });
+
+  factory TransactionSplitItem.fromJson(Map<String, dynamic> json) {
+    return TransactionSplitItem(
+      category: json['category'] as String,
+      amount: (json['amount'] as num).toDouble(),
+      description: json['description'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'category': category,
+    'amount': amount,
+    if (description != null) 'description': description,
+  };
+
+  final String category;
+  final double amount;
+  final String? description;
+}
+
 class TransactionSummary {
   const TransactionSummary({
     required this.id,
@@ -54,6 +81,8 @@ class TransactionSummary {
     required this.category,
     this.isFlagged = false,
     this.isTransfer = false,
+    this.flagId,
+    this.splits = const [],
   });
 
   factory TransactionSummary.fromJson(Map<String, dynamic> json) {
@@ -68,6 +97,34 @@ class TransactionSummary {
       category: json['category'] as String?,
       isFlagged: json['is_flagged'] as bool? ?? false,
       isTransfer: json['is_transfer'] as bool? ?? false,
+      flagId: json['flag_id'] as String?,
+      splits: (json['splits'] as List<dynamic>? ?? const [])
+          .cast<Map<String, dynamic>>()
+          .map(TransactionSplitItem.fromJson)
+          .toList(),
+    );
+  }
+
+  TransactionSummary copyWith({
+    String? category,
+    bool? isFlagged,
+    String? flagId,
+    bool clearFlagId = false,
+    List<TransactionSplitItem>? splits,
+  }) {
+    return TransactionSummary(
+      id: id,
+      accountId: accountId,
+      accountName: accountName,
+      description: description,
+      amount: amount,
+      currencyCode: currencyCode,
+      transactionDate: transactionDate,
+      category: category ?? this.category,
+      isFlagged: isFlagged ?? this.isFlagged,
+      isTransfer: isTransfer,
+      flagId: clearFlagId ? null : (flagId ?? this.flagId),
+      splits: splits ?? this.splits,
     );
   }
 
@@ -81,6 +138,8 @@ class TransactionSummary {
   final String? category;
   final bool isFlagged;
   final bool isTransfer;
+  final String? flagId;
+  final List<TransactionSplitItem> splits;
 }
 
 class MonthlyCashFlow {
