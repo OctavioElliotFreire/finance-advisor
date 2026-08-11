@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Date, ForeignKey, Numeric, String, UniqueConstraint, func
+from sqlalchemy import Boolean, Date, ForeignKey, Numeric, String, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -30,6 +30,9 @@ class Transaction(Base):
     currency_code: Mapped[str] = mapped_column(String(3), nullable=False, default="BRL")
     transaction_date: Mapped[Date] = mapped_column(Date, nullable=False)
     category: Mapped[str | None] = mapped_column(String, nullable=True)
+    is_transfer: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
     raw_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[TIMESTAMP] = mapped_column(
         TIMESTAMP(timezone=True), nullable=False, server_default=func.now()

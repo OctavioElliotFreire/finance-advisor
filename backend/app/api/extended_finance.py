@@ -133,6 +133,7 @@ def _category_totals(
         ),
     ).filter(
         Transaction.household_id == household_id,
+        Transaction.is_transfer.is_(False),
         Transaction.transaction_date >= start_date,
         Transaction.transaction_date <= end_date,
     )
@@ -224,6 +225,7 @@ def get_spending_by_member(
         .join(Account, Transaction.account_id == Account.id)
         .filter(
             Transaction.household_id == household_id,
+            Transaction.is_transfer.is_(False),
             Transaction.transaction_date >= start_date,
             Transaction.transaction_date <= end_date,
         )

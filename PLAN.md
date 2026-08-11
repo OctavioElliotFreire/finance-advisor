@@ -2257,6 +2257,91 @@ against a real target):
   `member_deviation` flag fired for that fixture's actual data shape
   (expected — its transactions don't span two full 30-day windows yet).
 
+- **Six-column Extrato table + internal-transfer netting (2026-08-11)**:
+  closed `design.md`'s own confirmed blocker on the six-column Contas·
+  Extrato table — internal-transfer detection, which a prior session
+  had grepped and confirmed didn't exist anywhere in the backend (no
+  `is_transfer` field, no matching logic). `design.md`'s Data Model
+  section calls this "the single most important correctness rule in the
+  app": moving money between the household's own accounts otherwise
+  inflates both income and spending everywhere.
+
+  New `backend/app/services/transfer_detection.py`:
+  `detect_internal_transfers(db, household_id)` — matches unmatched
+  transactions on opposite-sign amounts, different accounts, within a
+  2-day window (`TRANSFER_MATCH_WINDOW_DAYS`), per `design.md:229`'s
+  exact wording ("match on amount, direction, and a short time window
+  across linked accounts"). No Pluggy-specific transfer metadata was
+  available to mine (`raw_json` preserves the full payload but nothing
+  reads it back out) — a pure heuristic, matching what the spec
+  literally asks for. Sets a real `Transaction.is_transfer` column
+  (migration `644d51535cc7`, round-tripped clean) on both matched legs;
+  idempotent by construction (only ever considers `is_transfer=False`
+  rows, and the sync-upsert's `on_conflict_do_update` deliberately
+  excludes `is_transfer` from its `SET` clause so a re-sync never resets
+  it). Wired into `sync_worker.py` right after `run_anomaly_detection`,
+  same per-job try/except/rollback pattern.
+
+  **Netting applied to three existing aggregate query sites** — the
+  actual correctness fix, not just a cosmetic tag: `dashboard.py`'s
+  cash-flow query, `extended_finance.py`'s `_category_totals`, and
+  `get_spending_by_member`, all gained an `is_transfer.is_(False)`
+  filter. The row-list query (`_list_transactions`) is deliberately
+  *not* filtered — transfers still appear as rows, just tagged.
+
+  **Frontend**: new six-column table (`_StatementTable` in
+  `accounts_view.dart`) at the wide breakpoint — Data · Descrição ·
+  Membro · Conta · Categoria · Valor, per `design.md:222`'s exact
+  column order. Membro/Conta resolved entirely client-side from the
+  already-fetched `accounts` list (`AccountSummary.ownerMemberId`) — no
+  backend schema change needed for member attribution, since
+  `AccountsView` already holds both lists in state for the mobile
+  grouped-list's own headers. New `CategoryPill` widget (neutral
+  `surface-fill`/`ink-secondary`, never colored, per `design.md:414`).
+  Internal-transfer rows render muted (`colorScheme.tertiary`, the
+  `ink-muted` role established in the dark-mode phase) with an inline
+  `Interna` tag on web; the mobile list now explicitly drops transfer
+  rows entirely instead, per `design.md:415`'s mobile-vs-web split. Row
+  hover tints via a small `MouseRegion`-based stateful row (no
+  `onTap` — rows aren't clickable, no drill-down panel exists).
+
+  **Confirmed, reasoned scope decisions, not silent gaps**:
+  `anomaly_rules.py`'s five existing detection functions were *not*
+  updated to exclude transfers from their own baselines — a separate,
+  adjacent correctness improvement, not required for the table itself.
+  The spec's "sticky table header on scroll" was simplified to a plain
+  fixed header above the (page-scrolled) body rather than building an
+  independent inner-scroll region — `AppGridPage` makes the whole page
+  one shared `ListView`, and a truly independent sticky-scroll table
+  would be a bigger structural change than this task's core ask; a
+  documented simplification, same class as Início's plain-text progress
+  bar from an earlier phase. Row click → right-side panel stays
+  unbuilt (zero precedent anywhere in the frontend, its own separate,
+  bigger task). Análises·Gastos's "R$ X em transferências... foram
+  excluídos" footnote (netting now exists to power it, but the UI
+  surfacing on that screen doesn't yet) stays deferred too.
+
+  New tests: `backend/tests/test_transfer_detection.py` (4 tests —
+  cross-account match, same-account non-match, outside-window
+  non-match, idempotent rerun) plus one netting-regression test each in
+  `test_dashboard.py` and `test_extended_finance_api.py` (category
+  breakdown, spending-by-member) confirming a seeded transfer pair is
+  excluded from the respective totals. Backend `pytest tests/ -q`:
+  161/161 (7 new). Frontend: new `category_pill_test.dart`, plus
+  `accounts_view_test.dart` gained a wide-viewport six-column-table test
+  and a narrow-viewport assertion that transfer rows are absent.
+  `flutter test`: 194/194, `flutter analyze` clean. **Manual smoke
+  2026-08-11**: ran `detect_internal_transfers` directly against the
+  real QA Test Household's seeded Postgres data — no exceptions, 0
+  matches (informational; that fixture's real data has no actual
+  transfer pair). **Manual browser QA**: rebuilt web, restarted backend
+  by PID, confirmed the six-column table renders correctly with real
+  data at a wide viewport (member dot+email, neutral category pills,
+  row hover tint), and the narrow-viewport mobile grouped list is
+  unchanged with bottom nav intact — no transfer pair existed in the
+  real seeded data to visually confirm the muted/`Interna` treatment,
+  noted as a manual-QA coverage gap rather than fabricated.
+
 ---
 
 ## First Vertical Slice (verified 2026-07-28)

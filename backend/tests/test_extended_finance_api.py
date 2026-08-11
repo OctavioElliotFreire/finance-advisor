@@ -278,6 +278,77 @@ def test_category_breakdown(client, make_user):
     assert totals_by_category["Transport"] == 100.0
 
 
+def test_category_breakdown_excludes_internal_transfers(client, make_user):
+    headers = make_user("categories-transfer@example.com")
+    household = client.post(
+        "/v1/households", json={"name": "Categories Transfer Family"}, headers=headers
+    ).json()
+    _seed_extended_finance_data(household["id"])
+
+    db = SessionLocal()
+    connection = (
+        db.query(PluggyConnection)
+        .filter(PluggyConnection.household_id == household["id"])
+        .one()
+    )
+    second_account = Account(
+        household_id=household["id"],
+        pluggy_connection_id=connection.id,
+        pluggy_account_id="acc-transfer-target",
+        name="Second Account",
+        type="BANK",
+        balance=0.0,
+        currency_code="BRL",
+    )
+    db.add(second_account)
+    db.flush()
+    credit_account = (
+        db.query(Account)
+        .filter(Account.household_id == household["id"], Account.name == "Credit Card")
+        .one()
+    )
+    today = date.today()
+    db.add_all(
+        [
+            Transaction(
+                household_id=household["id"],
+                account_id=credit_account.id,
+                pluggy_transaction_id="txn-transfer-out",
+                description="Transfer out",
+                amount=-500.0,
+                currency_code="BRL",
+                transaction_date=today,
+                is_transfer=True,
+            ),
+            Transaction(
+                household_id=household["id"],
+                account_id=second_account.id,
+                pluggy_transaction_id="txn-transfer-in",
+                description="Transfer in",
+                amount=500.0,
+                currency_code="BRL",
+                transaction_date=today,
+                is_transfer=True,
+            ),
+        ]
+    )
+    db.commit()
+    db.close()
+
+    response = client.get(
+        f"/v1/households/{household['id']}/categories", headers=headers
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    totals_by_category = {row["category"]: row["total"] for row in body}
+    # Unaffected real spend, and no extra "Uncategorized" bucket from the
+    # (categoryless) transfer legs — both would fail if netting broke.
+    assert totals_by_category["Food"] == 150.0
+    assert totals_by_category["Transport"] == 100.0
+    assert totals_by_category.get(None, 0.0) == 0.0
+
+
 def test_family_a_cannot_view_family_b_credit_card_bills(client, make_user):
     headers_a = make_user("bills-isoa@example.com")
     headers_b = make_user("bills-isob@example.com")
@@ -599,6 +670,94 @@ def test_spending_by_member_groups_by_month_and_member(client, make_user):
     assert totals_by_member[second_member_id] == 20.0
     assert totals_by_member[None] == 10.0
     assert all(row["month"] == "2026-07" for row in body)
+
+
+def test_spending_by_member_excludes_internal_transfers(client, make_user):
+    headers_owner = make_user("spendtransferowner@example.com")
+    household = client.post(
+        "/v1/households", json={"name": "Spend Transfer Family"}, headers=headers_owner
+    ).json()
+
+    headers_second = make_user("spendtransfersecond@example.com")
+    client.get("/v1/me", headers=headers_second)
+
+    db = SessionLocal()
+    owner_user = (
+        db.query(AppUser).filter(AppUser.email == "spendtransferowner@example.com").one()
+    )
+    second_user = (
+        db.query(AppUser).filter(AppUser.email == "spendtransfersecond@example.com").one()
+    )
+    second_member = HouseholdMember(
+        household_id=household["id"], app_user_id=second_user.id, role="member"
+    )
+    db.add(second_member)
+    db.commit()
+    owner_member_id = str(
+        db.query(HouseholdMember)
+        .filter(
+            HouseholdMember.household_id == household["id"],
+            HouseholdMember.app_user_id == owner_user.id,
+        )
+        .one()
+        .id
+    )
+    owner_user_id = owner_user.id
+    second_user_id = second_user.id
+    db.close()
+
+    _seed_member_spend_data(household["id"], owner_user_id, second_user_id)
+
+    db = SessionLocal()
+    owner_account = (
+        db.query(Account)
+        .filter(Account.household_id == household["id"], Account.name == "Owner Checking")
+        .one()
+    )
+    second_account = (
+        db.query(Account)
+        .filter(Account.household_id == household["id"], Account.name == "Second Checking")
+        .one()
+    )
+    db.add_all(
+        [
+            Transaction(
+                household_id=household["id"],
+                account_id=owner_account.id,
+                pluggy_transaction_id="txn-member-transfer-out",
+                description="Transfer to second member",
+                amount=-300.0,
+                currency_code="BRL",
+                transaction_date="2026-07-15",
+                is_transfer=True,
+            ),
+            Transaction(
+                household_id=household["id"],
+                account_id=second_account.id,
+                pluggy_transaction_id="txn-member-transfer-in",
+                description="Transfer from owner",
+                amount=300.0,
+                currency_code="BRL",
+                transaction_date="2026-07-15",
+                is_transfer=True,
+            ),
+        ]
+    )
+    db.commit()
+    db.close()
+
+    response = client.get(
+        f"/v1/households/{household['id']}/spending-by-member",
+        params={"start_date": "2026-07-01", "end_date": "2026-07-31"},
+        headers=headers_owner,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    totals_by_member = {row["member_id"]: row["total"] for row in body}
+    # Unchanged from the non-transfer test above — the R$300 transfer pair
+    # must not inflate the owner's spend total.
+    assert totals_by_member[owner_member_id] == 50.0
 
 
 def test_spending_by_member_filters_by_member_ids(client, make_user):

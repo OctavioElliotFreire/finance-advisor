@@ -15,6 +15,7 @@ import '../../../../core/theme/app_layout.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/error_banner.dart';
 import '../../../core/widgets/loading_state.dart';
+import '../../../core/widgets/category_pill.dart';
 import '../../../core/widgets/member_dot.dart';
 import '../../../core/widgets/period_pill.dart';
 import '../../../core/widgets/segmented_control.dart';
@@ -193,10 +194,26 @@ class _AccountsViewState extends State<AccountsView> {
                   if (_isLoadingTransactions && _transactions.isEmpty)
                     const LoadingState()
                   else
-                    _StatementList(
-                      transactions: _applyStatementFilter(_transactions, _statementFilter),
-                      accounts: dashboard?.accounts ?? const [],
-                      members: _scope!.members,
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final filtered = _applyStatementFilter(_transactions, _statementFilter);
+                        final isWide = constraints.maxWidth >= kWideBreakpoint;
+                        return isWide
+                            ? _StatementTable(
+                                transactions: filtered,
+                                accounts: dashboard?.accounts ?? const [],
+                                members: _scope!.members,
+                              )
+                            : _StatementList(
+                                // Internal transfers stay visible-but-muted on
+                                // web (design.md's Table conventions), but are
+                                // dropped entirely on mobile — no room to show
+                                // them meaningfully in the narrow list.
+                                transactions: filtered.where((t) => !t.isTransfer).toList(),
+                                accounts: dashboard?.accounts ?? const [],
+                                members: _scope!.members,
+                              );
+                      },
                     ),
                 ],
               ],
@@ -496,6 +513,212 @@ class _StatementList extends StatelessWidget {
               ),
             ),
         ],
+      ],
+    );
+  }
+}
+
+/// Resolves a transaction's owning member — same `accountId -> ownerMemberId
+/// -> join-order index` lookup `_groupByAccount` uses for the mobile list's
+/// group headers, just returning a per-row (color, label) pair instead of
+/// building groups, since the six-column table has no account-grouping.
+(Color, String) _memberForTransaction(
+  TransactionSummary txn,
+  Map<String, AccountSummary> accountsById,
+  Map<String, int> memberIndex,
+  List<HouseholdMember> members,
+) {
+  final account = accountsById[txn.accountId];
+  final memberId = account?.ownerMemberId;
+  if (memberId == null) return (AppMemberColors.outros, 'Outros');
+  final idx = memberIndex[memberId];
+  if (idx == null) return (AppMemberColors.outros, 'Outros');
+  return (AppMemberColors.forIndex(idx), members[idx].email);
+}
+
+/// Fixed column widths shared by the header and every body row so cells
+/// line up — `design.md`'s six-column spec: Data · Descrição · Membro ·
+/// Conta · Categoria · Valor.
+class _StatementColumns {
+  const _StatementColumns._();
+  static const double data = 88;
+  static const double membro = 170;
+  static const double conta = 150;
+  static const double categoria = 140;
+  static const double valor = 110;
+}
+
+class _StatementTableHeader extends StatelessWidget {
+  const _StatementTableHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    final style = Theme.of(
+      context,
+    ).textTheme.labelMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          SizedBox(width: _StatementColumns.data, child: Text('Data', style: style)),
+          Expanded(child: Text('Descrição', style: style)),
+          SizedBox(width: _StatementColumns.membro, child: Text('Membro', style: style)),
+          SizedBox(width: _StatementColumns.conta, child: Text('Conta', style: style)),
+          SizedBox(width: _StatementColumns.categoria, child: Text('Categoria', style: style)),
+          SizedBox(
+            width: _StatementColumns.valor,
+            child: Text('Valor', style: style, textAlign: TextAlign.right),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One six-column row, hover-tinted per `design.md`'s Table conventions
+/// (`surface-fill` on hover) — a plain `MouseRegion` instead of `InkWell`
+/// since rows aren't tappable yet (no drill-down panel exists).
+class _StatementTableRow extends StatefulWidget {
+  const _StatementTableRow({
+    required this.transaction,
+    required this.member,
+    required this.accountName,
+  });
+
+  final TransactionSummary transaction;
+  final (Color, String) member;
+  final String? accountName;
+
+  @override
+  State<_StatementTableRow> createState() => _StatementTableRowState();
+}
+
+class _StatementTableRowState extends State<_StatementTableRow> {
+  bool _hovering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final txn = widget.transaction;
+    final (memberColor, memberLabel) = widget.member;
+    final colorScheme = Theme.of(context).colorScheme;
+    final muted = txn.isTransfer;
+    final textColor = muted ? colorScheme.tertiary : null;
+    final textStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(color: textColor);
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovering = true),
+      onExit: (_) => setState(() => _hovering = false),
+      child: Container(
+        color: _hovering ? colorScheme.surfaceContainerHighest : null,
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: _StatementColumns.data,
+              child: Text(formatDayMonth(txn.transactionDate), style: textStyle),
+            ),
+            Expanded(
+              child: Row(
+                children: [
+                  if (txn.isFlagged) ...[
+                    Icon(Icons.flag, size: 16, color: textColor),
+                    const SizedBox(width: 4),
+                  ],
+                  Flexible(
+                    child: Text(
+                      txn.description ?? 'Movimentação',
+                      style: textStyle,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (muted) ...[
+                    const SizedBox(width: 6),
+                    Text(
+                      'Interna',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.labelSmall?.copyWith(color: colorScheme.tertiary),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            SizedBox(
+              width: _StatementColumns.membro,
+              child: Row(
+                children: [
+                  MemberDot(color: memberColor),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      memberLabel,
+                      style: textStyle,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(
+              width: _StatementColumns.conta,
+              child: Text(
+                widget.accountName ?? 'Conta',
+                style: textStyle,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            SizedBox(
+              width: _StatementColumns.categoria,
+              child: txn.category == null ? const SizedBox.shrink() : CategoryPill(label: txn.category!),
+            ),
+            SizedBox(
+              width: _StatementColumns.valor,
+              child: Text(
+                formatMoney(txn.amount, txn.currencyCode),
+                style: textStyle,
+                textAlign: TextAlign.right,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Contas · Extrato's web-only six-column table (`design.md`'s §6a Table
+/// conventions) — a flat row-per-transaction list, unlike `_StatementList`'s
+/// mobile account-grouping. Internal transfers stay visible but muted
+/// (`ink-muted` row + `Interna` tag) here, unlike mobile where they're
+/// dropped entirely (see the narrow-width filter in `build()`).
+class _StatementTable extends StatelessWidget {
+  const _StatementTable({required this.transactions, required this.accounts, required this.members});
+
+  final List<TransactionSummary> transactions;
+  final List<AccountSummary> accounts;
+  final List<HouseholdMember> members;
+
+  @override
+  Widget build(BuildContext context) {
+    if (transactions.isEmpty) {
+      return const AppEmptyState(icon: Icons.receipt_long_outlined, title: 'Nenhuma movimentação ainda');
+    }
+
+    final accountsById = {for (final a in accounts) a.id: a};
+    final memberIndex = {for (var i = 0; i < members.length; i++) members[i].id: i};
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _StatementTableHeader(),
+        const Divider(height: 1),
+        for (final txn in transactions)
+          _StatementTableRow(
+            transaction: txn,
+            member: _memberForTransaction(txn, accountsById, memberIndex, members),
+            accountName: accountsById[txn.accountId]?.name,
+          ),
       ],
     );
   }

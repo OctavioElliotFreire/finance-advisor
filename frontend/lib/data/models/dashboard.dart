@@ -53,6 +53,7 @@ class TransactionSummary {
     required this.transactionDate,
     required this.category,
     this.isFlagged = false,
+    this.isTransfer = false,
   });
 
   factory TransactionSummary.fromJson(Map<String, dynamic> json) {
@@ -66,6 +67,7 @@ class TransactionSummary {
       transactionDate: DateTime.parse(json['transaction_date'] as String),
       category: json['category'] as String?,
       isFlagged: json['is_flagged'] as bool? ?? false,
+      isTransfer: json['is_transfer'] as bool? ?? false,
     );
   }
 
@@ -78,6 +80,7 @@ class TransactionSummary {
   final DateTime transactionDate;
   final String? category;
   final bool isFlagged;
+  final bool isTransfer;
 }
 
 class MonthlyCashFlow {

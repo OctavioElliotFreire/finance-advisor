@@ -30,6 +30,7 @@ class TransactionSummary(BaseModel):
     transaction_date: date
     category: str | None
     is_flagged: bool = False
+    is_transfer: bool = False
 
 
 class MonthlyCashFlow(BaseModel):

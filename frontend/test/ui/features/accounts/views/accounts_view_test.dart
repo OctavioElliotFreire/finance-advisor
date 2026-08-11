@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:frontend/app/household_shell.dart';
+import 'package:frontend/core/theme/app_layout.dart';
 import 'package:frontend/data/models/auth_session.dart';
 import 'package:frontend/data/models/dashboard.dart';
 import 'package:frontend/data/models/extended_finance.dart';
@@ -163,6 +164,17 @@ class _FakeBackendService extends BackendApiService {
         transactionDate: DateTime(2026, 8, 6),
         category: 'Compras',
         isFlagged: true,
+      ),
+      TransactionSummary(
+        id: 'txn-transfer',
+        accountId: 'checking-a',
+        accountName: 'Conta Corrente A',
+        description: 'Transferência interna',
+        amount: -150,
+        currencyCode: 'BRL',
+        transactionDate: DateTime(2026, 8, 4),
+        category: null,
+        isTransfer: true,
       ),
     ];
   }
@@ -344,5 +356,90 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Salário'), findsOneWidget);
     expect(find.text('Compra suspeita'), findsOneWidget);
+
+    // Internal transfers are dropped entirely on the narrow/mobile list —
+    // design.md's Table conventions say "hidden on mobile" (unlike web,
+    // which shows them muted).
+    expect(find.text('Transferência interna'), findsNothing);
+  });
+
+  Future<void> setViewportWidth(WidgetTester tester, double width) async {
+    tester.view.physicalSize = Size(width, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+  }
+
+  testWidgets('Extrato shows the six-column table with a muted Interna row when wide', (
+    tester,
+  ) async {
+    // Comfortably above kWideBreakpoint, not right at it — see the §6a
+    // Web layout phase's nested-breakpoint note (AppGridPage's own page
+    // padding narrows the content LayoutBuilder actually sees).
+    await setViewportWidth(tester, kWideBreakpoint + 200);
+
+    final backendService = _FakeBackendService();
+    final authRepository = AuthRepository(
+      authService: _FakeAuthService(),
+      backendService: backendService,
+      storage: _FakeStorage(),
+    );
+    await authRepository.login('owner@example.com', 'hunter22');
+    final dashboardRepository = DashboardRepository(
+      authRepository: authRepository,
+      backendService: backendService,
+    );
+    final financeRepository = ExtendedFinanceRepository(
+      authRepository: authRepository,
+      backendService: backendService,
+    );
+
+    final scope = ScopeController(householdId: 'household-1');
+    scope.setMembers([
+      HouseholdMember(
+        id: 'member-a',
+        appUserId: 'au-a',
+        email: 'a@example.com',
+        role: 'owner',
+        createdAt: DateTime(2026, 1, 1),
+      ),
+      HouseholdMember(
+        id: 'member-b',
+        appUserId: 'au-b',
+        email: 'b@example.com',
+        role: 'member',
+        createdAt: DateTime(2026, 1, 2),
+      ),
+    ]);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HouseholdScope(
+          controller: scope,
+          child: AccountsView(
+            dashboardRepository: dashboardRepository,
+            financeRepository: financeRepository,
+            householdId: 'household-1',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Six-column header, per design.md's exact column order.
+    expect(find.text('Data'), findsOneWidget);
+    expect(find.text('Descrição'), findsOneWidget);
+    expect(find.text('Membro'), findsOneWidget);
+    expect(find.text('Conta'), findsOneWidget);
+    expect(find.text('Categoria'), findsOneWidget);
+    expect(find.text('Valor'), findsOneWidget);
+
+    // Member column resolves dot + email via the account's owner, same as
+    // the mobile grouping.
+    expect(find.text('a@example.com'), findsWidgets);
+
+    // Internal transfer stays visible on web, tagged and muted.
+    expect(find.text('Transferência interna'), findsOneWidget);
+    expect(find.text('Interna'), findsOneWidget);
   });
 }

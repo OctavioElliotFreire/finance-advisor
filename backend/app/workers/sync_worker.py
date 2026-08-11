@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.database.session import SessionLocal
 from app.models.pluggy_connection import PluggyConnection, SyncJob
 from app.services.anomaly_rules import run_anomaly_detection
+from app.services.transfer_detection import detect_internal_transfers
 from app.settings import settings
 from app.sync.normalize import (
     snapshot_balances,
@@ -155,6 +156,14 @@ async def run_sync_job(db: Session, job: SyncJob, client: PluggyClient | None = 
             db.commit()
         except Exception:
             logger.exception("Failed to run anomaly detection (job %s)", job.id)
+            any_account_failed = True
+            db.rollback()
+
+        try:
+            detect_internal_transfers(db, job.household_id)
+            db.commit()
+        except Exception:
+            logger.exception("Failed to run internal-transfer detection (job %s)", job.id)
             any_account_failed = True
             db.rollback()
 

@@ -203,6 +203,59 @@ def test_dashboard_returns_accounts_transactions_cash_flow_and_sync_status(
     assert body["sync_status"]["total_connections"] == 1
 
 
+def test_cash_flow_excludes_internal_transfers(client, make_user):
+    headers = make_user("dash-transfer@example.com")
+    household = client.post(
+        "/v1/households", json={"name": "Dashboard Transfer Family"}, headers=headers
+    ).json()
+    _seed_household_data(household["id"])
+
+    db = SessionLocal()
+    accounts = {
+        a.name: a
+        for a in db.query(Account).filter(Account.household_id == household["id"]).all()
+    }
+    checking, savings = accounts["Checking"], accounts["Savings"]
+    db.add_all(
+        [
+            Transaction(
+                household_id=household["id"],
+                account_id=checking.id,
+                pluggy_transaction_id="txn-transfer-out",
+                description="Transfer to savings",
+                amount=-500.0,
+                currency_code="BRL",
+                transaction_date="2026-06-15",
+                is_transfer=True,
+            ),
+            Transaction(
+                household_id=household["id"],
+                account_id=savings.id,
+                pluggy_transaction_id="txn-transfer-in",
+                description="Transfer from checking",
+                amount=500.0,
+                currency_code="BRL",
+                transaction_date="2026-06-15",
+                is_transfer=True,
+            ),
+        ]
+    )
+    db.commit()
+    db.close()
+
+    response = client.get(
+        f"/v1/households/{household['id']}/dashboard", headers=headers
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    cash_flow_by_month = {row["month"]: row for row in body["monthly_cash_flow"]}
+    # Unchanged from the non-transfer test above — the R$500 transfer pair
+    # in the same month must not inflate either side.
+    assert cash_flow_by_month["2026-06"]["income"] == 3000.0
+    assert cash_flow_by_month["2026-06"]["expenses"] == 1200.0
+
+
 def test_dashboard_accounts_expose_credit_fields_and_owner_member(client, make_user):
     headers = make_user("cardowner@example.com")
     household = client.post(

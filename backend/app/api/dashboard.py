@@ -97,6 +97,7 @@ def _list_transactions(
             transaction_date=txn.transaction_date,
             category=txn.category,
             is_flagged=txn.id in flagged_ids,
+            is_transfer=txn.is_transfer,
         )
         for txn, account_name in rows
     ]
@@ -158,7 +159,9 @@ def get_dashboard(
         func.sum(case((Transaction.amount < 0, -Transaction.amount), else_=0)).label(
             "expenses"
         ),
-    ).filter(Transaction.household_id == household_id)
+    ).filter(
+        Transaction.household_id == household_id, Transaction.is_transfer.is_(False)
+    )
     if connection_ids is not None:
         cash_flow_query = cash_flow_query.join(
             Account, Transaction.account_id == Account.id
