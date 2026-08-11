@@ -1,7 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_chart_colors.dart';
 import '../../../core/formatting/money.dart';
 import '../../../core/widgets/chart_palette.dart';
 import 'monthly_spend_chart_data.dart';
@@ -101,7 +101,7 @@ class _MonthlySpendBarChart extends StatelessWidget {
               BarChartGroupData(
                 x: i,
                 barRods: [
-                  stacked ? _stackedRod(points[i]) : BarChartRodData(toY: points[i].total, color: AppPalette.ink, width: 18),
+                  stacked ? _stackedRod(points[i]) : BarChartRodData(toY: points[i].total, color: AppChartColors.expenses(context), width: 18),
                 ],
               ),
           ],

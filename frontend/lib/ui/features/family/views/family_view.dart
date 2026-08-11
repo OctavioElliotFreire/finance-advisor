@@ -164,9 +164,12 @@ class _FamilyViewState extends State<FamilyView> {
                     connectionHealth: _connectionHealth,
                   ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'Cada membro pode desconectar suas próprias contas quando quiser.',
-                  style: TextStyle(color: AppPalette.inkMuted, fontSize: 11),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.tertiary,
+                    fontSize: 11,
+                  ),
                 ),
               ],
             ),

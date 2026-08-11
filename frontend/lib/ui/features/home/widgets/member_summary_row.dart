@@ -39,7 +39,7 @@ class MemberSummaryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final warningColor = AppPalette.warningText;
+    final warningColor = context.semanticColors.warning;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),

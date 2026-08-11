@@ -1,7 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_chart_colors.dart';
 import '../../../core/widgets/chart_palette.dart';
 import 'cash_flow_chart_data.dart';
 
@@ -93,7 +93,7 @@ class ComboCashFlowChart extends StatelessWidget {
                         barRods: [
                           BarChartRodData(
                             toY: points[i].income,
-                            color: AppPalette.inkMuted,
+                            color: AppChartColors.income(context),
                             width: 18,
                           ),
                         ],
@@ -119,7 +119,7 @@ class ComboCashFlowChart extends StatelessWidget {
                           FlSpot(i.toDouble(), points[i].expenses),
                       ],
                       isCurved: false,
-                      color: AppPalette.ink,
+                      color: AppChartColors.expenses(context),
                       barWidth: 2,
                       dotData: const FlDotData(show: true),
                       belowBarData: BarAreaData(show: false),
@@ -133,9 +133,9 @@ class ComboCashFlowChart extends StatelessWidget {
         const SizedBox(height: 8),
         Row(
           children: [
-            LegendSwatch(color: AppPalette.inkMuted, label: inflowLabel),
+            LegendSwatch(color: AppChartColors.income(context), label: inflowLabel),
             const SizedBox(width: 16),
-            LegendSwatch(color: AppPalette.ink, label: outflowLabel),
+            LegendSwatch(color: AppChartColors.expenses(context), label: outflowLabel),
           ],
         ),
       ],

@@ -305,7 +305,7 @@ class _AccountRow extends StatelessWidget {
           title: Text(account.name ?? 'Conta'),
           subtitle: Text(
             'Sem sincronizar',
-            style: TextStyle(color: AppPalette.inkMuted),
+            style: TextStyle(color: Theme.of(context).colorScheme.tertiary),
           ),
         ),
       );

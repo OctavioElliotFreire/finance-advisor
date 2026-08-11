@@ -49,7 +49,7 @@ class AppAlertRow extends StatelessWidget {
       StatusTone.neutral => (
         colorScheme.surface,
         colorScheme.onSurfaceVariant,
-        AppPalette.border,
+        colorScheme.outline,
       ),
     };
 

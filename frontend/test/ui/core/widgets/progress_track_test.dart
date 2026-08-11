@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:frontend/core/theme/app_theme.dart';
 import 'package:frontend/ui/core/widgets/progress_track.dart';
 
 void main() {
@@ -42,5 +43,37 @@ void main() {
     );
 
     expect(find.byType(ProgressTrack), findsOneWidget);
+  });
+
+  testWidgets('default trackColor resolves to the theme surfaceContainerHighest', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: const Scaffold(
+          body: ProgressTrack(segments: []),
+        ),
+      ),
+    );
+
+    final container = tester.widget<Container>(
+      find.descendant(of: find.byType(ProgressTrack), matching: find.byType(Container)).first,
+    );
+    expect(container.color, AppTheme.light.colorScheme.surfaceContainerHighest);
+  });
+
+  testWidgets('an explicit trackColor overrides the theme default', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: const Scaffold(
+          body: ProgressTrack(segments: [], trackColor: Colors.purple),
+        ),
+      ),
+    );
+
+    final container = tester.widget<Container>(
+      find.descendant(of: find.byType(ProgressTrack), matching: find.byType(Container)).first,
+    );
+    expect(container.color, Colors.purple);
   });
 }

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
-
 /// Chart color tokens shared by every `fl_chart` consumer, so bar/line/pie
 /// series pull from one source instead of each chart declaring its own
 /// hardcoded palette.
@@ -31,7 +29,7 @@ class AppChartColors {
   /// Income bars — `ink-muted`, per the handoff's "income as bars (ink-muted)"
   /// cash-flow spec. Never green: there is no success/positive color in this
   /// design (`design.md`).
-  static Color income(BuildContext context) => AppPalette.inkMuted;
+  static Color income(BuildContext context) => Theme.of(context).colorScheme.tertiary;
 
   /// Spending/expenses line — `ink` by default. Only the *crossover* segment
   /// (where spending exceeds income) renders in danger color — that's a

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shape.dart';
 import '../../../core/theme/app_spacing.dart';
 
@@ -56,11 +55,12 @@ class _MemberChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final borderColor = member.selected
-        ? AppPalette.borderStrong
-        : AppPalette.border;
-    final textColor = member.selected ? null : AppPalette.inkMuted;
+        ? colorScheme.outlineVariant
+        : colorScheme.outline;
+    final textColor = member.selected ? null : colorScheme.tertiary;
 
     return InkWell(
       borderRadius: BorderRadius.circular(AppRadius.chip),
@@ -84,7 +84,7 @@ class _MemberChip extends StatelessWidget {
                   ? Icons.check_box_outlined
                   : Icons.check_box_outline_blank,
               size: 16,
-              color: member.selected ? member.color : AppPalette.inkMuted,
+              color: member.selected ? member.color : colorScheme.tertiary,
             ),
             const SizedBox(width: 5),
             Container(

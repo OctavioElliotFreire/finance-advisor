@@ -2121,6 +2121,74 @@ against a real target):
   side, and Família renders correctly inside the Grid wrapper with no
   crash and no multi-column card layout invented for it.
 
+- **Dark mode (2026-08-11)**: Research first found the premise stale —
+  `AppTheme.dark` already existed with the real dark hex table from
+  `handoff-app-financas-familiar.md` §2 (not a generic seeded scheme),
+  `AppSemanticColors.dark` already existed with real values, and
+  `frontend/lib/app/app.dart` already wired `MaterialApp.router(theme:
+  AppTheme.light, darkTheme: AppTheme.dark, themeMode: ThemeMode.system)`
+  — so system-driven dark mode already technically worked before this
+  pass started. The real, narrower gap (confirmed by reading every cited
+  file directly, not just trusting the research agent): 11 call sites
+  across `combo_cash_flow_chart.dart`, `monthly_spend_chart.dart`,
+  `accounts_view.dart`, `family_view.dart`, `member_summary_row.dart`,
+  `alert_row.dart`, and `member_filter_chips.dart` referenced light-only
+  `AppPalette` constants directly instead of going through the theme,
+  plus `AppChartColors.income()` bypassing the theme the same way, plus
+  `progress_track.dart`'s `trackColor` defaulting to a compile-time-const
+  `AppPalette.surfaceFill` (can't read `Theme.of(context)` from a
+  constructor default). Confirmed out of scope and left untouched:
+  `AppMemberColors` (design.md says member hues are intentionally the
+  same hex in both themes), `AppChartColors.categoricalColorFor`'s fixed
+  5-hue dataviz palette (visually plausible on dark surfaces, not
+  theme-conditioned by design), and a manual theme-mode toggle/
+  persistence UI (not requested — `ThemeMode.system` already covers
+  "respect OS preference"; `ScopeController`'s `SharedPreferences`
+  pattern is the template if one's wanted later). `ProgressTrack` itself
+  turned out to be dead code — defined and tested but not instantiated
+  anywhere in `lib/` yet — so its fix carried zero live-call-site risk.
+
+  Every `AppPalette.X` site was swapped for its theme-aware equivalent
+  (`Theme.of(context).colorScheme.*`, `context.semanticColors.*`, or
+  `AppChartColors.*`), and unused `app_colors.dart`/`app_palette`
+  imports were dropped where a file's only remaining reference was
+  removed. `progress_track.dart`'s `trackColor` became nullable
+  (`Color? trackColor`), resolved inside `build()` via `trackColor ??
+  Theme.of(context).colorScheme.surfaceContainerHighest` — existing call
+  sites (currently only its own test file) that pass `trackColor`
+  explicitly keep working unchanged.
+
+  **Real mistake caught and fixed before finishing**: the first pass
+  mapped every `AppPalette.inkMuted` site to `colorScheme.
+  onSurfaceVariant`, which resolves to `AppPalette.inkSecondary`
+  (`#565B55`) — a different, darker gray than `inkMuted` (`#878D86`).
+  `AppTheme`'s own `_colorScheme()` already sets `tertiary` to
+  `inkMuted`/`darkInkMuted` specifically for this role. Caught during
+  the manual light-mode QA pass by deliberately comparing the rebuilt
+  screenshots against the pre-fix ones rather than just checking
+  "legible" — `colorScheme.tertiary` restores the exact original
+  light-mode value while giving dark mode the correct `darkInkMuted`
+  instead of the wrong `darkInkSecondary`. Re-ran `flutter analyze`/
+  `flutter test` and rebuilt the web bundle after the correction.
+
+  `flutter test` 192/192 (2 new regression tests added to the existing
+  `progress_track_test.dart`: default `trackColor` resolves to the
+  theme's `surfaceContainerHighest`, an explicit `trackColor` still
+  overrides it), `flutter analyze` clean (only pre-existing, unrelated
+  info-level lints). **Manual browser QA run 2026-08-11** against the QA
+  Test Household: forced dark color scheme via Playwright's
+  `page.emulateMedia({colorScheme: 'dark'})`, screenshotted Início/
+  Contas·Saldos/Análises·Gastos/Família — confirmed the cash-flow
+  legend swatches, expenses bar, broken-connection/footnote text, and
+  member filter chips all render legibly against the dark background
+  (the Gastos bar in particular: previously `AppPalette.ink`, a
+  near-black color that would have been invisible on the dark card, now
+  correctly renders light via `AppChartColors.expenses()`'s
+  `colorScheme.onSurface`). Then forced light mode back and re-verified
+  the same four screens render pixel-equivalent to their pre-fix
+  appearance, confirming the `tertiary`-vs-`onSurfaceVariant` correction
+  actually fixed the regression it was meant to fix.
+
 ---
 
 ## First Vertical Slice (verified 2026-07-28)
