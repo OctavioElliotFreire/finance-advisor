@@ -1,8 +1,10 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:frontend/app/household_shell.dart';
+import 'package:frontend/core/theme/app_layout.dart';
 import 'package:frontend/data/models/auth_session.dart';
 import 'package:frontend/data/models/dashboard.dart';
 import 'package:frontend/data/models/extended_finance.dart';
@@ -121,7 +123,9 @@ class _FakeBackendService extends BackendApiService {
     DateTime? startDate,
     DateTime? endDate,
     List<String>? memberIds,
-  }) async => const [];
+  }) async {
+    return const [MemberMonthlySpend(month: '2026-07', memberId: 'member-a', total: 400)];
+  }
 }
 
 void main() {
@@ -194,5 +198,67 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('+20% vs período anterior'), findsOneWidget);
+  });
+
+  Future<void> setViewportWidth(WidgetTester tester, double width) async {
+    tester.view.physicalSize = Size(width, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+  }
+
+  testWidgets('Gastos stacks the chart above the category list when narrow', (tester) async {
+    await setViewportWidth(tester, 800);
+    final (dashboardRepository, financeRepository) = await buildRepositories();
+    final scope = ScopeController(householdId: 'household-1');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HouseholdScope(
+          controller: scope,
+          child: AnalyticsView(
+            dashboardRepository: dashboardRepository,
+            financeRepository: financeRepository,
+            householdId: 'household-1',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final chartTop = tester.getTopLeft(find.byType(BarChart)).dy;
+    final categoryLabelTop = tester.getTopLeft(find.text('Por categoria')).dy;
+    expect(categoryLabelTop, greaterThan(chartTop));
+  });
+
+  testWidgets('Gastos shows the chart and category list side by side when wide', (tester) async {
+    // Comfortably above kWideBreakpoint, not right at it: AppGridPage's own
+    // 24px page padding (each side) narrows the width _SpendingSection's
+    // own LayoutBuilder actually sees, so a viewport of exactly
+    // kWideBreakpoint would still read as narrow one level down. A ~176px
+    // margin clears that padding-eaten dead zone.
+    await setViewportWidth(tester, kWideBreakpoint + 200);
+    final (dashboardRepository, financeRepository) = await buildRepositories();
+    final scope = ScopeController(householdId: 'household-1');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HouseholdScope(
+          controller: scope,
+          child: AnalyticsView(
+            dashboardRepository: dashboardRepository,
+            financeRepository: financeRepository,
+            householdId: 'household-1',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final chartTopLeft = tester.getTopLeft(find.byType(BarChart));
+    final categoryLabelTopLeft = tester.getTopLeft(find.text('Por categoria'));
+    // Side by side: roughly the same vertical position, but to the right.
+    expect((categoryLabelTopLeft.dy - chartTopLeft.dy).abs(), lessThan(4));
+    expect(categoryLabelTopLeft.dx, greaterThan(chartTopLeft.dx));
   });
 }

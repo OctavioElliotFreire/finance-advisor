@@ -5,6 +5,7 @@ import '../../../../data/models/pluggy_connection.dart';
 import '../../../../data/repositories/connection_repository.dart';
 import '../../../../data/repositories/household_repository.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_layout.dart';
 import '../../../core/formatting/role_label.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/error_banner.dart';
@@ -151,8 +152,7 @@ class _FamilyViewState extends State<FamilyView> {
 
           return RefreshIndicator(
             onRefresh: () => Future.wait([_membersViewModel.load(), _connectionsViewModel.load()]),
-            child: ListView(
-              padding: const EdgeInsets.all(16),
+            child: AppGridPage(
               children: [
                 ErrorBanner(message: _membersViewModel.errorMessage),
                 ErrorBanner(message: _connectionsViewModel.errorMessage),

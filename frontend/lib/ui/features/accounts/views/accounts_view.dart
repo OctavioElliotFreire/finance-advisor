@@ -11,9 +11,11 @@ import '../../../../data/repositories/extended_finance_repository.dart';
 import '../../../../data/scope_controller.dart';
 import '../../../core/formatting/money.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_layout.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/error_banner.dart';
 import '../../../core/widgets/loading_state.dart';
+import '../../../core/widgets/member_dot.dart';
 import '../../../core/widgets/period_pill.dart';
 import '../../../core/widgets/segmented_control.dart';
 import '../../../core/widgets/status_chip.dart';
@@ -157,8 +159,7 @@ class _AccountsViewState extends State<AccountsView> {
 
           return RefreshIndicator(
             onRefresh: () async => _reload(),
-            child: ListView(
-              padding: const EdgeInsets.all(16),
+            child: AppGridPage(
               children: [
                 ErrorBanner(
                   message: isBalances ? _balancesViewModel.errorMessage : _transactionsError,
@@ -251,7 +252,7 @@ class _BalancesList extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Row(
               children: [
-                Container(width: 10, height: 10, color: group.color),
+                MemberDot(color: group.color),
                 const SizedBox(width: 8),
                 Text(group.label, style: Theme.of(context).textTheme.titleSmall),
               ],
@@ -468,7 +469,7 @@ class _StatementList extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Row(
               children: [
-                Container(width: 10, height: 10, color: group.color),
+                MemberDot(color: group.color),
                 const SizedBox(width: 8),
                 Text(group.label, style: Theme.of(context).textTheme.titleSmall),
                 const SizedBox(width: 8),

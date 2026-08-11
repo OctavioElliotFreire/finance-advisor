@@ -17,6 +17,7 @@ Working spec for a full UI/visualization redesign, IA restructure, and pt-BR loc
 | 2026-08-10 | Real Início + Contas · Saldos implementation | §6.1 Início, §6.2 Contas · Saldos | Both screens rebuilt end-to-end per spec — hero/credit-block/fatura-warning/alerts/Por-membro/sync-footer on Início, member-grouped balances with available-credit headline + utilization coloring + broken-connection state on Saldos. Member-level deviation-from-average sub-line and the Início bar's visual rendering (vs. its two figures as plain text) remain out of scope — see `PLAN.md`'s Milestone 12 "Real Início + Contas · Saldos content" entry for what landed, the Comprometido gap caught and fixed before commit, and the manual QA pass. |
 | 2026-08-10 | Web top-bar navigation implementation | §6a Web (Navigation shifts to a top bar) | Responsive nav chrome shipped — bottom `NavigationBar` replaced by a top bar (brand · inline destinations · period pill) at ≥1024px, member chips in their own strip beneath, matching the Grid section's own breakpoint. The rest of §6a (12-column grid, side-by-side layouts, six-column Extrato table, right-side panel) is unrelated, separate follow-up work, not touched here. See `PLAN.md`'s Milestone 12 "Web top-bar navigation" entry for what landed, the known per-screen-AppBar/theme-toggle/avatar simplifications, and the manual QA pass. |
 | 2026-08-10 | Contas · Extrato polish implementation | §6.3 Contas · Extrato | Filter pills (Todos/Sinalizados/Entradas/Saídas), category on the row, a flag icon, and account-grouped section headers (member dot + masked number) shipped, filtering client-side against the already-fetched period batch. Parcela counter/filter, the row-tap detail sheet (recategorize/split/flag), and CSV/PDF export stay explicitly deferred — confirmed real backend gaps (no parcela columns, zero transaction-mutation endpoints, no institution data persisted, no export infra), not implementation shortcuts. See `PLAN.md`'s Milestone 12 "Contas · Extrato polish" entry for what landed and the manual QA pass. |
+| 2026-08-10 | Rest of §6a Web layout implementation | §6a Grid, What relaxes (Chart + breakdown row), Screen inventory | Reconciled a self-acknowledged inconsistency: `household_shell.dart` and `dashboard_view.dart` each had their own independent width breakpoint (1024 vs. 720). Both now share one `kWideBreakpoint` (1024, matching this section's own Grid number) and one `AppGridPage` wrapper (max-width 1280, 24px/16px responsive page padding) applied to all 4 tab screens. Análises · Gastos's chart+category-list side-by-side split shipped net-new. Six-column Extrato table and the right-side panel stay deferred — confirmed real prerequisites missing (internal-transfer detection for the table's "Interna" tag; zero drill-down precedent or tappable rows anywhere for the panel). See `PLAN.md`'s Milestone 12 "Rest of §6a Web layout" entry for what landed, a nested-breakpoint interaction found during testing (page padding can narrow a screen's own content below a breakpoint even when the outer viewport is past it), and the manual QA pass. |
 
 ## Vision & Principles
 
@@ -384,6 +385,8 @@ Auth screens (login/register/invite) — not in scope. Onboarding/account-linkin
 Mobile and web are the same concept under a different constraint: mobile's rule is *one thing visible*, web's is *one thing dominant* — hierarchy through size/position, not hiding. Tokens, hues, type scale, mono-for-money, no budgets, no success color, every suppression disclosed: all identical between platforms.
 
 ### Grid
+**Implemented (2026-08-10)** — max-width and page-padding via a shared `AppGridPage` wrapper on all 4 tab screens; the 1024px collapse threshold is now one shared `kWideBreakpoint` constant used everywhere (previously two independent, inconsistent breakpoints — see `PLAN.md`'s Milestone 12 "Rest of §6a Web layout" entry). The 12-column concept itself isn't implemented as a literal grid anywhere (no screen yet needs more than a 2-way split), so that part stays notional rather than a built `GridView`.
+
 Max container `1280px`, page padding `24px`, 12 columns, `24px` gutters. Below `1024px`, collapse to the mobile single-column stack.
 
 ### Navigation shifts to a top bar
@@ -396,9 +399,9 @@ Top bar replaces the bottom bar: brand mark · `Início · Contas · Análises �
 |---|---|---|
 | Time buckets | ~12 max | 12-24 comfortably, wider chart |
 | Categories shown | Top 5 + Outros | All of them, taller list |
-| Chart + breakdown | Stacked vertically, scroll required | Side by side, ~2:1 |
-| Transaction rows | Two-line card | Six-column table: Data · Descrição · Membro · Conta · Categoria · Valor |
-| Drill-down | Bottom sheet | Right-side panel — list stays visible behind it |
+| Chart + breakdown | Stacked vertically, scroll required | **Implemented (2026-08-10)** for Análises · Gastos — side by side, chart:list flex 2:1 (design.md doesn't say which side gets the larger share; this reads "chart + breakdown... ~2:1" in that order). Início's existing side-by-side split now shares the same breakpoint. Análises · Fluxo/Investimentos untouched (see Screen inventory). |
+| Transaction rows | Two-line card | **Deferred** — Six-column table: Data · Descrição · Membro · Conta · Categoria · Valor. Depends on internal-transfer detection (for the "Interna" muted tag) that doesn't exist anywhere in the backend yet — see `PLAN.md`'s "Rest of §6a Web layout" entry. |
+| Drill-down | Bottom sheet | **Deferred** — Right-side panel, list stays visible behind it. Zero precedent in the frontend and no row anywhere has a tap handler to convert yet — net-new infrastructure plus at least one new detail-view screen, not attempted this pass. |
 
 ### What does not relax
 4px minimum segment, 3% Outros threshold, same pixels-per-dollar, four-legend-entry test — perceptual limits, not spatial ones.
@@ -412,7 +415,8 @@ Top bar replaces the bottom bar: brand mark · `Início · Contas · Análises �
 
 ### Screen inventory — delivered vs. still needed
 **Delivered** (per the handoff doc, rebuilt in `web-mockups.html`): Início (dashboard, side-by-side cards), Contas·Extrato (table), Análises·Gastos (chart+category list side by side).
-**Still needed**: Análises·Fluxo and ·Investimentos on the web grid, Família, the right-side panel pattern itself, the LGPD consent screen.
+**Delivered in this app's real code (2026-08-10)**: the shared Grid wrapper (max-width/padding) on all 4 tab screens; Início's side-by-side split (pre-existing, now on the corrected shared breakpoint); Análises·Gastos's chart+category-list side-by-side split (net-new this pass); Família now gets the Grid wrapper too, though with no multi-column card arrangement (none is spec'd for this screen).
+**Still needed**: Análises·Fluxo and ·Investimentos have no web-specific layout of their own (Investimentos is separately flagged in-code as intentionally unstyled); the six-column Extrato table and the right-side panel pattern itself remain deferred (see "What relaxes" above — both depend on bigger, unbuilt prerequisites, not just layout work); the LGPD consent screen (undesigned, separate item).
 
 ## Chart Library Decision — **Resolved: stay on `fl_chart`**
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/theme/app_colors.dart';
+import '../core/theme/app_layout.dart';
 import '../core/theme/app_spacing.dart';
 import '../data/repositories/household_repository.dart';
 import '../data/scope_controller.dart';
@@ -34,10 +35,12 @@ class HouseholdScope extends InheritedNotifier<ScopeController> {
 /// the period row at the shell level (their own sub-segments decide it
 /// locally; see [HouseholdScope]'s doc comment).
 ///
-/// Responsive per `design.md`'s Web section (6a): below [_wideBreakpoint]
-/// (1024px, matching the Grid section's own number) this renders the mobile
-/// bottom-nav pattern unchanged; at or above it, the bottom [NavigationBar]
-/// is replaced by a [TopBarNav] strip (brand · inline nav · period pill),
+/// Responsive per `design.md`'s Web section (6a): below [kWideBreakpoint]
+/// (1024px, matching the Grid section's own number — the single shared
+/// constant every wide/narrow layout branch in the app now uses) this
+/// renders the mobile bottom-nav pattern unchanged; at or above it, the
+/// bottom [NavigationBar] is replaced by a [TopBarNav] strip (brand ·
+/// inline nav · period pill),
 /// with member chips in their own strip beneath, per spec order.
 ///
 /// Known simplification: each of the 4 tab screens still renders its own
@@ -76,8 +79,6 @@ const _showsMembers = {0: true, 1: true, 2: true, 3: false};
 /// bottom-nav-vs-top-bar switch. Distinct from `dashboard_view.dart`'s
 /// unrelated `_wideLayoutBreakpoint` (720px), which splits that one
 /// screen's own content into two columns, not shell-level nav.
-const _wideBreakpoint = 1024.0;
-
 class _NavDestinationSpec {
   const _NavDestinationSpec({required this.icon, required this.selectedIcon, required this.label});
 
@@ -140,7 +141,7 @@ class _HouseholdShellState extends State<HouseholdShell> {
       controller: _scopeController,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final isWide = constraints.maxWidth >= _wideBreakpoint;
+          final isWide = constraints.maxWidth >= kWideBreakpoint;
 
           return Scaffold(
             body: Column(

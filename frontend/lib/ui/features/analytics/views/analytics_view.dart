@@ -6,6 +6,8 @@ import '../../../../data/repositories/dashboard_repository.dart';
 import '../../../../data/repositories/extended_finance_repository.dart';
 import '../../../../data/scope_controller.dart';
 import '../../../core/formatting/money.dart';
+import '../../../../core/theme/app_layout.dart';
+import '../../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/error_banner.dart';
 import '../../../core/widgets/loading_state.dart';
@@ -115,8 +117,7 @@ class _AnalyticsViewState extends State<AnalyticsView> {
 
           return RefreshIndicator(
             onRefresh: () async => _reload(),
-            child: ListView(
-              padding: const EdgeInsets.all(16),
+            child: AppGridPage(
               children: [
                 ErrorBanner(message: _dashboardViewModel.errorMessage),
                 ErrorBanner(message: _financesViewModel.errorMessage),
@@ -166,11 +167,10 @@ class _SpendingSection extends StatelessWidget {
     );
     final categories = financesViewModel.categories;
 
-    return Column(
+    final chart = chartData.isEmpty ? const SizedBox.shrink() : MonthlySpendChart(data: chartData);
+    final categoryList = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (!chartData.isEmpty) MonthlySpendChart(data: chartData),
-        const SizedBox(height: 24),
         Text('Por categoria', style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 8),
         if (categories.isEmpty)
@@ -178,6 +178,29 @@ class _SpendingSection extends StatelessWidget {
         else
           for (final item in categories) _CategoryRow(item: item),
       ],
+    );
+
+    // §6a's "chart + breakdown" relaxation: stacked (mobile) below the
+    // shared wide breakpoint, side by side (~2:1, chart:list) at/above it —
+    // design.md doesn't say which side gets the larger share; this reads
+    // "chart + breakdown... ~2:1" in that order, chart first.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth >= kWideBreakpoint) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(flex: 2, child: chart),
+              const SizedBox(width: AppSpacing.xl),
+              Expanded(flex: 1, child: categoryList),
+            ],
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [chart, const SizedBox(height: 24), categoryList],
+        );
+      },
     );
   }
 }

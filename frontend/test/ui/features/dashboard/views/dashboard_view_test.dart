@@ -237,6 +237,60 @@ void main() {
     expect(find.text(formatMoney(1500, 'BRL')), findsOneWidget);
     expect(find.textContaining('de 2 contas atualizadas'), findsOneWidget);
   });
+
+  testWidgets('stays stacked at a width between the old (720) and corrected (1024) breakpoint', (
+    tester,
+  ) async {
+    // Regression guard: Início's two-column split used to key off its own
+    // local 720px breakpoint, independent of household_shell.dart's 1024px
+    // nav breakpoint. It now shares the same kWideBreakpoint (1024) — a
+    // width in the 720-1023 range must show the mobile stacked layout,
+    // not two columns like it would have before this fix.
+    tester.view.physicalSize = const Size(800, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final backendService = _PopulatedBackendService();
+    final (dashboardRepository, financeRepository, anomalyRepository) = await buildRepositories(
+      backendService,
+    );
+    final scope = ScopeController(householdId: 'household-1');
+    scope.setMembers([
+      HouseholdMember(
+        id: 'member-a',
+        appUserId: 'au-a',
+        email: 'a@example.com',
+        role: 'owner',
+        createdAt: DateTime(2026, 1, 1),
+      ),
+    ]);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HouseholdScope(
+          controller: scope,
+          child: DashboardView(
+            dashboardRepository: dashboardRepository,
+            financeRepository: financeRepository,
+            anomalyRepository: anomalyRepository,
+            householdId: 'household-1',
+            householdName: 'Test Family',
+            onManageConnections: () {},
+            onViewFinances: () {},
+            onViewAnomalies: () {},
+            onManageMembers: () {},
+            onOpenAssistant: () {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final heroTop = tester.getTopLeft(find.text('Gastos do mês')).dy;
+    final transactionsTop = tester.getTopLeft(find.text('Movimentações recentes')).dy;
+    expect(transactionsTop, greaterThan(heroTop));
+  });
 }
 
 class _PopulatedBackendService extends BackendApiService {

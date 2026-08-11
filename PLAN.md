@@ -2046,6 +2046,80 @@ against a real target):
   outside the current month's window — expected, not a bug); toggled
   `Entradas` and confirmed it correctly narrowed to the one real income
   transaction under its own account group.
+* **Rest of §6a Web layout (2026-08-10)**: scoped down from the full
+  section on purpose after research confirmed real, larger gaps for two
+  pieces of it — the six-column Extrato table depends on internal-
+  transfer detection/netting for its "Interna" muted tag, and that
+  detection doesn't exist anywhere in the backend (confirmed by a full
+  grep — no `is_transfer` field, no netting logic anywhere), which
+  `design.md`'s own Data Model section calls "the single most important
+  correctness rule in the app"; the right-side drill-down panel has zero
+  precedent anywhere in the frontend and **no existing row has a tap
+  handler to convert** (Extrato rows, recent-transaction rows, category
+  rows, anomaly rows are all confirmed inert today) — building it is
+  100% new infrastructure plus at least one new detail-view screen, not
+  a layout pass. Both stay explicitly deferred, alongside Análises·
+  Investimentos (already flagged in-code as intentionally unstyled) and
+  ·Fluxo (no second panel to lay out against yet).
+
+  What shipped: research also surfaced a real, self-acknowledged
+  inconsistency — `household_shell.dart`'s nav breakpoint (1024px,
+  matching §6a's own Grid section) and `dashboard_view.dart`'s separate
+  two-column breakpoint (720px, arbitrary, never reconciled) disagreed
+  with each other, confirmed via a full breakpoint audit (grepped every
+  `LayoutBuilder`/`constraints.maxWidth` use in the frontend — exactly
+  these two existed, nothing else had any width branching at all). New
+  `frontend/lib/core/theme/app_layout.dart`: one shared `kWideBreakpoint`
+  (1024) and `kMaxContentWidth` (1280) constant, plus `AppGridPage` — a
+  near-drop-in replacement for each tab screen's `ListView(padding: ...,
+  children: [...])` (same `children:` shape) applying §6a's Grid section
+  literally: centered, capped at 1280px, 24px page padding
+  (`AppSpacing.xl`, already existed) at/above the breakpoint vs. the
+  existing mobile 16px (`AppSpacing.lg`) below it. Verified it nests
+  correctly under the existing `RefreshIndicator` wrapping (`Center`/
+  `ConstrainedBox` introduce no new scroll boundary). `household_shell.
+  dart` and `dashboard_view.dart` both now import this instead of their
+  own local constant — `dashboard_view.dart`'s change is a real,
+  spec-driven correction, not just a rename: Início's two-column split
+  now only kicks in at 1024px, not 720px, closing a real (if narrow)
+  regression window where the two shell-level and content-level
+  breakpoints used to disagree. `AccountsView`/`AnalyticsView`/
+  `FamilyView` all adopted the same wrapper. Análises·Gastos gained a
+  real side-by-side split (chart:list flex 2:1 — `design.md` doesn't say
+  which side gets the larger share, so this reads "chart + breakdown...
+  ~2:1" in that literal order) via its own `LayoutBuilder`, stacked
+  unchanged below the breakpoint. Small consolidation caught during
+  research: a 10×10 colored-square "member dot" was hand-rolled
+  identically at 2 call sites in `accounts_view.dart` (not 3 — the
+  research's initial count included `family_view.dart`'s usage, which
+  turned out to already go through the existing, different
+  `ConnectionHealthRow` circular status-dot component, not a duplicated
+  inline `Container`) — extracted into a new shared `MemberDot` widget.
+
+  A real nested-breakpoint interaction was caught while writing the
+  side-by-side test: `AppGridPage`'s own 24px-per-side page padding
+  narrows the content width a screen's *own* `LayoutBuilder` actually
+  sees, so a viewport of exactly `kWideBreakpoint` can still read as
+  narrow one level down (1024 viewport − 48px padding = 976, under the
+  threshold) — the first test attempt failed against exactly this,
+  fixed by testing at a width comfortably past the padding-eaten dead
+  zone (kWideBreakpoint + 200) rather than right at the boundary. Judged
+  an acceptable, narrow (~48px) edge case rather than a bug worth
+  re-architecting around. Backend: none touched, this pass is frontend-
+  only. `flutter test` 190/190 (9 new: `AppGridPage` padding/max-width
+  behavior, `MemberDot` rendering, Análises·Gastos stacked-vs-side-by-
+  side at both widths, a dedicated regression test for the corrected
+  breakpoint at a width between 720-1024 that must now stay stacked),
+  `flutter analyze` clean. **Manual browser QA run 2026-08-10** against
+  the QA Test Household at four viewport widths: 400px (mobile, bottom
+  nav, unchanged); 850px, the old 720-1024 "dead zone" (confirmed Início
+  now correctly stays stacked, where it would have shown two columns
+  before this fix); 1280px (top bar, Início two-column, 24px padding);
+  1440px (confirmed the 1280px max-width clamp actually centers content
+  with visible margins on both sides, not just stretching it) — and
+  confirmed Análises·Gastos renders the chart and category list side by
+  side, and Família renders correctly inside the Grid wrapper with no
+  crash and no multi-column card layout invented for it.
 
 ---
 

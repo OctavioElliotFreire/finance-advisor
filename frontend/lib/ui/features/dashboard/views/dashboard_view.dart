@@ -12,14 +12,13 @@ import '../../../../data/repositories/extended_finance_repository.dart';
 import '../../../../data/scope_controller.dart';
 import '../../../core/formatting/money.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_layout.dart';
 import '../../../core/widgets/error_banner.dart';
 import '../../../core/widgets/loading_state.dart';
 import '../view_models/dashboard_view_model.dart';
 import '../widgets/cash_flow_chart.dart';
 import '../widgets/cash_flow_chart_data.dart';
 import '../widgets/dashboard_summary_data.dart';
-
-const _wideLayoutBreakpoint = 720.0;
 
 /// Início — "are we okay this month?" per `design.md`'s §6.1. Full rebuild
 /// replacing the old Saldo-total-card/cash-flow/recent-transactions
@@ -174,8 +173,7 @@ class _DashboardViewState extends State<DashboardView> {
 
               return RefreshIndicator(
                 onRefresh: () async => _reload(),
-                child: ListView(
-                  padding: const EdgeInsets.all(16),
+                child: AppGridPage(
                   children: [
                     ErrorBanner(message: _viewModel.errorMessage),
                     if (dashboard == null && !_viewModel.isLoading)
@@ -226,7 +224,7 @@ class _DashboardBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isWide = constraints.maxWidth >= _wideLayoutBreakpoint;
+        final isWide = constraints.maxWidth >= kWideBreakpoint;
 
         final primary = Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
